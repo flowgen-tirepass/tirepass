@@ -5,12 +5,8 @@ class Goods(models.Model):
     code = models.CharField(max_length=20, primary_key=True, verbose_name='상품코드', db_column='CODE')
     name = models.CharField(max_length=100, verbose_name='상품명', db_column='NAME')
     bun1 = models.CharField(max_length=50, null=True, blank=True, verbose_name='브랜드', db_column='BUN1')
-    brand = models.CharField(max_length=50, null=True, blank=True, verbose_name='추출브랜드', db_column='brand')
-    is_tire = models.BooleanField(default=False, verbose_name='타이어여부', db_column='is_tire')
     jaego = models.IntegerField(default=0, verbose_name='재고수량', db_column='JAEGO')
     fixp = models.BigIntegerField(default=0, verbose_name='고정가격', db_column='FIXP')
-    discount_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name='기본할인율(%)', db_column='discount_rate')
-    last_sync = models.DateTimeField(auto_now=True, verbose_name='최종동기화', db_column='LAST_SYNC')
 
     class Meta:
         db_table = 'goods'
@@ -21,6 +17,21 @@ class Goods(models.Model):
 
     def __str__(self):
         return f"{self.code} - {self.name}"
+
+    @property
+    def brand(self):
+        """브랜드 추출 (코드에서)"""
+        return self.extracted_brand
+
+    @property
+    def is_tire(self):
+        """타이어 여부"""
+        return self.check_is_tire()
+
+    @property
+    def discount_rate(self):
+        """기본 할인율 (기본값 0)"""
+        return 0.00
 
     @property
     def formatted_price(self):
