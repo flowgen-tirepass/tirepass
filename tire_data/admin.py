@@ -10,7 +10,7 @@ from .models import (
 )
 
 class IsTireFilter(admin.SimpleListFilter):
-    """타이어 여부 필터"""
+    """타이어 여부 필터 (브랜드 기반)"""
     title = '타이어여부'
     parameter_name = 'is_tire'
 
@@ -21,33 +21,40 @@ class IsTireFilter(admin.SimpleListFilter):
         )
 
     def queryset(self, request, queryset):
+        # 타이어 브랜드 패턴
+        tire_patterns = ['K-', 'H-', 'M-', 'N-', 'P-', 'BS-', 'CT-', 'D-', 'Y-', 'F-', 'T-', 'G-', 'BFG']
+
         if self.value() == '1':
-            return queryset.filter(is_tire=True)
+            # 타이어 코드 패턴으로 시작하는 상품만
+            q_filter = Q()
+            for pattern in tire_patterns:
+                q_filter |= Q(code__istartswith=pattern)
+            return queryset.filter(q_filter)
         if self.value() == '0':
-            return queryset.filter(is_tire=False)
+            # 타이어가 아닌 상품
+            q_filter = Q()
+            for pattern in tire_patterns:
+                q_filter |= Q(code__istartswith=pattern)
+            return queryset.exclude(q_filter)
         return queryset
 
 @admin.register(Goods)
 class GoodsAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'bun1', 'is_tire_display', 'jaego', 'fixp', 'discount_rate', 'last_sync']
+    list_display = ['code', 'name', 'bun1', 'is_tire_display', 'jaego', 'fixp']
     list_filter = [IsTireFilter, 'bun1']
     search_fields = ['code', 'name', 'bun1']
-    readonly_fields = ['last_sync']
-    list_editable = ['discount_rate']
+    readonly_fields = ['code']  # 상품코드는 읽기 전용
     list_per_page = 50
 
     fieldsets = (
         ('기본 정보', {
-            'fields': ('code', 'name', 'bun1', 'is_tire')
+            'fields': ('code', 'name', 'bun1')
         }),
         ('재고 및 가격', {
             'fields': ('jaego', 'fixp')
         }),
-        ('할인 설정', {
-            'fields': ('discount_rate',)
-        }),
         ('시스템 정보', {
-            'fields': ('last_sync',),
+            'fields': (),
             'classes': ('collapse',)
         }),
     )
