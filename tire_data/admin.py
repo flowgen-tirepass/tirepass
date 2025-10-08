@@ -9,39 +9,10 @@ from .models import (
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment
 )
 
-class IsTireFilter(admin.SimpleListFilter):
-    """타이어 여부 필터 (브랜드 기반)"""
-    title = '타이어여부'
-    parameter_name = 'is_tire'
-
-    def lookups(self, request, model_admin):
-        return (
-            ('1', '예 (타이어)'),
-            ('0', '아니오 (기타상품)'),
-        )
-
-    def queryset(self, request, queryset):
-        # 타이어 브랜드 패턴
-        tire_patterns = ['K-', 'H-', 'M-', 'N-', 'P-', 'BS-', 'CT-', 'D-', 'Y-', 'F-', 'T-', 'G-', 'BFG']
-
-        if self.value() == '1':
-            # 타이어 코드 패턴으로 시작하는 상품만
-            q_filter = Q()
-            for pattern in tire_patterns:
-                q_filter |= Q(code__istartswith=pattern)
-            return queryset.filter(q_filter)
-        if self.value() == '0':
-            # 타이어가 아닌 상품
-            q_filter = Q()
-            for pattern in tire_patterns:
-                q_filter |= Q(code__istartswith=pattern)
-            return queryset.exclude(q_filter)
-        return queryset
-
 @admin.register(Goods)
 class GoodsAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'bun1', 'is_tire_display', 'jaego', 'fixp']
-    list_filter = [IsTireFilter, 'bun1']
+    list_display = ['code', 'name', 'bun1', 'jaego', 'fixp']
+    list_filter = ['bun1']
     search_fields = ['code', 'name', 'bun1']
     readonly_fields = ['code']  # 상품코드는 읽기 전용
     list_per_page = 50
@@ -58,20 +29,6 @@ class GoodsAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-
-    def get_ordering(self, request):
-        """
-        정렬 순서: 타이어(is_tire=1) 먼저, ZY 코드 상품은 제일 마지막
-        """
-        return ['-is_tire', 'code']
-
-    def is_tire_display(self, obj):
-        """타이어 여부를 명확하게 표시"""
-        if obj.is_tire:
-            return '타이어'
-        return '기타상품'
-    is_tire_display.short_description = '타이어여부'
-    is_tire_display.admin_order_field = 'is_tire'
 
     def get_search_results(self, request, queryset, search_term):
         """
