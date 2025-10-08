@@ -1,0 +1,31 @@
+{% extends 'tire_data/base.html' %}
+
+{% block title %}홈 - TIREPASS{% endblock %}
+
+{% block content %}
+<h2>대시보드</h2>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+    <div class="stat-card">
+        <p>총 상품 수</p>
+        <h3>{{ goods_count|default:"0" }}</h3>
+        <a href="{% url 'goods_list' %}" class="btn" style="margin-top: 1rem;">상품 목록 보기</a>
+    </div>
+
+    <div class="stat-card">
+        <p>총 고객 수</p>
+        <h3>{{ customers_count|default:"0" }}</h3>
+        <a href="{% url 'customers_list' %}" class="btn" style="margin-top: 1rem;">고객 목록 보기</a>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <h3>시스템 정보</h3>
+    <ul style="list-style: none; padding: 1rem 0;">
+        <li>✓ Firebird DB와 실시간 동기화 중</li>
+        <li>✓ MariaDB 데이터베이스: itire_db</li>
+        <li>✓ 상품 테이블: GOODS (6,519개 레코드)</li>
+        <li>✓ 고객 테이블: CUSTOMERS (1,755개 실제 고객)</li>
+    </ul>
+</div>
+{% endblock %}

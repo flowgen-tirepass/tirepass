@@ -1,0 +1,1325 @@
+"""
+모바일 API 뷰
+"""
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import make_password, check_password
+from django.db.models import Q
+from django.utils import timezone
+import json
+import secrets
+import re
+
+from .models import Goods, Customers, ShoppingCart, Order, OrderItem, Payment
+from .utils import calculate_discount_price, generate_order_number, update_stock
+
+
+# ============================================
+# API 인덱스
+# ============================================
+
+@require_http_methods(["GET"])
+def api_index(request):
+    """모바일 API 인덱스 - 사용 가능한 엔드포인트 목록"""
+    return JsonResponse({
+        'success': True,
+        'message': 'TirePASS Mobile API',
+        'version': '1.0',
+        'endpoints': {
+            '상품 API': {
+                'GET /api/mobile/products/': '상품 목록 조회',
+                'GET /api/mobile/products/<code>/': '상품 상세 조회',
+            },
+            '장바구니 API': {
+                'GET /api/mobile/cart/': '장바구니 조회',
+                'POST /api/mobile/cart/add/': '장바구니 담기',
+                'POST /api/mobile/cart/<id>/update/': '장바구니 수량 수정',
+                'DELETE /api/mobile/cart/<id>/remove/': '장바구니 삭제',
+            },
+            '주문 API': {
+                'GET /api/mobile/orders/': '주문 목록 조회',
+                'POST /api/mobile/orders/create/': '주문 생성',
+                'GET /api/mobile/orders/<id>/': '주문 상세 조회',
+            },
+            '가격 계산 API': {
+                'GET /api/mobile/calculate-price/': '가격 계산',
+            },
+            '인증 API': {
+                'POST /api/mobile/auth/register/': '회원가입',
+                'POST /api/mobile/auth/login/': '로그인',
+                'POST /api/mobile/auth/logout/': '로그아웃',
+                'GET /api/mobile/auth/profile/': '프로필 조회',
+            },
+            '결제 API (토스페이먼츠)': {
+                'POST /api/mobile/payment/prepare/': '결제 준비 (주문 생성)',
+                'POST /api/mobile/payment/confirm/': '결제 승인',
+                'POST /api/mobile/payment/cancel/': '결제 취소',
+                'GET /api/mobile/payment/status/<payment_key>/': '결제 상태 조회',
+            }
+        },
+        'documentation': 'http://localhost:8080/api/mobile/docs/'
+    })
+
+
+# ============================================
+# 상품 API
+# ============================================
+
+@require_http_methods(["GET"])
+def api_products_list(request):
+    """
+    상품 목록 조회 API
+
+    Query Parameters:
+        - search: 검색어 (상품명, 코드)
+        - brand: 단일 브랜드 필터
+        - brands: 다중 브랜드 필터 (쉼표로 구분, 예: KUMHO,NEXEN,MICHELIN)
+        - tire_only: 타이어만 보기 (1/0)
+        - in_stock: 재고 있는 상품만 (1/0)
+        - page: 페이지 번호 (기본값: 1)
+        - page_size: 페이지 크기 (기본값: 20)
+    """
+    # 파라미터 추출
+    search = request.GET.get('search', '')
+    brand = request.GET.get('brand', '')
+    brands = request.GET.get('brands', '')  # 다중 브랜드 (쉼표로 구분)
+    tire_only = request.GET.get('tire_only', '0') == '1'
+    in_stock = request.GET.get('in_stock', '1') == '1'  # 기본값: 재고 있는 것만
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 20))
+
+    # 기본 쿼리셋
+    products = Goods.objects.filter(is_tire=True) if tire_only else Goods.objects.all()
+
+    # 재고 필터
+    if in_stock:
+        products = products.filter(jaego__gt=0)
+
+    # 검색
+    if search:
+        # 기본 검색 (코드, 상품명, 브랜드)
+        q_filter = Q(code__icontains=search) | Q(name__icontains=search) | Q(bun1__icontains=search)
+
+        # 숫자만 추출하여 타이어 사이즈 패턴 검색
+        numeric_only = re.sub(r'[^0-9]', '', search)
+        if len(numeric_only) >= 6:
+            # 타이어 사이즈 패턴 생성 (예: 2055516 -> 205/55R16)
+            width = numeric_only[:3]
+            aspect = numeric_only[3:5]
+
+            # 나머지 숫자를 인치로 사용
+            if len(numeric_only) >= 7:
+                rim = numeric_only[5:7]
+            else:
+                rim = numeric_only[5:]
+
+            # 다양한 패턴으로 검색
+            patterns = [
+                f"{width}/{aspect}R{rim}",
+                f"{width}/{aspect}/{rim}",
+                f"{width}-{aspect}-{rim}",
+                f"{width} {aspect} {rim}",
+                f"{width}/{aspect}r{rim}",  # 소문자 r
+            ]
+
+            # 패턴 추가
+            for pattern in patterns:
+                q_filter |= Q(name__icontains=pattern)
+
+        products = products.filter(q_filter)
+
+    # 브랜드 필터
+    if brands:
+        # 다중 브랜드 검색 (교차 정렬)
+        brand_list = [b.strip().upper() for b in brands.split(',') if b.strip()]
+
+        if len(brand_list) > 0:
+            # 각 브랜드별로 상품 조회 (재고 많은 순 + 가격 높은 순)
+            brand_products = []
+
+            for brand_name in brand_list:
+                brand_items = products.filter(bun1=brand_name).order_by('-jaego', '-fixp')
+                brand_products.append(list(brand_items))
+
+            # 브랜드별로 1개씩 교차 출력
+            interleaved_products = []
+            max_len = max([len(bp) for bp in brand_products]) if brand_products else 0
+
+            for i in range(max_len):
+                for brand_items in brand_products:
+                    if i < len(brand_items):
+                        if brand_items[i] not in interleaved_products:
+                            interleaved_products.append(brand_items[i])
+
+            # 페이지네이션
+            total_count = len(interleaved_products)
+            start = (page - 1) * page_size
+            end = start + page_size
+            products_page = interleaved_products[start:end]
+        else:
+            # 일반 정렬
+            products = products.order_by('-jaego', '-fixp')
+            total_count = products.count()
+            start = (page - 1) * page_size
+            end = start + page_size
+            products_page = products[start:end]
+
+    elif brand:
+        # 단일 브랜드 필터
+        products = products.filter(bun1=brand).order_by('-jaego', '-fixp')
+        total_count = products.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        products_page = products[start:end]
+
+    else:
+        # 브랜드 필터 없음 - 일반 정렬
+        products = products.order_by('-is_tire', '-jaego', 'code')
+        total_count = products.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        products_page = products[start:end]
+
+    # 결과 구성
+    result = {
+        'success': True,
+        'data': {
+            'products': [
+                {
+                    'code': p.code,
+                    'name': p.name,
+                    'brand': p.bun1 or '',
+                    'price': p.fixp,
+                    'discount_rate': float(p.discount_rate),
+                    'stock': p.jaego,
+                    'is_tire': p.is_tire,
+                }
+                for p in products_page
+            ],
+            'total_count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total_count + page_size - 1) // page_size
+        }
+    }
+
+    return JsonResponse(result)
+
+
+@require_http_methods(["GET"])
+def api_product_detail(request, code):
+    """
+    상품 상세 조회 API (가격 계산 포함)
+
+    Query Parameters:
+        - customer_code: 고객 코드 (할인 계산용, 필수)
+        - selected_year: 선택한 제조년도 (옵션)
+    """
+    customer_code = request.GET.get('customer_code')
+
+    if not customer_code:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 코드가 필요합니다.'
+        }, status=400)
+
+    try:
+        product = Goods.objects.get(code=code)
+    except Goods.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '상품을 찾을 수 없습니다.'
+        }, status=404)
+
+    # 가격 계산
+    selected_year = request.GET.get('selected_year')
+    if selected_year:
+        selected_year = int(selected_year)
+
+    price_info = calculate_discount_price(
+        product_code=code,
+        customer_code=customer_code,
+        selected_year=selected_year
+    )
+
+    result = {
+        'success': True,
+        'data': {
+            'code': product.code,
+            'name': product.name,
+            'brand': product.bun1 or '',
+            'price': product.fixp,
+            'stock': product.jaego,
+            'is_tire': product.is_tire,
+            'price_info': {
+                'unit_price': price_info['unit_price'],
+                'basic_discount_rate': float(price_info['basic_discount_rate']),
+                'customer_discount_rate': float(price_info['customer_discount_rate']),
+                'additional_discount_rate': float(price_info['additional_discount_rate']),
+                'dot_discount_rate': float(price_info['dot_discount_rate']),
+                'total_discount_rate': float(price_info['total_discount_rate']),
+                'discounted_price': price_info['discounted_price'],
+                'available_years': price_info['available_years']
+            }
+        }
+    }
+
+    return JsonResponse(result)
+
+
+# ============================================
+# 장바구니 API
+# ============================================
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_cart_list(request):
+    """장바구니 조회 API"""
+    customer_code = request.GET.get('customer_code')
+
+    if not customer_code:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 코드가 필요합니다.'
+        }, status=400)
+
+    carts = ShoppingCart.objects.filter(customer_code=customer_code).order_by('-created_at')
+
+    result = {
+        'success': True,
+        'data': {
+            'items': [
+                {
+                    'id': cart.id,
+                    'product_code': cart.product_code,
+                    'product_name': cart.product_name,
+                    'quantity': cart.quantity,
+                    'selected_year': cart.selected_year,
+                    'unit_price': cart.unit_price,
+                    'discount_rate': float(cart.discount_rate),
+                    'final_price': cart.final_price,
+                }
+                for cart in carts
+            ],
+            'total_price': sum(cart.final_price for cart in carts)
+        }
+    }
+
+    return JsonResponse(result)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_cart_add(request):
+    """장바구니 담기 API"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': '잘못된 JSON 형식입니다.'
+        }, status=400)
+
+    customer_code = data.get('customer_code')
+    product_code = data.get('product_code')
+    quantity = data.get('quantity', 1)
+    selected_year = data.get('selected_year')
+
+    if not customer_code or not product_code:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 코드와 상품 코드가 필요합니다.'
+        }, status=400)
+
+    # 가격 계산
+    price_info = calculate_discount_price(
+        product_code=product_code,
+        customer_code=customer_code,
+        selected_year=selected_year,
+        quantity=quantity
+    )
+
+    # 장바구니에 추가 또는 업데이트
+    cart, created = ShoppingCart.objects.update_or_create(
+        customer_code=customer_code,
+        product_code=product_code,
+        selected_year=selected_year,
+        defaults={
+            'quantity': quantity,
+            'unit_price': price_info['unit_price'],
+            'discount_rate': price_info['total_discount_rate'],
+            'final_price': price_info['final_price']
+        }
+    )
+
+    return JsonResponse({
+        'success': True,
+        'message': '장바구니에 추가되었습니다.' if created else '장바구니가 업데이트되었습니다.',
+        'data': {
+            'cart_id': cart.id,
+            'quantity': cart.quantity
+        }
+    })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_cart_update(request, cart_id):
+    """장바구니 수량 수정 API"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': '잘못된 JSON 형식입니다.'
+        }, status=400)
+
+    quantity = data.get('quantity', 1)
+
+    try:
+        cart = ShoppingCart.objects.get(id=cart_id)
+    except ShoppingCart.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '장바구니 항목을 찾을 수 없습니다.'
+        }, status=404)
+
+    # 가격 재계산
+    price_info = calculate_discount_price(
+        product_code=cart.product_code,
+        customer_code=cart.customer_code,
+        selected_year=cart.selected_year,
+        quantity=quantity
+    )
+
+    cart.quantity = quantity
+    cart.final_price = price_info['final_price']
+    cart.save()
+
+    return JsonResponse({
+        'success': True,
+        'message': '수량이 업데이트되었습니다.',
+        'data': {
+            'quantity': cart.quantity,
+            'final_price': cart.final_price
+        }
+    })
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def api_cart_remove(request, cart_id):
+    """장바구니 항목 삭제 API"""
+    try:
+        cart = ShoppingCart.objects.get(id=cart_id)
+        cart.delete()
+        return JsonResponse({
+            'success': True,
+            'message': '장바구니에서 삭제되었습니다.'
+        })
+    except ShoppingCart.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '장바구니 항목을 찾을 수 없습니다.'
+        }, status=404)
+
+
+# ============================================
+# 주문 API
+# ============================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_order_create(request):
+    """주문 생성 API"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': '잘못된 JSON 형식입니다.'
+        }, status=400)
+
+    customer_code = data.get('customer_code')
+    cart_ids = data.get('cart_ids', [])  # 주문할 장바구니 항목 ID 목록
+    shipping_address = data.get('shipping_address', '')
+    shipping_memo = data.get('shipping_memo', '')
+    payment_method = data.get('payment_method', 'transfer')
+
+    if not customer_code or not cart_ids:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 코드와 장바구니 항목이 필요합니다.'
+        }, status=400)
+
+    # 고객 정보 조회
+    try:
+        customer = Customers.objects.get(code=customer_code)
+    except Customers.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '고객을 찾을 수 없습니다.'
+        }, status=404)
+
+    # 장바구니 항목 조회
+    carts = ShoppingCart.objects.filter(id__in=cart_ids, customer_code=customer_code)
+
+    if not carts.exists():
+        return JsonResponse({
+            'success': False,
+            'message': '장바구니 항목을 찾을 수 없습니다.'
+        }, status=404)
+
+    # 주문 생성
+    order_number = generate_order_number()
+    total_amount = sum(cart.unit_price * cart.quantity for cart in carts)
+    final_amount = sum(cart.final_price for cart in carts)
+    total_discount = total_amount - final_amount
+
+    order = Order.objects.create(
+        order_number=order_number,
+        customer_code=customer_code,
+        customer_name=customer.name,
+        total_amount=total_amount,
+        total_discount=total_discount,
+        final_amount=final_amount,
+        payment_method=payment_method,
+        shipping_address=shipping_address,
+        shipping_memo=shipping_memo,
+        order_status='pending',
+        payment_status='unpaid'
+    )
+
+    # 주문 상세 생성 및 재고 차감
+    for cart in carts:
+        # 가격 정보 재계산
+        price_info = calculate_discount_price(
+            product_code=cart.product_code,
+            customer_code=customer_code,
+            selected_year=cart.selected_year,
+            quantity=cart.quantity
+        )
+
+        OrderItem.objects.create(
+            order=order,
+            product_code=cart.product_code,
+            product_name=price_info['product_name'],
+            brand=price_info['brand'],
+            quantity=cart.quantity,
+            selected_year=cart.selected_year,
+            unit_price=price_info['unit_price'],
+            basic_discount_rate=price_info['basic_discount_rate'],
+            customer_discount_rate=price_info['customer_discount_rate'],
+            additional_discount_rate=price_info['additional_discount_rate'],
+            dot_discount_rate=price_info['dot_discount_rate'],
+            total_discount_rate=price_info['total_discount_rate'],
+            discounted_price=price_info['discounted_price'],
+            final_price=price_info['final_price']
+        )
+
+        # 재고 차감
+        if cart.selected_year:
+            update_stock(cart.product_code, cart.selected_year, cart.quantity, 'subtract')
+
+        # 장바구니에서 삭제
+        cart.delete()
+
+    return JsonResponse({
+        'success': True,
+        'message': '주문이 완료되었습니다.',
+        'data': {
+            'order_number': order.order_number,
+            'order_id': order.id,
+            'final_amount': order.final_amount
+        }
+    })
+
+
+@require_http_methods(["GET"])
+def api_order_list(request):
+    """주문 목록 조회 API"""
+    customer_code = request.GET.get('customer_code')
+
+    if not customer_code:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 코드가 필요합니다.'
+        }, status=400)
+
+    orders = Order.objects.filter(customer_code=customer_code).order_by('-order_date')
+
+    result = {
+        'success': True,
+        'data': {
+            'orders': [
+                {
+                    'id': order.id,
+                    'order_number': order.order_number,
+                    'order_date': order.order_date.strftime('%Y-%m-%d %H:%M:%S'),
+                    'total_amount': order.total_amount,
+                    'final_amount': order.final_amount,
+                    'order_status': order.order_status,
+                    'payment_status': order.payment_status,
+                    'items_count': order.items.count()
+                }
+                for order in orders
+            ]
+        }
+    }
+
+    return JsonResponse(result)
+
+
+@require_http_methods(["GET"])
+def api_order_detail(request, order_id):
+    """주문 상세 조회 API"""
+    customer_code = request.GET.get('customer_code')
+
+    if not customer_code:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 코드가 필요합니다.'
+        }, status=400)
+
+    try:
+        order = Order.objects.get(id=order_id, customer_code=customer_code)
+    except Order.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '주문을 찾을 수 없습니다.'
+        }, status=404)
+
+    items = order.items.all()
+
+    result = {
+        'success': True,
+        'data': {
+            'order_number': order.order_number,
+            'order_date': order.order_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'customer_name': order.customer_name,
+            'total_amount': order.total_amount,
+            'total_discount': order.total_discount,
+            'final_amount': order.final_amount,
+            'order_status': order.order_status,
+            'payment_status': order.payment_status,
+            'payment_method': order.payment_method,
+            'shipping_address': order.shipping_address,
+            'shipping_memo': order.shipping_memo,
+            'items': [
+                {
+                    'product_code': item.product_code,
+                    'product_name': item.product_name,
+                    'brand': item.brand,
+                    'quantity': item.quantity,
+                    'selected_year': item.selected_year,
+                    'unit_price': item.unit_price,
+                    'total_discount_rate': float(item.total_discount_rate),
+                    'discounted_price': item.discounted_price,
+                    'final_price': item.final_price
+                }
+                for item in items
+            ]
+        }
+    }
+
+    return JsonResponse(result)
+
+
+# ============================================
+# 가격 계산 API
+# ============================================
+
+@require_http_methods(["GET"])
+def api_calculate_price(request):
+    """
+    가격 계산 API
+
+    Query Parameters:
+        - product_code: 상품 코드 (필수)
+        - customer_code: 고객 코드 (필수)
+        - selected_year: 선택한 제조년도 (옵션)
+        - quantity: 수량 (기본값: 1)
+    """
+    product_code = request.GET.get('product_code')
+    customer_code = request.GET.get('customer_code')
+    selected_year = request.GET.get('selected_year')
+    quantity = int(request.GET.get('quantity', 1))
+
+    if not product_code or not customer_code:
+        return JsonResponse({
+            'success': False,
+            'message': '상품 코드와 고객 코드가 필요합니다.'
+        }, status=400)
+
+    if selected_year:
+        selected_year = int(selected_year)
+
+    price_info = calculate_discount_price(
+        product_code=product_code,
+        customer_code=customer_code,
+        selected_year=selected_year,
+        quantity=quantity
+    )
+
+    return JsonResponse({
+        'success': True,
+        'data': price_info
+    })
+
+
+@require_http_methods(["GET"])
+def api_calculate_quote(request):
+    """
+    제안가 계산 API (카센터가 최종 고객에게 제시할 가격)
+
+    Query Parameters:
+        - product_code: 상품 코드 (필수)
+        - customer_code: 고객 코드 (필수)
+        - selected_year: 선택한 제조년도 (선택)
+        - quantity: 수량 (기본값: 1)
+        - margin_rate: 마진율 (선택, 기본값: 고객의 default_margin)
+    """
+    product_code = request.GET.get('product_code')
+    customer_code = request.GET.get('customer_code')
+    selected_year = request.GET.get('selected_year')
+    quantity = int(request.GET.get('quantity', 1))
+    margin_rate = request.GET.get('margin_rate')
+
+    if not product_code or not customer_code:
+        return JsonResponse({
+            'success': False,
+            'message': '상품 코드와 고객 코드가 필요합니다.'
+        }, status=400)
+
+    try:
+        # 고객 정보 조회 (마진율 가져오기)
+        customer = Customers.objects.get(code=customer_code)
+
+        # 마진율 결정
+        if margin_rate:
+            margin_rate = float(margin_rate)
+        else:
+            margin_rate = float(customer.default_margin)
+
+        if selected_year:
+            selected_year = int(selected_year)
+
+        # 매입 가격 정보 계산 (할인 적용된 가격)
+        price_info = calculate_discount_price(
+            product_code=product_code,
+            customer_code=customer_code,
+            selected_year=selected_year,
+            quantity=quantity
+        )
+
+        # 제안가 계산 (매입가에 마진 추가)
+        purchase_price = price_info['discounted_price']  # 단가
+        purchase_total = price_info['final_price']  # 총액
+
+        # 제안가 = 매입가 × (1 + 마진율/100)
+        quote_price = int(purchase_price * (1 + margin_rate / 100))
+        quote_total = int(purchase_total * (1 + margin_rate / 100))
+
+        # 마진 금액
+        margin_amount = quote_price - purchase_price
+        margin_total = quote_total - purchase_total
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                # 매입 정보
+                'purchase': {
+                    'unit_price': price_info['unit_price'],  # 정가
+                    'purchase_price': purchase_price,  # 할인된 매입 단가
+                    'purchase_total': purchase_total,  # 할인된 매입 총액
+                    'discount_rate': price_info['total_discount_rate'],  # 총 할인율
+                },
+                # 제안가 정보
+                'quote': {
+                    'margin_rate': margin_rate,  # 마진율
+                    'margin_amount': margin_amount,  # 단가 마진
+                    'margin_total': margin_total,  # 총 마진
+                    'quote_price': quote_price,  # 제안 단가
+                    'quote_total': quote_total,  # 제안 총액
+                },
+                # 상품 정보
+                'product': {
+                    'code': product_code,
+                    'name': price_info['product_name'],
+                    'brand': price_info['brand'],
+                    'quantity': quantity,
+                    'selected_year': selected_year,
+                },
+                # 할인 상세
+                'discount_detail': {
+                    'basic_discount': price_info['basic_discount_rate'],
+                    'customer_discount': price_info['customer_discount_rate'],
+                    'additional_discount': price_info['additional_discount_rate'],
+                    'dot_discount': price_info['dot_discount_rate'],
+                },
+                'available_years': price_info.get('available_years', [])
+            }
+        })
+
+    except Customers.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '고객을 찾을 수 없습니다.'
+        }, status=404)
+    except Goods.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '상품을 찾을 수 없습니다.'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'제안가 계산 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
+
+
+# ============================================
+# 인증 API
+# ============================================
+
+def generate_customer_code():
+    """새 고객 코드 생성 (C001, C002, ...)"""
+    last_customer = Customers.objects.filter(code__startswith='C', code__regex=r'^C\d{3,}$').order_by('-code').first()
+    if last_customer:
+        try:
+            last_number = int(last_customer.code[1:])
+            new_number = last_number + 1
+        except ValueError:
+            new_number = 1
+    else:
+        new_number = 1
+
+    return f'C{new_number:03d}'
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_auth_register(request):
+    """
+    모바일 회원가입 API
+
+    Request Body:
+        - name: 상호 (필수)
+        - password: 비밀번호 (필수)
+        - rep: 대표자 (선택)
+        - tel1: 전화번호 (선택)
+        - tel3: 휴대전화 (선택)
+        - enno: 사업자번호 (선택)
+    """
+    try:
+        # UTF-8로 명시적으로 디코딩
+        body_unicode = request.body.decode('utf-8')
+        data = json.loads(body_unicode)
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'잘못된 요청입니다: {str(e)}'
+        }, status=400)
+
+    # 필수 필드 검증
+    name = data.get('name', '').strip()
+    password = data.get('password', '').strip()
+
+    if not name or not password:
+        return JsonResponse({
+            'success': False,
+            'message': '상호와 비밀번호는 필수입니다.'
+        }, status=400)
+
+    if len(password) < 6:
+        return JsonResponse({
+            'success': False,
+            'message': '비밀번호는 최소 6자 이상이어야 합니다.'
+        }, status=400)
+
+    # 새 고객 코드 생성
+    customer_code = generate_customer_code()
+
+    # 비밀번호 해시화
+    hashed_password = make_password(password)
+
+    try:
+        # 고객 생성
+        customer = Customers.objects.create(
+            code=customer_code,
+            name=name,
+            signup_source='Mobile',
+            password=hashed_password,
+            rep=data.get('rep', ''),
+            tel1=data.get('tel1', ''),
+            tel3=data.get('tel3', ''),
+            enno=data.get('enno', ''),
+            is_registered=True,
+            must_change_password=False
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': '회원가입이 완료되었습니다.',
+            'data': {
+                'customer_code': customer.code,
+                'name': customer.name
+            }
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'회원가입 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_auth_login(request):
+    """
+    로그인 API
+
+    Request Body:
+        - customer_code: 고객 코드 (필수)
+        - password: 비밀번호 (필수)
+    """
+    try:
+        # UTF-8로 명시적으로 디코딩
+        body_unicode = request.body.decode('utf-8')
+        data = json.loads(body_unicode)
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'잘못된 요청입니다: {str(e)}'
+        }, status=400)
+
+    customer_code = data.get('customer_code', '').strip()
+    password = data.get('password', '').strip()
+
+    if not customer_code or not password:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 코드와 비밀번호는 필수입니다.'
+        }, status=400)
+
+    try:
+        customer = Customers.objects.get(code=customer_code)
+
+        # 비밀번호가 없는 경우 (초기 가입 고객)
+        if not customer.password:
+            return JsonResponse({
+                'success': False,
+                'message': '비밀번호가 설정되지 않았습니다. 관리자에게 문의하세요.'
+            }, status=401)
+
+        # 비밀번호 확인
+        if check_password(password, customer.password):
+            # 세션에 고객 코드 저장 (간단한 세션 기반 인증)
+            request.session['customer_code'] = customer.code
+
+            return JsonResponse({
+                'success': True,
+                'message': '로그인 성공',
+                'data': {
+                    'customer_code': customer.code,
+                    'name': customer.name,
+                    'signup_source': customer.signup_source
+                }
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': '고객 코드 또는 비밀번호가 올바르지 않습니다.'
+            }, status=401)
+
+    except Customers.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 코드 또는 비밀번호가 올바르지 않습니다.'
+        }, status=401)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'로그인 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_auth_logout(request):
+    """로그아웃 API"""
+    try:
+        if 'customer_code' in request.session:
+            del request.session['customer_code']
+
+        return JsonResponse({
+            'success': True,
+            'message': '로그아웃되었습니다.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'로그아웃 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
+
+
+@require_http_methods(["GET"])
+def api_auth_profile(request):
+    """프로필 조회 API"""
+    customer_code = request.session.get('customer_code') or request.GET.get('customer_code')
+
+    if not customer_code:
+        return JsonResponse({
+            'success': False,
+            'message': '로그인이 필요합니다.'
+        }, status=401)
+
+    try:
+        customer = Customers.objects.get(code=customer_code)
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'customer_code': customer.code,
+                'name': customer.name,
+                'rep': customer.rep,
+                'tel1': customer.tel1,
+                'tel3': customer.tel3,
+                'enno': customer.enno,
+                'signup_source': customer.signup_source,
+                'is_registered': customer.is_registered
+            }
+        })
+    except Customers.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 정보를 찾을 수 없습니다.'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'프로필 조회 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
+
+
+# ============================================
+# 토스페이먼츠 결제 API
+# ============================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_payment_prepare(request):
+    """결제 준비 API"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=400)
+
+    customer_code = data.get('customer_code')
+    cart_ids = data.get('cart_ids', [])
+    payment_method = data.get('payment_method', 'card')
+    shipping_address = data.get('shipping_address', '')
+    shipping_memo = data.get('shipping_memo', '')
+
+    if not customer_code or not cart_ids:
+        return JsonResponse({'success': False, 'message': '고객 코드와 장바구니 항목이 필요합니다.'}, status=400)
+
+    try:
+        customer = Customers.objects.get(code=customer_code)
+        cart_items = ShoppingCart.objects.filter(id__in=cart_ids, customer_code=customer_code)
+
+        if not cart_items.exists():
+            return JsonResponse({'success': False, 'message': '장바구니 항목을 찾을 수 없습니다.'}, status=404)
+
+        total_amount = 0
+        total_discount = 0
+
+        for cart_item in cart_items:
+            total_amount += cart_item.unit_price * cart_item.quantity
+            discount_amount = (cart_item.unit_price * cart_item.quantity) - cart_item.final_price
+            total_discount += discount_amount
+
+        final_amount = total_amount - total_discount
+        order_number = generate_order_number()
+
+        order = Order.objects.create(
+            order_number=order_number,
+            customer_code=customer_code,
+            customer_name=customer.name,
+            total_amount=total_amount,
+            total_discount=total_discount,
+            final_amount=final_amount,
+            order_status='pending',
+            payment_status='unpaid',
+            payment_method=payment_method,
+            shipping_address=shipping_address,
+            shipping_memo=shipping_memo
+        )
+
+        for cart_item in cart_items:
+            product = Goods.objects.get(code=cart_item.product_code)
+            price_info = calculate_discount_price(
+                product_code=cart_item.product_code,
+                customer_code=customer_code,
+                selected_year=cart_item.selected_year,
+                quantity=cart_item.quantity
+            )
+
+            OrderItem.objects.create(
+                order=order,
+                product_code=cart_item.product_code,
+                product_name=product.name,
+                brand=product.brand,
+                quantity=cart_item.quantity,
+                selected_year=cart_item.selected_year,
+                unit_price=price_info['unit_price'],
+                basic_discount_rate=price_info['basic_discount_rate'],
+                customer_discount_rate=price_info['customer_discount_rate'],
+                additional_discount_rate=price_info['additional_discount_rate'],
+                dot_discount_rate=price_info['dot_discount_rate'],
+                total_discount_rate=price_info['total_discount_rate'],
+                discounted_price=price_info['discounted_price'],
+                final_price=price_info['final_price']
+            )
+
+        payment = Payment.objects.create(
+            order=order,
+            payment_method=payment_method,
+            payment_amount=final_amount,
+            payment_status='pending',
+            pg_name='TossPayments',
+            order_id_toss=order_number
+        )
+
+        from django.conf import settings
+
+        return JsonResponse({
+            'success': True,
+            'message': '결제 준비가 완료되었습니다.',
+            'data': {
+                'order_number': order_number,
+                'order_id': order.id,
+                'payment_id': payment.id,
+                'amount': final_amount,
+                'order_name': f'{customer.name} 주문',
+                'customer_name': customer.name,
+                'customer_code': customer_code,
+                'client_key': settings.TOSS_PAYMENTS_CLIENT_KEY,
+                'cart_ids': cart_ids
+            }
+        }, status=201)
+
+    except Customers.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '고객을 찾을 수 없습니다.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'결제 준비 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_payment_confirm(request):
+    """토스페이먼츠 결제 승인 API"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=400)
+
+    payment_key = data.get('paymentKey')
+    order_id = data.get('orderId')
+    amount = data.get('amount')
+    cart_ids = data.get('cart_ids', [])
+
+    if not payment_key or not order_id or not amount:
+        return JsonResponse({'success': False, 'message': '결제 키, 주문 ID, 금액이 필요합니다.'}, status=400)
+
+    try:
+        import requests
+        import base64
+        from django.conf import settings
+
+        url = f"{settings.TOSS_PAYMENTS_API_URL}/payments/confirm"
+        secret_key = settings.TOSS_PAYMENTS_SECRET_KEY + ':'
+        encoded_key = base64.b64encode(secret_key.encode()).decode()
+
+        headers = {
+            'Authorization': f'Basic {encoded_key}',
+            'Content-Type': 'application/json'
+        }
+
+        payload = {
+            'paymentKey': payment_key,
+            'orderId': order_id,
+            'amount': amount
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+        response_data = response.json()
+
+        if response.status_code == 200:
+            order = Order.objects.get(order_number=order_id)
+            payment = Payment.objects.get(order=order, payment_status='pending')
+
+            payment.payment_key = payment_key
+            payment.transaction_id = response_data.get('transactionKey')
+            payment.payment_status = 'completed'
+            payment.payment_date = timezone.now()
+            payment.raw_response = json.dumps(response_data, ensure_ascii=False)
+            payment.save()
+
+            order.payment_status = 'paid'
+            order.order_status = 'confirmed'
+            order.confirmed_date = timezone.now()
+            order.save()
+
+            for item in order.items.all():
+                update_stock(
+                    product_code=item.product_code,
+                    year=item.selected_year,
+                    quantity=item.quantity,
+                    operation='subtract'
+                )
+
+            if cart_ids:
+                ShoppingCart.objects.filter(id__in=cart_ids).delete()
+
+            return JsonResponse({
+                'success': True,
+                'message': '결제가 완료되었습니다.',
+                'data': {
+                    'order_number': order.order_number,
+                    'payment_key': payment_key,
+                    'amount': amount,
+                    'payment_date': payment.payment_date.isoformat()
+                }
+            })
+        else:
+            error_code = response_data.get('code', 'UNKNOWN')
+            error_message = response_data.get('message', '결제 승인에 실패했습니다.')
+
+            try:
+                order = Order.objects.get(order_number=order_id)
+                payment = Payment.objects.get(order=order, payment_status='pending')
+                payment.payment_status = 'failed'
+                payment.memo = f'실패 코드: {error_code}, 메시지: {error_message}'
+                payment.raw_response = json.dumps(response_data, ensure_ascii=False)
+                payment.save()
+                order.order_status = 'cancelled'
+                order.save()
+            except:
+                pass
+
+            return JsonResponse({'success': False, 'message': error_message, 'error_code': error_code}, status=400)
+
+    except Order.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '주문을 찾을 수 없습니다.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'결제 승인 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_payment_cancel(request):
+    """결제 취소 API"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=400)
+
+    payment_key = data.get('payment_key')
+    cancel_reason = data.get('cancel_reason', '고객 요청')
+    cancel_amount = data.get('cancel_amount')
+
+    if not payment_key:
+        return JsonResponse({'success': False, 'message': '결제 키가 필요합니다.'}, status=400)
+
+    try:
+        import requests
+        import base64
+        from django.conf import settings
+
+        payment = Payment.objects.get(payment_key=payment_key)
+
+        if payment.payment_status == 'cancelled':
+            return JsonResponse({'success': False, 'message': '이미 취소된 결제입니다.'}, status=400)
+
+        url = f"{settings.TOSS_PAYMENTS_API_URL}/payments/{payment_key}/cancel"
+        secret_key = settings.TOSS_PAYMENTS_SECRET_KEY + ':'
+        encoded_key = base64.b64encode(secret_key.encode()).decode()
+
+        headers = {
+            'Authorization': f'Basic {encoded_key}',
+            'Content-Type': 'application/json'
+        }
+
+        payload = {'cancelReason': cancel_reason}
+        if cancel_amount:
+            payload['cancelAmount'] = cancel_amount
+
+        response = requests.post(url, json=payload, headers=headers)
+        response_data = response.json()
+
+        if response.status_code == 200:
+            payment.payment_status = 'cancelled'
+            payment.cancelled_date = timezone.now()
+            payment.memo = f'취소 사유: {cancel_reason}'
+            payment.raw_response = json.dumps(response_data, ensure_ascii=False)
+            payment.save()
+
+            order = payment.order
+            order.payment_status = 'refunded'
+            order.order_status = 'cancelled'
+            order.save()
+
+            for item in order.items.all():
+                update_stock(
+                    product_code=item.product_code,
+                    year=item.selected_year,
+                    quantity=item.quantity,
+                    operation='add'
+                )
+
+            return JsonResponse({
+                'success': True,
+                'message': '결제가 취소되었습니다.',
+                'data': {
+                    'payment_key': payment_key,
+                    'cancelled_date': payment.cancelled_date.isoformat()
+                }
+            })
+        else:
+            error_code = response_data.get('code', 'UNKNOWN')
+            error_message = response_data.get('message', '결제 취소에 실패했습니다.')
+            return JsonResponse({'success': False, 'message': error_message, 'error_code': error_code}, status=400)
+
+    except Payment.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '결제 정보를 찾을 수 없습니다.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'결제 취소 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
+@require_http_methods(["GET"])
+def api_payment_status(request, payment_key):
+    """결제 상태 조회 API"""
+    try:
+        import requests
+        import base64
+        from django.conf import settings
+
+        url = f"{settings.TOSS_PAYMENTS_API_URL}/payments/{payment_key}"
+        secret_key = settings.TOSS_PAYMENTS_SECRET_KEY + ':'
+        encoded_key = base64.b64encode(secret_key.encode()).decode()
+
+        headers = {'Authorization': f'Basic {encoded_key}'}
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            response_data = response.json()
+            return JsonResponse({'success': True, 'data': response_data})
+        else:
+            return JsonResponse({'success': False, 'message': '결제 정보를 조회할 수 없습니다.'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'결제 조회 중 오류가 발생했습니다: {str(e)}'}, status=500)

@@ -1,0 +1,515 @@
+{% extends 'tire_data/base.html' %}
+
+{% block title %}변경할 고객 선택 - TIREPASS{% endblock %}
+
+{% block content %}
+<style>
+    .layout-wrapper {
+        display: flex;
+        gap: 1.5rem;
+        min-height: calc(100vh - 200px);
+    }
+
+    .sidebar-left {
+        width: 250px;
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: fit-content;
+    }
+
+    .sidebar-right {
+        width: 300px;
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: fit-content;
+    }
+
+    .main-content {
+        flex: 1;
+    }
+
+    .menu-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .menu-title {
+        background: #5a8caa;
+        color: white;
+        padding: 0.75rem 1rem;
+        margin: -1rem -1rem 1rem -1rem;
+        border-radius: 8px 8px 0 0;
+        font-weight: 600;
+    }
+
+    .menu-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.25rem;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .menu-item:hover {
+        background: #f0f0f0;
+    }
+
+    .menu-item.active {
+        background: #fffacd;
+    }
+
+    .menu-item .add-btn {
+        color: green;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .submenu {
+        margin-left: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .submenu .menu-item {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.75rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header h2 {
+        margin: 0;
+    }
+
+    .add-customer-btn {
+        background: #28a745;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .add-customer-btn:hover {
+        background: #218838;
+    }
+
+    .search-section {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+    }
+
+    .search-row {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .search-row label {
+        font-weight: 600;
+        min-width: 60px;
+    }
+
+    .search-row input,
+    .search-row select {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    .search-row input[type="text"] {
+        flex: 1;
+        max-width: 400px;
+    }
+
+    .search-row select {
+        width: 200px;
+    }
+
+    .search-row button {
+        padding: 0.5rem 1.5rem;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .search-row button:hover {
+        background: #5a67d8;
+    }
+
+    .info-text {
+        margin-top: 0.5rem;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .table-wrapper {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    th {
+        background: #f8f9fa;
+        padding: 0.75rem 0.5rem;
+        text-align: center;
+        border-bottom: 2px solid #ddd;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+    }
+
+    td:first-child {
+        width: 30px;
+    }
+
+    td input[type="checkbox"] {
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+    }
+
+    td select {
+        padding: 0.25rem 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.85rem;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-approved {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .discount-btn {
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .discount-none {
+        background: #6c757d;
+        color: white;
+    }
+
+    .discount-brand {
+        background: #28a745;
+        color: white;
+    }
+
+    .discount-custom {
+        background: #ffc107;
+        color: #000;
+    }
+
+    .filter-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-title {
+        background: #5a8caa;
+        color: white;
+        padding: 0.75rem 1rem;
+        margin: -1rem -1rem 1rem -1rem;
+        border-radius: 8px 8px 0 0;
+        font-weight: 600;
+    }
+
+    .filter-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .filter-list li {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .filter-list li:hover {
+        background: #f0f0f0;
+    }
+
+    .filter-list li:last-child {
+        border-bottom: none;
+    }
+
+    tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+
+<div class="layout-wrapper">
+    <!-- 좌측 사이드바 -->
+    <aside class="sidebar-left">
+        <div class="menu-title">TIREPASS 메인</div>
+        <div class="menu-section">
+            <div class="menu-item">
+                <span>DOT 재고</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item">
+                <span>DOT 할인</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item">
+                <span>DOT 할인 설정</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item active">
+                <span>고객</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="submenu">
+                <div class="menu-item">
+                    <span>고객 보랜드그룹 할인</span>
+                    <span class="add-btn">+ 추가</span>
+                </div>
+                <div class="menu-item">
+                    <span>고객별 상품 할인</span>
+                    <span class="add-btn">+ 추가</span>
+                </div>
+            </div>
+            <div class="menu-item">
+                <span>브랜드 패턴 그룹</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item">
+                <span>상품 프로모션</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item">
+                <span>재고</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item">
+                <span>주문</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item">
+                <span>주문상품</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item">
+                <span>타이어</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item">
+                <span>타이어 브랜드</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+            <div class="menu-item">
+                <span>할인 관리 네비세트</span>
+                <span class="add-btn">+ 추가</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem; padding-top: 1rem; border-top: 2px solid #ddd;">
+            <div class="menu-title">업종 및 권한</div>
+            <div class="menu-section">
+                <div class="menu-item">
+                    <span>그룹</span>
+                    <span class="add-btn">+ 추가</span>
+                </div>
+                <div class="menu-item">
+                    <span>사용자(들)</span>
+                    <span class="add-btn">+ 추가</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 메인 콘텐츠 -->
+    <main class="main-content">
+        <div class="page-header">
+            <h2>변경할 고객 선택</h2>
+            <button class="add-customer-btn">+ 고객 추가</button>
+        </div>
+
+        <!-- 검색 섹션 -->
+        <div class="search-section">
+            <form method="get">
+                <div class="search-row">
+                    <label>검색</label>
+                    <input type="text" name="search" value="{{ search_query }}" placeholder="업체명, 사업자번호, 대표자, 전화번호 등">
+                    <button type="submit">검색</button>
+                </div>
+            </form>
+            <div class="search-row" style="margin-top: 1rem;">
+                <label>역삭:</label>
+                <select name="grade">
+                    <option value="">----------</option>
+                    <option value="A">A 등급</option>
+                    <option value="B">B 등급</option>
+                    <option value="C">C 등급</option>
+                </select>
+                <div class="info-text">100 중 0부터이(가) 선택되고 있습니다.</div>
+            </div>
+        </div>
+
+        <!-- 테이블 -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll"></th>
+                        <th>업체명</th>
+                        <th>사업자번호</th>
+                        <th>대표자명</th>
+                        <th>업태</th>
+                        <th>종목</th>
+                        <th>등급</th>
+                        <th>상태</th>
+                        <th>적용률 할인정책</th>
+                        <th>등록일</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in page_obj %}
+                    <tr>
+                        <td><input type="checkbox" name="customer_select" value="{{ customer.code }}"></td>
+                        <td style="text-align: left;">{{ customer.name }}</td>
+                        <td>{{ customer.enno|default:"-" }}</td>
+                        <td>{{ customer.rep|default:"-" }}</td>
+                        <td>자동차</td>
+                        <td>타이어 판매 및 장착</td>
+                        <td>
+                            <select>
+                                <option>일반</option>
+                                <option>승인</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option>승인</option>
+                                <option>대기</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button class="discount-btn discount-none">할인 없음</button>
+                        </td>
+                        <td>2025년 9월 2일</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 2rem;">
+                            검색 결과가 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지네이션 -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">처음</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">이전</a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="current">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">다음</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">마지막</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- 우측 사이드바 (필터) -->
+    <aside class="sidebar-right">
+        <div class="filter-title">필터</div>
+        <div class="filter-section">
+            <ul class="filter-list">
+                <li>↓ 업태 (으)로</li>
+                <li>모두</li>
+                <li>IT22</li>
+                <li>고소득층경차,타이어장착,인쇄기</li>
+                <li>고소득층경차,타이어장착,표현제작</li>
+                <li>구두소랜타이어</li>
+                <li>라디에터,자동차부품</li>
+                <li>매미, 과실판매</li>
+                <li>빗만리, 자동차부품판매</li>
+                <li>빗만리(수입), 빗만리</li>
+                <li>빗만리소랜타이어</li>
+                <li>부동산업, 개발홍보</li>
+                <li>부동산전</li>
+                <li>부동장전, 개발홍보</li>
+                <li>부동작, 의</li>
+                <li>부동작업, 자동차부품판매</li>
+                <li>빗만리, 의</li>
+                <li>빗만리(수입),빗만리</li>
+                <li>빗만리소랜</li>
+                <li>빗만리소랜타이어, 빗만리소랜타이어</li>
+                <li>무엇(수입),자동차부품판매</li>
+            </ul>
+        </div>
+    </aside>
+</div>
+
+<script>
+    // 전체 선택 체크박스
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('input[name="customer_select"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+</script>
+{% endblock %}

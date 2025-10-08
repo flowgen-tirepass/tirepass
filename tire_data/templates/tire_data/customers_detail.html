@@ -1,0 +1,44 @@
+{% extends 'tire_data/base.html' %}
+
+{% block title %}{{ customer.name|default:"고객 정보" }} - iTire{% endblock %}
+
+{% block content %}
+<a href="{% url 'customers_list' %}" class="btn" style="margin-bottom: 1rem;">← 목록으로</a>
+
+{% if customer %}
+<div class="card">
+    <h2>{{ customer.name|default:"고객 정보" }}</h2>
+
+    <table style="margin-top: 1.5rem;">
+        <tr>
+            <th style="width: 150px;">고객 코드</th>
+            <td>{{ customer.code }}</td>
+        </tr>
+        <tr>
+            <th>상호</th>
+            <td>{{ customer.name|default:"-" }}</td>
+        </tr>
+        <tr>
+            <th>대표자</th>
+            <td>{{ customer.rep|default:"-" }}</td>
+        </tr>
+        <tr>
+            <th>전화번호 1</th>
+            <td>{{ customer.tel1|default:"-" }}</td>
+        </tr>
+        <tr>
+            <th>휴대전화</th>
+            <td>{{ customer.tel3|default:"-" }}</td>
+        </tr>
+        <tr>
+            <th>사업자번호</th>
+            <td>{{ customer.enno|default:"-" }}</td>
+        </tr>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p style="text-align: center; padding: 2rem;">고객 정보를 찾을 수 없습니다.</p>
+</div>
+{% endif %}
+{% endblock %}
