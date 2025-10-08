@@ -125,22 +125,13 @@ class GoodsAdmin(admin.ModelAdmin):
 
 @admin.register(Customers)
 class CustomersAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'signup_source_display', 'default_margin', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'product_discount_count']
-    list_filter = ['is_registered', 'signup_source', 'must_change_password']
+    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'product_discount_count']
+    list_filter = ['is_registered', 'must_change_password']
     search_fields = ['code', 'name', 'rep', 'enno']
     ordering = ['code']
     list_per_page = 50
-    fields = ['code', 'name', 'signup_source', 'default_margin', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'must_change_password']
-
-    def signup_source_display(self, obj):
-        """가입경로 표시"""
-        if obj.signup_source == 'Mobile':
-            return 'Mobile'
-        elif obj.signup_source == 'Admin':
-            return 'Admin'
-        return ''  # 초기 가입은 빈칸
-    signup_source_display.short_description = '가입경로'
-    signup_source_display.admin_order_field = 'signup_source'
+    readonly_fields = ['code']  # 고객코드는 읽기 전용
+    fields = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'must_change_password']
 
     def product_discount_count(self, obj):
         """개별 상품 할인 개수"""

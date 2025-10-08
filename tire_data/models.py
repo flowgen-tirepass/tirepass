@@ -134,16 +134,8 @@ class Goods(models.Model):
 
 class Customers(models.Model):
     """고객 정보 모델 (간소화 버전)"""
-    SIGNUP_SOURCE_CHOICES = [
-        ('Mobile', '모바일'),
-        ('Admin', '관리자'),
-    ]
-
     code = models.CharField(max_length=10, primary_key=True, verbose_name='고객코드', db_column='code')
     name = models.CharField(max_length=50, null=True, blank=True, verbose_name='상호', db_column='name')
-    signup_source = models.CharField(max_length=20, null=True, blank=True, verbose_name='가입경로', db_column='signup_source', choices=SIGNUP_SOURCE_CHOICES)
-    password = models.CharField(max_length=255, null=True, blank=True, verbose_name='비밀번호', db_column='password')
-    default_margin = models.DecimalField(max_digits=5, decimal_places=2, default=15.00, verbose_name='기본 마진율(%)', db_column='default_margin')
     rep = models.CharField(max_length=20, null=True, blank=True, verbose_name='대표자', db_column='rep')
     tel1 = models.CharField(max_length=20, null=True, blank=True, verbose_name='전화1', db_column='tel1')
     tel3 = models.CharField(max_length=20, null=True, blank=True, verbose_name='휴대전화', db_column='tel3')
