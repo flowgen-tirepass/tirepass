@@ -7,40 +7,41 @@
 <div class="card">
     <h2 style="margin-bottom: 30px; text-align: center; color: #2563eb;">신규 회원가입</h2>
 
-    <form id="registerForm">
+    <form id="registerForm" autocomplete="off">
+        <div class="form-group">
+            <label class="form-label">사업자등록번호 *</label>
+            <input type="text" class="form-input" id="enno" name="bizreg" placeholder="123-45-67890 또는 TEST001" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" required maxlength="12">
+            <p style="font-size: 12px; color: #6b7280; margin-top: 5px;">10자리 숫자 또는 TEST001 형식</p>
+        </div>
+
         <div class="form-group">
             <label class="form-label">상호 *</label>
-            <input type="text" class="form-input" id="name" placeholder="예: 홍길동타이어" required>
+            <input type="text" class="form-input" id="name" name="shopname" placeholder="예: 홍길동타이어" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" required>
         </div>
 
         <div class="form-group">
             <label class="form-label">비밀번호 *</label>
-            <input type="password" class="form-input" id="password" placeholder="최소 6자 이상" required minlength="6">
+            <input type="password" class="form-input" id="password" name="newpass" placeholder="최소 4자 이상" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" required minlength="4">
         </div>
 
         <div class="form-group">
             <label class="form-label">비밀번호 확인 *</label>
-            <input type="password" class="form-input" id="password_confirm" placeholder="비밀번호 재입력" required>
+            <input type="password" class="form-input" id="password_confirm" name="confirmpass" placeholder="비밀번호 재입력" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" required>
         </div>
 
         <div class="form-group">
             <label class="form-label">대표자</label>
-            <input type="text" class="form-input" id="rep" placeholder="대표자명">
+            <input type="text" class="form-input" id="rep" name="repname" placeholder="대표자명" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
         </div>
 
         <div class="form-group">
             <label class="form-label">전화번호</label>
-            <input type="tel" class="form-input" id="tel1" placeholder="예: 02-1234-5678">
+            <input type="tel" class="form-input" id="tel1" name="phone1" placeholder="예: 02-1234-5678" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
         </div>
 
         <div class="form-group">
             <label class="form-label">휴대전화</label>
-            <input type="tel" class="form-input" id="tel3" placeholder="예: 010-1234-5678">
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">사업자번호</label>
-            <input type="text" class="form-input" id="enno" placeholder="예: 123-45-67890">
+            <input type="tel" class="form-input" id="tel3" name="phone2" placeholder="예: 010-1234-5678" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
         </div>
 
         <button type="submit" class="btn btn-primary btn-block" style="margin-top: 30px;">가입하기</button>
