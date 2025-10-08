@@ -140,6 +140,7 @@ class Customers(models.Model):
     tel1 = models.CharField(max_length=20, null=True, blank=True, verbose_name='전화1', db_column='tel1')
     tel3 = models.CharField(max_length=20, null=True, blank=True, verbose_name='휴대전화', db_column='tel3')
     enno = models.CharField(max_length=20, null=True, blank=True, verbose_name='사업자번호', db_column='enno')
+    password = models.CharField(max_length=255, null=True, blank=True, verbose_name='비밀번호', db_column='password')
 
     # 회원가입 관련 필드
     is_registered = models.BooleanField(default=False, verbose_name='회원가입여부', db_column='is_registered')

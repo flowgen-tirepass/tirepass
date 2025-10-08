@@ -806,15 +806,14 @@ def api_auth_register(request):
     모바일 회원가입 API
 
     Request Body:
+        - enno: 사업자등록번호 또는 고객코드 (필수, TEST로 시작하면 테스트 계정)
         - name: 상호 (필수)
-        - password: 비밀번호 (필수)
+        - password: 비밀번호 (필수, 최소 4자)
         - rep: 대표자 (선택)
         - tel1: 전화번호 (선택)
         - tel3: 휴대전화 (선택)
-        - enno: 사업자번호 (선택)
     """
     try:
-        # UTF-8로 명시적으로 디코딩
         body_unicode = request.body.decode('utf-8')
         data = json.loads(body_unicode)
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
@@ -824,23 +823,41 @@ def api_auth_register(request):
         }, status=400)
 
     # 필수 필드 검증
+    enno = data.get('enno', '').strip().replace('-', '')  # 하이픈 제거
     name = data.get('name', '').strip()
     password = data.get('password', '').strip()
 
-    if not name or not password:
+    if not enno or not name or not password:
         return JsonResponse({
             'success': False,
-            'message': '상호와 비밀번호는 필수입니다.'
+            'message': '사업자등록번호, 상호, 비밀번호는 필수입니다.'
         }, status=400)
 
-    if len(password) < 6:
+    if len(password) < 4:
         return JsonResponse({
             'success': False,
-            'message': '비밀번호는 최소 6자 이상이어야 합니다.'
+            'message': '비밀번호는 최소 4자 이상이어야 합니다.'
         }, status=400)
 
-    # 새 고객 코드 생성
-    customer_code = generate_customer_code()
+    # 고객코드 생성
+    # TEST로 시작하면 그대로 사용, 아니면 사업자등록번호를 고객코드로 사용
+    if enno.upper().startswith('TEST'):
+        customer_code = enno.upper()  # TEST001, TEST002 등
+    else:
+        # 사업자등록번호 검증 (10자리 숫자)
+        if not enno.isdigit() or len(enno) != 10:
+            return JsonResponse({
+                'success': False,
+                'message': '사업자등록번호는 10자리 숫자여야 합니다.'
+            }, status=400)
+        customer_code = enno  # 사업자등록번호를 고객코드로 사용
+
+    # 이미 등록된 고객코드 확인
+    if Customers.objects.filter(code=customer_code).exists():
+        return JsonResponse({
+            'success': False,
+            'message': '이미 등록된 사업자등록번호입니다.'
+        }, status=400)
 
     # 비밀번호 해시화
     hashed_password = make_password(password)
@@ -850,12 +867,11 @@ def api_auth_register(request):
         customer = Customers.objects.create(
             code=customer_code,
             name=name,
-            signup_source='Mobile',
             password=hashed_password,
             rep=data.get('rep', ''),
             tel1=data.get('tel1', ''),
             tel3=data.get('tel3', ''),
-            enno=data.get('enno', ''),
+            enno=enno,
             is_registered=True,
             must_change_password=False
         )
@@ -883,11 +899,10 @@ def api_auth_login(request):
     로그인 API
 
     Request Body:
-        - customer_code: 고객 코드 (필수)
+        - customer_code: 사업자등록번호 또는 고객코드 (필수)
         - password: 비밀번호 (필수)
     """
     try:
-        # UTF-8로 명시적으로 디코딩
         body_unicode = request.body.decode('utf-8')
         data = json.loads(body_unicode)
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
@@ -896,28 +911,32 @@ def api_auth_login(request):
             'message': f'잘못된 요청입니다: {str(e)}'
         }, status=400)
 
-    customer_code = data.get('customer_code', '').strip()
+    customer_code = data.get('customer_code', '').strip().replace('-', '')  # 하이픈 제거
     password = data.get('password', '').strip()
 
     if not customer_code or not password:
         return JsonResponse({
             'success': False,
-            'message': '고객 코드와 비밀번호는 필수입니다.'
+            'message': '사업자등록번호와 비밀번호는 필수입니다.'
         }, status=400)
 
     try:
+        # TEST로 시작하는 경우 대문자로 변환
+        if customer_code.upper().startswith('TEST'):
+            customer_code = customer_code.upper()
+
         customer = Customers.objects.get(code=customer_code)
 
-        # 비밀번호가 없는 경우 (초기 가입 고객)
+        # 비밀번호가 없는 경우
         if not customer.password:
             return JsonResponse({
                 'success': False,
-                'message': '비밀번호가 설정되지 않았습니다. 관리자에게 문의하세요.'
+                'message': '비밀번호가 설정되지 않았습니다. 회원가입을 먼저 진행해주세요.'
             }, status=401)
 
         # 비밀번호 확인
         if check_password(password, customer.password):
-            # 세션에 고객 코드 저장 (간단한 세션 기반 인증)
+            # 세션에 고객 코드 저장
             request.session['customer_code'] = customer.code
 
             return JsonResponse({
@@ -925,20 +944,19 @@ def api_auth_login(request):
                 'message': '로그인 성공',
                 'data': {
                     'customer_code': customer.code,
-                    'name': customer.name,
-                    'signup_source': customer.signup_source
+                    'name': customer.name
                 }
             })
         else:
             return JsonResponse({
                 'success': False,
-                'message': '고객 코드 또는 비밀번호가 올바르지 않습니다.'
+                'message': '사업자등록번호 또는 비밀번호가 올바르지 않습니다.'
             }, status=401)
 
     except Customers.DoesNotExist:
         return JsonResponse({
             'success': False,
-            'message': '고객 코드 또는 비밀번호가 올바르지 않습니다.'
+            'message': '사업자등록번호 또는 비밀번호가 올바르지 않습니다.'
         }, status=401)
     except Exception as e:
         return JsonResponse({
