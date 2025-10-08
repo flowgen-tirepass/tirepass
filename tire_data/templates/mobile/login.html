@@ -7,15 +7,16 @@
 <div class="card">
     <h2 style="margin-bottom: 30px; text-align: center; color: #2563eb;">TirePASS 로그인</h2>
 
-    <form id="loginForm">
+    <form id="loginForm" autocomplete="off">
         <div class="form-group">
-            <label class="form-label">고객 코드</label>
-            <input type="text" class="form-input" id="customer_code" placeholder="C001" required>
+            <label class="form-label">사업자등록번호</label>
+            <input type="text" class="form-input" id="customer_code" name="business_number" placeholder="123-45-67890 (10자리)" autocomplete="off" required maxlength="12">
+            <p style="font-size: 12px; color: #6b7280; margin-top: 5px;">'-' 없이 숫자만 입력하셔도 됩니다</p>
         </div>
 
         <div class="form-group">
             <label class="form-label">비밀번호</label>
-            <input type="password" class="form-input" id="password" placeholder="비밀번호 입력" required>
+            <input type="password" class="form-input" id="password" name="customer_password" placeholder="사업자등록번호 뒤 5자리" autocomplete="off" required maxlength="5">
         </div>
 
         <button type="submit" class="btn btn-primary btn-block">로그인</button>
@@ -27,11 +28,12 @@
     </div>
 </div>
 
-<div style="margin-top: 30px; padding: 20px; background-color: #f9fafb; border-radius: 12px;">
-    <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #374151;">테스트 계정</h3>
-    <p style="font-size: 13px; color: #6b7280; line-height: 1.6;">
-        고객코드: C001<br>
-        비밀번호: test1234
+<div style="margin-top: 30px; padding: 20px; background-color: #f0f9ff; border-radius: 12px; border-left: 4px solid #2563eb;">
+    <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #1e40af;">💡 로그인 안내</h3>
+    <p style="font-size: 13px; color: #374151; line-height: 1.8;">
+        • 사업자등록번호 10자리를 입력하세요<br>
+        • 초기 비밀번호는 사업자등록번호 뒤 5자리입니다<br>
+        • 최초 로그인 후 비밀번호를 변경해주세요
     </p>
 </div>
 {% endblock %}
