@@ -1,0 +1,85 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}주문내역 - TirePASS{% endblock %}
+{% block header_title %}주문내역{% endblock %}
+{% block nav_orders %}active{% endblock %}
+
+{% block content %}
+<div id="ordersList"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadOrders() {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/orders/?customer_code=${customerCode}`);
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            renderOrders(data.data.orders);
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+function renderOrders(orders) {
+    const container = document.getElementById('ordersList');
+
+    if (orders.length === 0) {
+        container.innerHTML = '<div class="card"><p style="text-align: center; color: #6b7280;">주문 내역이 없습니다</p></div>';
+        return;
+    }
+
+    const statusText = {
+        'pending': '주문대기',
+        'confirmed': '주문확인',
+        'preparing': '출고준비',
+        'shipped': '배송중',
+        'delivered': '배송완료',
+        'cancelled': '주문취소'
+    };
+
+    const paymentText = {
+        'unpaid': '미결제',
+        'paid': '결제완료',
+        'refunded': '환불완료'
+    };
+
+    container.innerHTML = orders.map(order => `
+        <div class="card" style="cursor: pointer;" onclick="location.href='/mobile/orders/${order.id}/'">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="font-weight: 600;">${order.order_number}</span>
+                <span class="badge badge-blue">${statusText[order.order_status] || order.order_status}</span>
+            </div>
+
+            <p style="font-size: 13px; color: #6b7280; margin-bottom: 10px;">${order.order_date}</p>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 18px; font-weight: 600; color: #2563eb;">
+                        ${order.final_amount.toLocaleString()}원
+                    </div>
+                    <div style="font-size: 13px; color: #6b7280;">
+                        ${order.items_count}개 상품 • ${paymentText[order.payment_status]}
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="padding: 8px 16px;">상세보기</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+loadOrders();
+</script>
+{% endblock %}

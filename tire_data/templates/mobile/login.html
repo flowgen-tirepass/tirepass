@@ -1,0 +1,80 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}로그인 - TirePASS{% endblock %}
+{% block header_title %}로그인{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 30px; text-align: center; color: #2563eb;">TirePASS 로그인</h2>
+
+    <form id="loginForm">
+        <div class="form-group">
+            <label class="form-label">고객 코드</label>
+            <input type="text" class="form-input" id="customer_code" placeholder="C001" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">비밀번호</label>
+            <input type="password" class="form-input" id="password" placeholder="비밀번호 입력" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">로그인</button>
+    </form>
+
+    <div style="margin-top: 20px; text-align: center;">
+        <p style="color: #6b7280; margin-bottom: 10px;">아직 회원이 아니신가요?</p>
+        <a href="/mobile/register/" class="btn btn-secondary btn-block">회원가입</a>
+    </div>
+</div>
+
+<div style="margin-top: 30px; padding: 20px; background-color: #f9fafb; border-radius: 12px;">
+    <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #374151;">테스트 계정</h3>
+    <p style="font-size: 13px; color: #6b7280; line-height: 1.6;">
+        고객코드: C001<br>
+        비밀번호: test1234
+    </p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const customer_code = document.getElementById('customer_code').value;
+    const password = document.getElementById('password').value;
+
+    showLoading();
+
+    try {
+        const response = await fetch('/api/mobile/auth/login/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_code: customer_code,
+                password: password
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            setCustomerCode(customer_code);
+            localStorage.setItem('customer_name', data.data.name);
+            showAlert('로그인 성공!', 'success');
+            setTimeout(() => {
+                location.href = '/mobile/home/';
+            }, 1000);
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('로그인 중 오류가 발생했습니다.', 'error');
+    }
+});
+</script>
+{% endblock %}

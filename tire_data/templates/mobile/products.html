@@ -1,0 +1,198 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}상품검색 - TirePASS{% endblock %}
+{% block header_title %}상품검색{% endblock %}
+{% block nav_products %}active{% endblock %}
+
+{% block content %}
+<!-- 검색 필터 -->
+<div class="card">
+    <div style="display: flex; gap: 10px; margin-bottom: 0;">
+        <input type="text" class="form-input" id="searchInput" placeholder="상품명, 코드 또는 숫자로 검색 (예: 2055516)" style="flex: 1;">
+        <button class="btn btn-primary" onclick="performSearch()" style="padding: 12px 20px; white-space: nowrap;">
+            🔍 검색
+        </button>
+    </div>
+    <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+        💡 팁: 타이어 사이즈를 숫자로만 입력해도 검색됩니다 (예: 2055516 → 205/55R16)
+    </div>
+</div>
+
+<div class="card">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <label style="display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" id="tireOnly" checked> 타이어만 보기
+        </label>
+        <label style="display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" id="inStockOnly" checked> 재고 있는 상품만
+        </label>
+    </div>
+</div>
+
+<!-- 상품 목록 -->
+<div id="productsList"></div>
+
+<!-- 페이징 -->
+<div id="pagination" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPage = 1;
+let totalPages = 1;
+let searchQuery = '';
+let selectedBrands = '';
+
+async function loadProducts(page = 1) {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    const tireOnly = document.getElementById('tireOnly').checked ? 1 : 0;
+    const inStock = document.getElementById('inStockOnly').checked ? 1 : 0;
+
+    showLoading();
+
+    try {
+        const params = new URLSearchParams({
+            page: page,
+            page_size: 10,
+            tire_only: tireOnly,
+            in_stock: inStock,
+            search: searchQuery
+        });
+
+        // 다중 브랜드 필터 추가
+        if (selectedBrands) {
+            params.append('brands', selectedBrands);
+        }
+
+        const response = await fetch(`/api/mobile/products/?${params}`);
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            currentPage = data.data.page;
+            totalPages = data.data.total_pages;
+            renderProducts(data.data.products);
+            renderPagination();
+        } else {
+            showAlert('상품 로드 실패', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+function renderProducts(products) {
+    const container = document.getElementById('productsList');
+
+    if (products.length === 0) {
+        container.innerHTML = '<div class="card"><p style="text-align: center; color: #6b7280;">검색 결과가 없습니다.</p></div>';
+        return;
+    }
+
+    container.innerHTML = products.map(product => `
+        <div class="card" style="cursor: pointer;" onclick="location.href='/mobile/products/${product.code}/'">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${product.name}</h3>
+                    <div style="font-size: 13px; color: #6b7280;">
+                        ${product.brand || '브랜드 없음'} • ${product.code}
+                    </div>
+                </div>
+                ${product.is_tire ? '<span class="badge badge-blue">타이어</span>' : ''}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 18px; font-weight: 600; color: #2563eb;">
+                        ${product.price ? product.price.toLocaleString() + '원' : '가격문의'}
+                    </div>
+                    <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">
+                        재고: ${product.stock || 0}개
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="padding: 8px 16px;" onclick="event.stopPropagation(); viewDetail('${product.code}')">
+                    상세보기
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderPagination() {
+    const container = document.getElementById('pagination');
+    const pages = [];
+
+    if (currentPage > 1) {
+        pages.push(`<button class="btn btn-secondary" onclick="loadProducts(${currentPage - 1})">이전</button>`);
+    }
+
+    pages.push(`<span style="padding: 12px; color: #6b7280;">${currentPage} / ${totalPages}</span>`);
+
+    if (currentPage < totalPages) {
+        pages.push(`<button class="btn btn-secondary" onclick="loadProducts(${currentPage + 1})">다음</button>`);
+    }
+
+    container.innerHTML = pages.join('');
+}
+
+function viewDetail(code) {
+    location.href = `/mobile/products/${code}/`;
+}
+
+// 검색 함수
+function performSearch() {
+    searchQuery = document.getElementById('searchInput').value.trim();
+    loadProducts(1);
+}
+
+// Enter 키로 검색
+document.getElementById('searchInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        performSearch();
+    }
+});
+
+// 실시간 검색 (타이핑 중)
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        searchQuery = e.target.value.trim();
+        if (searchQuery.length >= 3 || searchQuery.length === 0) {
+            loadProducts(1);
+        }
+    }, 500);
+});
+
+// 필터 변경
+document.getElementById('tireOnly').addEventListener('change', () => loadProducts(1));
+document.getElementById('inStockOnly').addEventListener('change', () => loadProducts(1));
+
+// URL에서 검색 파라미터 읽기
+function initFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // 검색어
+    const searchParam = urlParams.get('search');
+    if (searchParam) {
+        searchQuery = searchParam;
+        document.getElementById('searchInput').value = searchParam;
+    }
+
+    // 브랜드 필터
+    const brandsParam = urlParams.get('brands');
+    if (brandsParam) {
+        selectedBrands = brandsParam;
+    }
+}
+
+// 초기화 및 로드
+initFromURL();
+loadProducts(1);
+</script>
+{% endblock %}

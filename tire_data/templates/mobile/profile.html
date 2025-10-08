@@ -1,0 +1,109 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}내정보 - TirePASS{% endblock %}
+{% block header_title %}내정보{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block content %}
+<div id="profileInfo"></div>
+
+<div class="card">
+    <button onclick="logout()" class="btn btn-danger btn-block">로그아웃</button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadProfile() {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/auth/profile/?customer_code=${customerCode}`);
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            renderProfile(data.data);
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+function renderProfile(profile) {
+    const container = document.getElementById('profileInfo');
+
+    const signupSourceText = {
+        'Mobile': '모바일 가입',
+        'Admin': '관리자 등록',
+        null: '초기 가입'
+    };
+
+    container.innerHTML = `
+        <div class="card">
+            <h2 style="margin-bottom: 20px; font-size: 20px; font-weight: 600;">${profile.name}</h2>
+
+            <table style="width: 100%; font-size: 14px;">
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px 0; color: #6b7280; width: 100px;">고객코드</td>
+                    <td style="padding: 12px 0; font-weight: 500;">${profile.customer_code}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px 0; color: #6b7280;">가입경로</td>
+                    <td style="padding: 12px 0; font-weight: 500;">${signupSourceText[profile.signup_source] || '-'}</td>
+                </tr>
+                ${profile.rep ? `
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px 0; color: #6b7280;">대표자</td>
+                    <td style="padding: 12px 0; font-weight: 500;">${profile.rep}</td>
+                </tr>
+                ` : ''}
+                ${profile.tel1 ? `
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px 0; color: #6b7280;">전화번호</td>
+                    <td style="padding: 12px 0; font-weight: 500;">${profile.tel1}</td>
+                </tr>
+                ` : ''}
+                ${profile.tel3 ? `
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 12px 0; color: #6b7280;">휴대전화</td>
+                    <td style="padding: 12px 0; font-weight: 500;">${profile.tel3}</td>
+                </tr>
+                ` : ''}
+                ${profile.enno ? `
+                <tr>
+                    <td style="padding: 12px 0; color: #6b7280;">사업자번호</td>
+                    <td style="padding: 12px 0; font-weight: 500;">${profile.enno}</td>
+                </tr>
+                ` : ''}
+            </table>
+        </div>
+    `;
+}
+
+async function logout() {
+    if (!confirm('로그아웃 하시겠습니까?')) return;
+
+    try {
+        await fetch('/api/mobile/auth/logout/', {method: 'POST'});
+        clearCustomerCode();
+        localStorage.clear();
+        showAlert('로그아웃 되었습니다', 'success');
+        setTimeout(() => {
+            location.href = '/mobile/login/';
+        }, 1000);
+    } catch (error) {
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+loadProfile();
+</script>
+{% endblock %}

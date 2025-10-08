@@ -1,0 +1,152 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}장바구니 - TirePASS{% endblock %}
+{% block header_title %}장바구니{% endblock %}
+{% block nav_cart %}active{% endblock %}
+
+{% block content %}
+<div id="cartList"></div>
+
+<div class="card" id="cartSummary" style="display: none; position: sticky; bottom: 70px; background-color: white;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <span style="font-size: 18px; font-weight: 600;">총 결제금액</span>
+        <span style="font-size: 24px; font-weight: 700; color: #2563eb;" id="totalPrice">0원</span>
+    </div>
+    <button onclick="checkout()" class="btn btn-primary btn-block">주문하기</button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let cartItems = [];
+
+async function loadCart() {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/cart/?customer_code=${customerCode}`);
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            cartItems = data.data.items;
+            renderCart(data.data);
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+function renderCart(data) {
+    const container = document.getElementById('cartList');
+
+    if (data.items.length === 0) {
+        container.innerHTML = '<div class="card"><p style="text-align: center; color: #6b7280;">장바구니가 비어있습니다</p></div>';
+        document.getElementById('cartSummary').style.display = 'none';
+        return;
+    }
+
+    container.innerHTML = data.items.map(item => `
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${item.product_name}</h3>
+                    <p style="font-size: 13px; color: #6b7280;">코드: ${item.product_code}</p>
+                    ${item.selected_year ? `<p style="font-size: 13px; color: #6b7280;">제조년도: ${item.selected_year}년</p>` : ''}
+                </div>
+                <button onclick="removeFromCart(${item.id})" style="background: none; border: none; font-size: 20px; cursor: pointer;">❌</button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 18px; font-weight: 600; color: #2563eb;">
+                        ${item.final_price.toLocaleString()}원
+                    </div>
+                    <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">
+                        ${item.unit_price.toLocaleString()}원 × ${item.quantity}개
+                        ${item.discount_rate > 0 ? ` (${item.discount_rate.toFixed(1)}% 할인)` : ''}
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <button onclick="updateQuantity(${item.id}, ${item.quantity - 1})" class="btn btn-secondary" style="padding: 5px 10px;">-</button>
+                    <span style="padding: 0 10px; font-weight: 600;">${item.quantity}</span>
+                    <button onclick="updateQuantity(${item.id}, ${item.quantity + 1})" class="btn btn-secondary" style="padding: 5px 10px;">+</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('totalPrice').textContent = data.total_price.toLocaleString() + '원';
+    document.getElementById('cartSummary').style.display = 'block';
+}
+
+async function updateQuantity(cartId, newQuantity) {
+    if (newQuantity < 1) return;
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/cart/${cartId}/update/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({quantity: newQuantity})
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            loadCart();
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+async function removeFromCart(cartId) {
+    if (!confirm('삭제하시겠습니까?')) return;
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/cart/${cartId}/remove/`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('삭제되었습니다', 'success');
+            loadCart();
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+function checkout() {
+    if (cartItems.length === 0) return;
+
+    const cartIds = cartItems.map(item => item.id);
+    localStorage.setItem('checkout_cart_ids', JSON.stringify(cartIds));
+    location.href = '/mobile/checkout/';
+}
+
+loadCart();
+</script>
+{% endblock %}

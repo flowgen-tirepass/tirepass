@@ -1,0 +1,335 @@
+{% extends "mobile/base.html" %}
+{% load static %}
+
+{% block title %}TirePASS - 타이어 도소매{% endblock %}
+{% block nav_home %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-section {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+    }
+
+    .search-box {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 12px 15px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 15px;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: #2563eb;
+    }
+
+    .search-btn {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .view-all-btn {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+
+    .brand-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        grid-template-rows: repeat(2, auto);
+        gap: 6px;
+        width: 100%;
+        margin-top: 12px;
+    }
+
+    .brand-item {
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        aspect-ratio: 1.5 / 1;
+        width: 100%;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .brand-item.selected {
+        border-color: #2563eb;
+        background: #eff6ff;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    }
+
+    .brand-item img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        display: block;
+    }
+
+    /* 작은 모바일 (320px ~ 374px) */
+    @media (max-width: 374px) {
+        .brand-grid {
+            gap: 4px;
+        }
+
+        .brand-item {
+            border-radius: 4px;
+            padding: 4px;
+            border-width: 1.5px;
+        }
+    }
+
+    /* 중간 모바일 (375px ~ 414px) */
+    @media (min-width: 375px) and (max-width: 414px) {
+        .brand-grid {
+            gap: 6px;
+        }
+
+        .brand-item {
+            border-radius: 6px;
+            padding: 6px;
+        }
+    }
+
+    /* 큰 모바일 (415px ~ 767px) */
+    @media (min-width: 415px) and (max-width: 767px) {
+        .brand-grid {
+            gap: 8px;
+        }
+
+        .brand-item {
+            border-radius: 8px;
+            padding: 8px;
+        }
+    }
+
+    /* 태블릿 이상 (768px+) */
+    @media (min-width: 768px) {
+        .brand-grid {
+            gap: 10px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .brand-item {
+            border-radius: 10px;
+            padding: 10px;
+        }
+    }
+
+    .quick-buttons {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .quick-btn {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px 8px;
+        text-align: center;
+        text-decoration: none;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .quick-btn .icon {
+        font-size: 24px;
+        margin-bottom: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 검색 섹션 -->
+<div class="search-section">
+    <div class="search-box">
+        <input type="text"
+               class="search-input"
+               id="searchInput"
+               placeholder="6-7자리 숫자나 225"
+               maxlength="20">
+        <button class="search-btn" onclick="performSearch()">🔍</button>
+    </div>
+    <button class="view-all-btn" onclick="viewAllProducts()">
+        📋 전체 상품 보기
+    </button>
+</div>
+
+<!-- 브랜드 선택 -->
+<div class="card">
+    <div class="brand-grid" id="brandGrid">
+        <div class="brand-item" data-brand="GOODYEAR" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/goodyear.png' %}" alt="GOODYEAR">
+        </div>
+        <div class="brand-item" data-brand="KUMHO" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/kumho.png' %}" alt="KUMHO">
+        </div>
+        <div class="brand-item" data-brand="NEXEN" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/nexen.png' %}" alt="NEXEN">
+        </div>
+        <div class="brand-item" data-brand="DUNLOP" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/dunlop.png' %}" alt="DUNLOP">
+        </div>
+        <div class="brand-item" data-brand="MICHELIN" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/michelin.png' %}" alt="MICHELIN">
+        </div>
+        <div class="brand-item" data-brand="BRIDGESTONE" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/bridgestone.png' %}" alt="BRIDGESTONE">
+        </div>
+        <div class="brand-item" data-brand="YOKOHAMA" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/yokohama.png' %}" alt="YOKOHAMA">
+        </div>
+        <div class="brand-item" data-brand="CONTINENTAL" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/continental.png' %}" alt="CONTINENTAL">
+        </div>
+        <div class="brand-item" data-brand="PIRELLI" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/pirelli.png' %}" alt="PIRELLI">
+        </div>
+        <div class="brand-item" data-brand="HANKOOK" onclick="toggleBrand(this)">
+            <img src="{% static 'mobile/img/brands/hankook.png' %}" alt="HANKOOK">
+        </div>
+    </div>
+</div>
+
+<!-- 인기상품 섹션 -->
+<div class="card">
+    <h3 style="margin-bottom: 15px; font-size: 16px; font-weight: 600;">🔥 인기상품</h3>
+    <div class="quick-buttons">
+        <a href="/mobile/products/" class="quick-btn">
+            <div class="icon">🔍</div>
+            상품검색
+        </a>
+        <a href="/mobile/quote/" class="quick-btn">
+            <div class="icon">💰</div>
+            견적서
+        </a>
+        <a href="/mobile/cart/" class="quick-btn">
+            <div class="icon">🛒</div>
+            장바구니
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 15px; font-size: 18px;">공지사항</h3>
+    <div style="padding: 15px; background-color: #f9fafb; border-radius: 8px;">
+        <p style="font-size: 14px; color: #374151; line-height: 1.6;">
+            TirePASS 모바일 서비스를 이용해주셔서 감사합니다.<br>
+            편리한 타이어 주문 서비스를 제공합니다.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 선택된 브랜드 목록 (선택 순서 유지)
+let selectedBrands = [];
+
+// 브랜드 토글
+function toggleBrand(element) {
+    const brand = element.getAttribute('data-brand');
+
+    if (element.classList.contains('selected')) {
+        // 선택 해제
+        element.classList.remove('selected');
+        selectedBrands = selectedBrands.filter(b => b !== brand);
+    } else {
+        // 선택 추가
+        element.classList.add('selected');
+        selectedBrands.push(brand);
+    }
+
+    // 브랜드가 선택되면 자동 검색
+    if (selectedBrands.length > 0) {
+        performSearch();
+    }
+}
+
+// 검색 실행
+function performSearch() {
+    const searchText = document.getElementById('searchInput').value.trim();
+
+    // 검색어나 브랜드가 있으면 상품 페이지로 이동
+    if (searchText || selectedBrands.length > 0) {
+        const params = new URLSearchParams();
+
+        if (searchText) {
+            params.append('search', searchText);
+        }
+
+        if (selectedBrands.length > 0) {
+            params.append('brands', selectedBrands.join(','));
+        }
+
+        location.href = '/mobile/products/?' + params.toString();
+    } else {
+        location.href = '/mobile/products/';
+    }
+}
+
+// 전체 상품 보기
+function viewAllProducts() {
+    location.href = '/mobile/products/';
+}
+
+// Enter 키로 검색
+document.getElementById('searchInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        performSearch();
+    }
+});
+
+// 초기화
+async function init() {
+    const customerCode = getCustomerCode();
+
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+}
+
+init();
+</script>
+{% endblock %}

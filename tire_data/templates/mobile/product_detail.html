@@ -1,0 +1,155 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}상품 상세 - TirePASS{% endblock %}
+{% block header_title %}상품 상세{% endblock %}
+
+{% block content %}
+<div id="productDetail"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const productCode = '{{ product_code }}';
+
+async function loadProduct() {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/products/${productCode}/?customer_code=${customerCode}`);
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            renderProduct(data.data);
+        } else {
+            showAlert('상품 로드 실패', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+function renderProduct(product) {
+    const priceInfo = product.price_info;
+    const container = document.getElementById('productDetail');
+
+    container.innerHTML = `
+        <div class="card">
+            <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 15px;">${product.name}</h2>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                ${product.is_tire ? '<span class="badge badge-blue">타이어</span>' : ''}
+                ${product.brand ? `<span class="badge badge-green">${product.brand}</span>` : ''}
+                <span class="badge badge-blue">재고: ${product.stock}개</span>
+            </div>
+
+            <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="font-size: 14px; color: #6b7280; margin-bottom: 5px;">판매가</div>
+                <div style="font-size: 28px; font-weight: 700; color: #2563eb; margin-bottom: 15px;">
+                    ${priceInfo.discounted_price.toLocaleString()}원
+                </div>
+
+                ${priceInfo.total_discount_rate > 0 ? `
+                    <div style="font-size: 14px; color: #6b7280;">
+                        <span style="text-decoration: line-through;">${priceInfo.unit_price.toLocaleString()}원</span>
+                        <span class="badge badge-red" style="margin-left: 10px;">${priceInfo.total_discount_rate.toFixed(1)}% 할인</span>
+                    </div>
+                ` : ''}
+            </div>
+
+            ${priceInfo.available_years && priceInfo.available_years.length > 0 ? `
+                <div class="form-group">
+                    <label class="form-label">제조년도 선택 (DOT)</label>
+                    <select class="form-input" id="selectedYear">
+                        <option value="">선택 안함</option>
+                        ${priceInfo.available_years.map(year => `
+                            <option value="${year.year}">
+                                ${year.year}년 (재고: ${year.quantity}개${year.discount > 0 ? `, -${year.discount}%` : ''})
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+            ` : ''}
+
+            <div class="form-group">
+                <label class="form-label">수량</label>
+                <input type="number" class="form-input" id="quantity" value="4" min="1" max="${product.stock}">
+            </div>
+
+            <button onclick="addToCart()" class="btn btn-primary btn-block">장바구니 담기</button>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 15px;">상품 정보</h3>
+            <table style="width: 100%; font-size: 14px;">
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 10px 0; color: #6b7280;">상품코드</td>
+                    <td style="padding: 10px 0; font-weight: 500;">${product.code}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 10px 0; color: #6b7280;">브랜드</td>
+                    <td style="padding: 10px 0; font-weight: 500;">${product.brand || '-'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; color: #6b7280;">재고</td>
+                    <td style="padding: 10px 0; font-weight: 500;">${product.stock}개</td>
+                </tr>
+            </table>
+        </div>
+    `;
+}
+
+async function addToCart() {
+    const customerCode = getCustomerCode();
+    const quantity = parseInt(document.getElementById('quantity').value);
+    const selectedYearEl = document.getElementById('selectedYear');
+    const selectedYear = selectedYearEl ? (selectedYearEl.value || null) : null;
+
+    if (quantity < 1) {
+        showAlert('수량을 확인해주세요', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch('/api/mobile/cart/add/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                customer_code: customerCode,
+                product_code: productCode,
+                quantity: quantity,
+                selected_year: selectedYear ? parseInt(selectedYear) : null
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('장바구니에 추가되었습니다', 'success');
+            setTimeout(() => {
+                if (confirm('장바구니로 이동하시겠습니까?')) {
+                    location.href = '/mobile/cart/';
+                }
+            }, 1000);
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+loadProduct();
+</script>
+{% endblock %}

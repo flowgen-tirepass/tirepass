@@ -1,0 +1,106 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}회원가입 - TirePASS{% endblock %}
+{% block header_title %}회원가입{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-bottom: 30px; text-align: center; color: #2563eb;">신규 회원가입</h2>
+
+    <form id="registerForm">
+        <div class="form-group">
+            <label class="form-label">상호 *</label>
+            <input type="text" class="form-input" id="name" placeholder="예: 홍길동타이어" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">비밀번호 *</label>
+            <input type="password" class="form-input" id="password" placeholder="최소 6자 이상" required minlength="6">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">비밀번호 확인 *</label>
+            <input type="password" class="form-input" id="password_confirm" placeholder="비밀번호 재입력" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">대표자</label>
+            <input type="text" class="form-input" id="rep" placeholder="대표자명">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">전화번호</label>
+            <input type="tel" class="form-input" id="tel1" placeholder="예: 02-1234-5678">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">휴대전화</label>
+            <input type="tel" class="form-input" id="tel3" placeholder="예: 010-1234-5678">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">사업자번호</label>
+            <input type="text" class="form-input" id="enno" placeholder="예: 123-45-67890">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 30px;">가입하기</button>
+    </form>
+
+    <div style="margin-top: 20px; text-align: center;">
+        <p style="color: #6b7280; margin-bottom: 10px;">이미 회원이신가요?</p>
+        <a href="/mobile/login/" class="btn btn-secondary btn-block">로그인</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const password = document.getElementById('password').value;
+    const password_confirm = document.getElementById('password_confirm').value;
+
+    if (password !== password_confirm) {
+        showAlert('비밀번호가 일치하지 않습니다.', 'error');
+        return;
+    }
+
+    const formData = {
+        name: document.getElementById('name').value,
+        password: password,
+        rep: document.getElementById('rep').value,
+        tel1: document.getElementById('tel1').value,
+        tel3: document.getElementById('tel3').value,
+        enno: document.getElementById('enno').value
+    };
+
+    showLoading();
+
+    try {
+        const response = await fetch('/api/mobile/auth/register/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert(`회원가입 성공! 고객코드: ${data.data.customer_code}`, 'success');
+            setTimeout(() => {
+                location.href = '/mobile/login/';
+            }, 2000);
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('회원가입 중 오류가 발생했습니다.', 'error');
+    }
+});
+</script>
+{% endblock %}
