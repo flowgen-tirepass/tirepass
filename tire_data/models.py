@@ -135,11 +135,13 @@ class Goods(models.Model):
 class CustomersFull(models.Model):
     """ERP 서버 전체 고객 목록 (읽기 전용, 실시간 동기화)"""
     code = models.CharField(max_length=10, primary_key=True, verbose_name='고객코드', db_column='CODE')
-    name = models.CharField(max_length=50, null=True, blank=True, verbose_name='상호', db_column='NAME')
-    rep = models.CharField(max_length=20, null=True, blank=True, verbose_name='대표자', db_column='REP')
+    name = models.CharField(max_length=100, null=True, blank=True, verbose_name='상호', db_column='NAME')
+    rep = models.CharField(max_length=50, null=True, blank=True, verbose_name='대표자', db_column='REP')
     tel1 = models.CharField(max_length=20, null=True, blank=True, verbose_name='전화1', db_column='TEL1')
     tel3 = models.CharField(max_length=20, null=True, blank=True, verbose_name='휴대전화', db_column='TEL3')
+    tel4 = models.CharField(max_length=20, null=True, blank=True, verbose_name='전화4', db_column='TEL4')
     enno = models.CharField(max_length=20, null=True, blank=True, verbose_name='사업자번호', db_column='ENNO')
+    address1 = models.CharField(max_length=255, null=True, blank=True, verbose_name='주소', db_column='ADDRESS1')
     last_sync = models.DateTimeField(null=True, blank=True, verbose_name='최종동기화', db_column='LAST_SYNC')
 
     class Meta:
