@@ -99,10 +99,27 @@ class GoodsAdmin(admin.ModelAdmin):
 @admin.register(CustomersFull)
 class CustomersFullAdmin(admin.ModelAdmin):
     """ERP 전체 고객 목록 (읽기 전용)"""
-    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'last_sync']
-    search_fields = ['code', 'name', 'rep', 'enno']
+    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'tel4', 'enno', 'last_sync']
+    search_fields = ['code', 'name', 'rep', 'enno', 'address1']
     ordering = ['code']
     list_per_page = 50
+
+    fieldsets = (
+        ('기본 정보', {
+            'fields': ('code', 'name', 'rep')
+        }),
+        ('연락처', {
+            'fields': ('tel1', 'tel3', 'tel4')
+        }),
+        ('사업자 정보', {
+            'fields': ('enno', 'address1')
+        }),
+        ('시스템 정보', {
+            'fields': ('last_sync',),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['code', 'name', 'rep', 'tel1', 'tel3', 'tel4', 'enno', 'address1', 'last_sync']
 
     def has_add_permission(self, request):
         """추가 불가 (ERP에서만)"""

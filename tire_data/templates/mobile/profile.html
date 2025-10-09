@@ -7,8 +7,31 @@
 {% block content %}
 <div id="profileInfo"></div>
 
+<!-- 비밀번호 변경 섹션 -->
+<div class="card" id="changePasswordSection" style="display: none;">
+    <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 600; color: #dc2626;">🔒 비밀번호 변경</h3>
+    <form id="changePasswordForm" autocomplete="off">
+        <div class="form-group">
+            <label class="form-label">현재 비밀번호</label>
+            <input type="password" class="form-input" id="current_password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">새 비밀번호 (4자 이상)</label>
+            <input type="password" class="form-input" id="new_password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" required minlength="4">
+        </div>
+        <div class="form-group">
+            <label class="form-label">새 비밀번호 확인</label>
+            <input type="password" class="form-input" id="confirm_password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" required minlength="4">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">비밀번호 변경</button>
+        <button type="button" onclick="hideChangePassword()" class="btn btn-secondary btn-block" style="margin-top: 10px;">취소</button>
+    </form>
+</div>
+
 <div class="card">
-    <button onclick="logout()" class="btn btn-danger btn-block">로그아웃</button>
+    <a href="/mobile/home/" class="btn btn-primary btn-block">홈으로 가기</a>
+    <button onclick="showChangePassword()" class="btn btn-secondary btn-block" style="margin-top: 10px;">비밀번호 변경</button>
+    <button onclick="logout()" class="btn btn-danger btn-block" style="margin-top: 10px;">로그아웃</button>
 </div>
 {% endblock %}
 
@@ -40,12 +63,6 @@ async function loadProfile() {
 function renderProfile(profile) {
     const container = document.getElementById('profileInfo');
 
-    const signupSourceText = {
-        'Mobile': '모바일 가입',
-        'Admin': '관리자 등록',
-        null: '초기 가입'
-    };
-
     container.innerHTML = `
         <div class="card">
             <h2 style="margin-bottom: 20px; font-size: 20px; font-weight: 600;">${profile.name}</h2>
@@ -54,10 +71,6 @@ function renderProfile(profile) {
                 <tr style="border-bottom: 1px solid #e5e7eb;">
                     <td style="padding: 12px 0; color: #6b7280; width: 100px;">고객코드</td>
                     <td style="padding: 12px 0; font-weight: 500;">${profile.customer_code}</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #e5e7eb;">
-                    <td style="padding: 12px 0; color: #6b7280;">가입경로</td>
-                    <td style="padding: 12px 0; font-weight: 500;">${signupSourceText[profile.signup_source] || '-'}</td>
                 </tr>
                 ${profile.rep ? `
                 <tr style="border-bottom: 1px solid #e5e7eb;">
@@ -102,6 +115,75 @@ async function logout() {
     } catch (error) {
         showAlert('오류가 발생했습니다', 'error');
     }
+}
+
+function showChangePassword() {
+    document.getElementById('changePasswordSection').style.display = 'block';
+    window.scrollTo({ top: document.getElementById('changePasswordSection').offsetTop - 20, behavior: 'smooth' });
+}
+
+function hideChangePassword() {
+    document.getElementById('changePasswordSection').style.display = 'none';
+    document.getElementById('changePasswordForm').reset();
+}
+
+document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const currentPassword = document.getElementById('current_password').value;
+    const newPassword = document.getElementById('new_password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+
+    if (newPassword !== confirmPassword) {
+        showAlert('새 비밀번호가 일치하지 않습니다', 'error');
+        return;
+    }
+
+    if (newPassword.length < 4) {
+        showAlert('비밀번호는 최소 4자 이상이어야 합니다', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch('/api/mobile/auth/change-password/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_code: getCustomerCode(),
+                current_password: currentPassword,
+                new_password: newPassword,
+                confirm_password: confirmPassword
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('비밀번호가 변경되었습니다. 홈으로 이동합니다.', 'success');
+            setTimeout(() => {
+                location.href = '/mobile/home/';
+            }, 1500);
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('비밀번호 변경 중 오류가 발생했습니다', 'error');
+    }
+});
+
+// URL 파라미터 확인하여 비밀번호 변경 폼 자동 표시
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('change_password') === 'true') {
+    setTimeout(() => {
+        showChangePassword();
+        showAlert('보안을 위해 비밀번호를 변경해주세요', 'info');
+    }, 500);
 }
 
 loadProfile();

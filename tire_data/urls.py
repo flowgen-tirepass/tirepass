@@ -51,6 +51,7 @@ urlpatterns = [
     path('api/mobile/auth/login/', api_views.api_auth_login, name='api_auth_login'),
     path('api/mobile/auth/logout/', api_views.api_auth_logout, name='api_auth_logout'),
     path('api/mobile/auth/profile/', api_views.api_auth_profile, name='api_auth_profile'),
+    path('api/mobile/auth/change-password/', api_views.api_auth_change_password, name='api_auth_change_password'),
 
     # 결제 API (토스페이먼츠)
     path('api/mobile/payment/prepare/', api_views.api_payment_prepare, name='api_payment_prepare'),

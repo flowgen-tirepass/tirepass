@@ -944,7 +944,8 @@ def api_auth_login(request):
                 'message': '로그인 성공',
                 'data': {
                     'customer_code': customer.code,
-                    'name': customer.name
+                    'name': customer.name,
+                    'must_change_password': customer.must_change_password
                 }
             })
         else:
@@ -1007,7 +1008,6 @@ def api_auth_profile(request):
                 'tel1': customer.tel1,
                 'tel3': customer.tel3,
                 'enno': customer.enno,
-                'signup_source': customer.signup_source,
                 'is_registered': customer.is_registered
             }
         })
@@ -1020,6 +1020,80 @@ def api_auth_profile(request):
         return JsonResponse({
             'success': False,
             'message': f'프로필 조회 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_auth_change_password(request):
+    """비밀번호 변경 API"""
+    try:
+        body_unicode = request.body.decode('utf-8')
+        data = json.loads(body_unicode)
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'잘못된 요청입니다: {str(e)}'
+        }, status=400)
+
+    customer_code = request.session.get('customer_code') or data.get('customer_code')
+    current_password = data.get('current_password', '').strip()
+    new_password = data.get('new_password', '').strip()
+    confirm_password = data.get('confirm_password', '').strip()
+
+    if not customer_code:
+        return JsonResponse({
+            'success': False,
+            'message': '로그인이 필요합니다.'
+        }, status=401)
+
+    if not current_password or not new_password or not confirm_password:
+        return JsonResponse({
+            'success': False,
+            'message': '모든 필드를 입력해주세요.'
+        }, status=400)
+
+    if new_password != confirm_password:
+        return JsonResponse({
+            'success': False,
+            'message': '새 비밀번호가 일치하지 않습니다.'
+        }, status=400)
+
+    if len(new_password) < 4:
+        return JsonResponse({
+            'success': False,
+            'message': '비밀번호는 최소 4자 이상이어야 합니다.'
+        }, status=400)
+
+    try:
+        customer = Customers.objects.get(code=customer_code)
+
+        # 현재 비밀번호 확인
+        if not check_password(current_password, customer.password):
+            return JsonResponse({
+                'success': False,
+                'message': '현재 비밀번호가 일치하지 않습니다.'
+            }, status=401)
+
+        # 새 비밀번호로 변경
+        customer.password = make_password(new_password)
+        customer.must_change_password = False  # 비밀번호 변경 완료
+        customer.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': '비밀번호가 변경되었습니다.'
+        })
+
+    except Customers.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 정보를 찾을 수 없습니다.'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'비밀번호 변경 중 오류가 발생했습니다: {str(e)}'
         }, status=500)
 
 
