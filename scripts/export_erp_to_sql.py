@@ -27,7 +27,7 @@ def export_to_sql():
 
         # CUSTOMS 테이블에서 데이터 조회
         query = """
-            SELECT CODE, NAME, REP, ENNO
+            SELECT CODE, NAME, REP, ENNO, TEL1, TEL3, TEL4, ADDRESS1
             FROM CUSTOMS
             WHERE ENNO IS NOT NULL AND ENNO <> ''
         """
@@ -54,7 +54,7 @@ def export_to_sql():
             valid_count = 0
 
             for i, customer in enumerate(customers):
-                code, name, rep, enno = customer
+                code, name, rep, enno, tel1, tel3, tel4, address1 = customer
 
                 # 사업자번호 정제
                 if not enno:
@@ -65,19 +65,24 @@ def export_to_sql():
                 if not enno_clean.isdigit() or len(enno_clean) != 10:
                     continue
 
-                # 특수문자 이스케이프
-                code_clean = str(code).strip().replace("'", "''")
+                # 특수문자 이스케이프 (UTF-8 인코딩)
+                code_clean = str(code).strip().replace("'", "''") if code else ''
                 name_clean = str(name).strip().replace("'", "''") if name else ''
                 rep_clean = str(rep).strip().replace("'", "''") if rep else ''
+                tel1_clean = str(tel1).strip().replace("'", "''") if tel1 else ''
+                tel3_clean = str(tel3).strip().replace("'", "''") if tel3 else ''
+                tel4_clean = str(tel4).strip().replace("'", "''") if tel4 else ''
+                address1_clean = str(address1).strip().replace("'", "''") if address1 else ''
 
                 if valid_count % batch_size == 0:
                     if valid_count > 0:
                         f.write(";\n\n")
-                    f.write("INSERT INTO customers (CODE, NAME, REP, ENNO, LAST_SYNC) VALUES\n")
+                    f.write("INSERT INTO customers (CODE, NAME, REP, TEL1, TEL3, TEL4, ENNO, ADDRESS1, LAST_SYNC) VALUES\n")
                 else:
                     f.write(",\n")
 
-                f.write(f"  ('{code_clean}', '{name_clean}', '{rep_clean}', '{enno_clean}', NOW())")
+                # 모든 필드 포함
+                f.write(f"  ('{code_clean}', '{name_clean}', '{rep_clean}', '{tel1_clean}', '{tel3_clean}', '{tel4_clean}', '{enno_clean}', '{address1_clean}', NOW())")
 
                 valid_count += 1
 
