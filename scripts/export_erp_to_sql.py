@@ -40,10 +40,10 @@ def export_to_sql():
         cursor.close()
         conn.close()
 
-        # SQL 파일 생성
+        # SQL 파일 생성 (UTF-8 with BOM for better compatibility)
         output_file = 'erp_customers_insert.sql'
 
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, 'w', encoding='utf-8-sig') as f:
             f.write("-- ERP 고객 데이터 INSERT\n")
             f.write(f"-- 생성일: {datetime.now()}\n")
             f.write(f"-- 총 {len(customers)}명\n\n")
@@ -65,14 +65,27 @@ def export_to_sql():
                 if not enno_clean.isdigit() or len(enno_clean) != 10:
                     continue
 
-                # 특수문자 이스케이프 (UTF-8 인코딩)
-                code_clean = str(code).strip().replace("'", "''") if code else ''
-                name_clean = str(name).strip().replace("'", "''") if name else ''
-                rep_clean = str(rep).strip().replace("'", "''") if rep else ''
-                tel1_clean = str(tel1).strip().replace("'", "''") if tel1 else ''
-                tel3_clean = str(tel3).strip().replace("'", "''") if tel3 else ''
-                tel4_clean = str(tel4).strip().replace("'", "''") if tel4 else ''
-                address1_clean = str(address1).strip().replace("'", "''") if address1 else ''
+                # UTF-8 디코딩 및 특수문자 이스케이프
+                def clean_field(value):
+                    if not value:
+                        return ''
+                    # 이미 문자열이면 그대로, bytes면 UTF-8 디코드
+                    if isinstance(value, bytes):
+                        try:
+                            s = value.decode('utf-8')
+                        except:
+                            s = value.decode('cp949', errors='ignore')
+                    else:
+                        s = str(value)
+                    return s.strip().replace("'", "''")
+
+                code_clean = clean_field(code)
+                name_clean = clean_field(name)
+                rep_clean = clean_field(rep)
+                tel1_clean = clean_field(tel1)
+                tel3_clean = clean_field(tel3)
+                tel4_clean = clean_field(tel4)
+                address1_clean = clean_field(address1)
 
                 if valid_count % batch_size == 0:
                     if valid_count > 0:
