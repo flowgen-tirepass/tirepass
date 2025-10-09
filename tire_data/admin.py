@@ -4,14 +4,14 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 import re
 from .models import (
-    Goods, Customers, YearAllocation, BrandGroup,
+    Goods, CustomersFull, Customers, YearAllocation, BrandGroup,
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment
 )
 
 @admin.register(Goods)
 class GoodsAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'bun1', 'jaego', 'fixp']
+    list_display = ['code', 'name', 'bun1', 'display_jaego', 'display_fixp']
     list_filter = ['bun1']
     search_fields = ['code', 'name', 'bun1']
     readonly_fields = ['code']  # 상품코드는 읽기 전용
@@ -29,6 +29,22 @@ class GoodsAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def display_jaego(self, obj):
+        """재고수량을 정수로 표시 (천단위 콤마 포함)"""
+        if obj.jaego is not None:
+            return "{:,.0f}".format(float(obj.jaego))
+        return "0"
+    display_jaego.short_description = '재고수량'
+    display_jaego.admin_order_field = 'jaego'
+
+    def display_fixp(self, obj):
+        """고정가격을 정수로 표시 (천단위 콤마 포함)"""
+        if obj.fixp is not None:
+            return "{:,.0f}".format(float(obj.fixp))
+        return "0"
+    display_fixp.short_description = '고정가격'
+    display_fixp.admin_order_field = 'fixp'
 
     def get_search_results(self, request, queryset, search_term):
         """
@@ -80,14 +96,35 @@ class GoodsAdmin(admin.ModelAdmin):
 
         return queryset, use_distinct
 
+@admin.register(CustomersFull)
+class CustomersFullAdmin(admin.ModelAdmin):
+    """ERP 전체 고객 목록 (읽기 전용)"""
+    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'last_sync']
+    search_fields = ['code', 'name', 'rep', 'enno']
+    ordering = ['code']
+    list_per_page = 50
+
+    def has_add_permission(self, request):
+        """추가 불가 (ERP에서만)"""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """삭제 불가 (ERP에서만)"""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """수정 불가 (ERP에서만)"""
+        return False
+
 @admin.register(Customers)
 class CustomersAdmin(admin.ModelAdmin):
+    """모바일 회원가입 고객"""
     list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'product_discount_count']
     list_filter = ['is_registered', 'must_change_password']
     search_fields = ['code', 'name', 'rep', 'enno']
     ordering = ['code']
     list_per_page = 50
-    readonly_fields = ['code']  # 고객코드는 읽기 전용
+    readonly_fields = ['code']
     fields = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'must_change_password']
 
     def product_discount_count(self, obj):

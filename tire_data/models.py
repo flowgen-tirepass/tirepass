@@ -132,8 +132,34 @@ class Goods(models.Model):
         return False
 
 
+class CustomersFull(models.Model):
+    """ERP 서버 전체 고객 목록 (읽기 전용, 실시간 동기화)"""
+    code = models.CharField(max_length=10, primary_key=True, verbose_name='고객코드', db_column='CODE')
+    name = models.CharField(max_length=50, null=True, blank=True, verbose_name='상호', db_column='NAME')
+    rep = models.CharField(max_length=20, null=True, blank=True, verbose_name='대표자', db_column='REP')
+    tel1 = models.CharField(max_length=20, null=True, blank=True, verbose_name='전화1', db_column='TEL1')
+    tel3 = models.CharField(max_length=20, null=True, blank=True, verbose_name='휴대전화', db_column='TEL3')
+    enno = models.CharField(max_length=20, null=True, blank=True, verbose_name='사업자번호', db_column='ENNO')
+    last_sync = models.DateTimeField(null=True, blank=True, verbose_name='최종동기화', db_column='LAST_SYNC')
+
+    class Meta:
+        db_table = 'customers'
+        managed = False  # ERP 서버가 관리
+        verbose_name = 'ERP 고객'
+        verbose_name_plural = 'ERP 고객목록'
+        ordering = ['code']
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+    @property
+    def is_real_customer(self):
+        """실제 고객인지 확인 (Z로 시작하지 않는 코드)"""
+        return not self.code.startswith('Z')
+
+
 class Customers(models.Model):
-    """고객 정보 모델 (간소화 버전)"""
+    """모바일 회원가입 고객 (pythonanywhere 관리)"""
     code = models.CharField(max_length=10, primary_key=True, verbose_name='고객코드', db_column='code')
     name = models.CharField(max_length=50, null=True, blank=True, verbose_name='상호', db_column='name')
     rep = models.CharField(max_length=20, null=True, blank=True, verbose_name='대표자', db_column='rep')
@@ -147,14 +173,11 @@ class Customers(models.Model):
     user_id = models.IntegerField(null=True, blank=True, verbose_name='사용자ID', db_column='user_id')
     must_change_password = models.BooleanField(default=True, verbose_name='비밀번호변경필요', db_column='must_change_password')
 
-    # 제거된 필드들 (성능 문제로 인해)
-    # tel2, address1, email, last_sync
-
     class Meta:
-        db_table = 'customers_simple'  # 새로운 간소화 테이블 사용
-        managed = False  # 기존 테이블 사용
-        verbose_name = '고객'
-        verbose_name_plural = '고객목록'
+        db_table = 'customers_simple'
+        managed = True  # pythonanywhere가 관리
+        verbose_name = '회원'
+        verbose_name_plural = '회원목록'
         ordering = ['code']
 
     def __str__(self):
