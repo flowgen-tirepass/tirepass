@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, api_views, mobile_views
+from . import views, api_views, mobile_views, views_sync_api
 
 urlpatterns = [
     # Mobile Web URLs
@@ -58,4 +58,9 @@ urlpatterns = [
     path('api/mobile/payment/confirm/', api_views.api_payment_confirm, name='api_payment_confirm'),
     path('api/mobile/payment/cancel/', api_views.api_payment_cancel, name='api_payment_cancel'),
     path('api/mobile/payment/status/<str:payment_key>/', api_views.api_payment_status, name='api_payment_status'),
+
+    # ERP 실시간 동기화 API
+    path('api/sync/customer/', views_sync_api.sync_customer, name='sync_customer'),
+    path('api/sync/goods/', views_sync_api.sync_goods, name='sync_goods'),
+    path('api/sync/status/', views_sync_api.sync_status, name='sync_status'),
 ]

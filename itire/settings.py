@@ -26,6 +26,11 @@ TOSS_PAYMENTS_SECURITY_KEY = os.environ.get('TOSS_PAYMENTS_SECURITY_KEY', '1f1e0
 TOSS_PAYMENTS_API_URL = 'https://api.tosspayments.com/v1'
 
 # ============================================
+# ERP 실시간 동기화 API 설정
+# ============================================
+ERP_SYNC_API_KEY = os.environ.get('ERP_SYNC_API_KEY', 'tirepass_erp_sync_key_2024_change_in_production')
+
+# ============================================
 # UTF-8 인코딩 강제 설정 (Windows 전용)
 # ============================================
 if sys.platform == 'win32':
