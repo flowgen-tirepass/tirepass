@@ -3,10 +3,15 @@
 """
 from django.shortcuts import render
 from django.http import HttpResponse
+from .models import Goods
 
 def mobile_intro(request):
     """모바일 인트로"""
-    return render(request, 'mobile/intro.html')
+    # ERP에서 실시간 상품 개수 조회
+    total_products = Goods.objects.count()
+    return render(request, 'mobile/intro.html', {
+        'total_products': total_products
+    })
 
 def mobile_home(request):
     """모바일 홈"""
