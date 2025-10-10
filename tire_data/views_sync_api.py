@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from tire_data.models import CustomersFull, Goods
+from datetime import datetime
 import json
 import logging
 
@@ -201,6 +202,3 @@ def sync_status(request):
     except Exception as e:
         logger.error(f"Sync status error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
-
-
-from datetime import datetime
