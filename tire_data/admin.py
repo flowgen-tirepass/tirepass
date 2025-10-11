@@ -50,11 +50,39 @@ class GoodsAdmin(admin.ModelAdmin):
     display_fixp.admin_order_field = 'fixp'
 
     def changelist_view(self, request, extra_context=None):
-        """ERP 실시간 데이터를 컨텍스트에 추가"""
+        """ERP 실시간 데이터로 완전 교체"""
         extra_context = extra_context or {}
-        # ERP API에서 실시간 상품 개수 조회
-        erp_goods_count = ERPAPIClient.get_goods_count()
+
+        # 페이지네이션 파라미터
+        page = int(request.GET.get('p', 1))
+        per_page = 50
+        offset = (page - 1) * per_page
+
+        # 검색어
+        search_term = request.GET.get('q', '')
+
+        # ERP API에서 실시간 데이터 조회
+        if search_term:
+            erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page, search=search_term)
+            erp_goods_count = len(erp_goods_list)  # 검색 시 대략적인 수
+        else:
+            erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page)
+            erp_goods_count = ERPAPIClient.get_goods_count()
+
+        # 페이지네이션 정보
+        total_pages = (erp_goods_count + per_page - 1) // per_page
+        has_previous = page > 1
+        has_next = page < total_pages
+
+        # 컨텍스트에 ERP 데이터 추가
         extra_context['erp_goods_count'] = erp_goods_count
+        extra_context['erp_goods_list'] = erp_goods_list
+        extra_context['page_num'] = page
+        extra_context['total_pages'] = total_pages
+        extra_context['has_previous'] = has_previous
+        extra_context['has_next'] = has_next
+        extra_context['search_term'] = search_term
+
         return super().changelist_view(request, extra_context=extra_context)
 
     def get_search_results(self, request, queryset, search_term):
