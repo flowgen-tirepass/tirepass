@@ -1,7 +1,12 @@
 from django.urls import path
-from . import views, api_views, mobile_views, views_sync_api
+from . import views, api_views, mobile_views, views_sync_api, admin_views
 
 urlpatterns = [
+    # Admin ERP 실시간 데이터 URLs
+    path('admin-erp/goods/', admin_views.erp_goods_list, name='admin_erp_goods_list'),
+    path('admin-erp/customers/', admin_views.erp_customers_list, name='admin_erp_customers_list'),
+    path('admin-erp/orders/', admin_views.erp_orders_list, name='admin_erp_orders_list'),
+
     # Mobile Web URLs
     path('mobile/', mobile_views.mobile_intro, name='mobile_intro'),
     path('mobile/home/', mobile_views.mobile_home, name='mobile_home'),
