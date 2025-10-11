@@ -27,15 +27,24 @@ class ERPAPIClient:
             params['api_key'] = ERP_API_KEY
 
             url = f"{ERP_API_BASE_URL}{endpoint}"
+            logger.info(f"ERP API 요청: {url} - params: {params}")
+
             response = requests.get(url, params=params, timeout=TIMEOUT)
             response.raise_for_status()
-            return response.json()
+
+            result = response.json()
+            logger.info(f"ERP API 응답: {endpoint} - 결과 타입: {type(result)}")
+
+            return result
 
         except requests.exceptions.Timeout:
             logger.error(f"ERP API timeout: {endpoint}")
             return None
         except requests.exceptions.RequestException as e:
             logger.error(f"ERP API error: {endpoint} - {str(e)}")
+            return None
+        except Exception as e:
+            logger.error(f"ERP API 예외: {endpoint} - {str(e)}")
             return None
 
     # ========================================

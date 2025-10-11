@@ -90,6 +90,9 @@ class GoodsAdmin(admin.ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
         """ERP 실시간 데이터로 완전 교체"""
+        import logging
+        logger = logging.getLogger(__name__)
+
         extra_context = extra_context or {}
 
         # 페이지네이션 파라미터
@@ -102,6 +105,9 @@ class GoodsAdmin(admin.ModelAdmin):
         filter_tire_only = request.GET.get('tire_only', '')
         filter_stock_only = request.GET.get('stock_only', '')
 
+        logger.info(f"=== GoodsAdmin changelist_view ===")
+        logger.info(f"검색어: '{search_term}', 타이어필터: {filter_tire_only}, 재고필터: {filter_stock_only}")
+
         # 필터 적용 여부 확인
         has_filter = (filter_tire_only == 'on' or filter_stock_only == 'on')
 
@@ -109,16 +115,22 @@ class GoodsAdmin(admin.ModelAdmin):
         if has_filter:
             # 필터 사용 시: 많은 데이터를 가져와서 필터링 (최대 500개)
             fetch_limit = 500
+            logger.info(f"필터 모드: {fetch_limit}개 로드")
             erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=search_term)
             erp_goods_count = ERPAPIClient.get_goods_count()
+            logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품, 전체: {erp_goods_count}")
         elif search_term:
             # 검색만 사용 시: 검색 결과를 페이지네이션
+            logger.info(f"검색 모드: '{search_term}' (offset={offset}, limit={per_page})")
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page, search=search_term)
             erp_goods_count = len(erp_goods_list)  # 검색 시 대략적인 수
+            logger.info(f"검색 결과: {erp_goods_count}개 상품")
         else:
             # 일반 조회: 기본 페이지네이션
+            logger.info(f"일반 조회 모드 (offset={offset}, limit={per_page})")
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page)
             erp_goods_count = ERPAPIClient.get_goods_count()
+            logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품, 전체: {erp_goods_count}")
 
         # 필터 적용 전 원본 개수
         original_count = len(erp_goods_list)
@@ -128,18 +140,15 @@ class GoodsAdmin(admin.ModelAdmin):
 
         if filter_tire_only == 'on':
             # 타이어 상품만 필터링
+            before_filter = len(filtered_goods)
             filtered_goods = [g for g in filtered_goods if self.is_tire_product(g)]
-            # 디버깅: 필터링 후 개수 로깅
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"타이어 필터: {original_count} → {len(filtered_goods)}")
+            logger.info(f"타이어 필터 적용: {before_filter} → {len(filtered_goods)}")
 
         if filter_stock_only == 'on':
             # 재고가 있는 상품만 필터링
+            before_filter = len(filtered_goods)
             filtered_goods = [g for g in filtered_goods if g.get('jaego', 0) > 0]
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"재고 필터: {len(erp_goods_list)} → {len(filtered_goods)}")
+            logger.info(f"재고 필터 적용: {before_filter} → {len(filtered_goods)}")
 
         # 필터 적용 후 최종 결과
         erp_goods_list = filtered_goods
