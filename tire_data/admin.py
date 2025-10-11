@@ -2,12 +2,14 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.utils.html import format_html
 import re
 from .models import (
     Goods, CustomersFull, Customers, YearAllocation, BrandGroup,
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment
 )
+from .erp_api_client import ERPAPIClient
 
 @admin.register(Goods)
 class GoodsAdmin(admin.ModelAdmin):
@@ -16,6 +18,7 @@ class GoodsAdmin(admin.ModelAdmin):
     search_fields = ['code', 'name', 'bun1']
     readonly_fields = ['code']  # 상품코드는 읽기 전용
     list_per_page = 50
+    change_list_template = 'admin/goods_changelist.html'
 
     fieldsets = (
         ('기본 정보', {
@@ -45,6 +48,14 @@ class GoodsAdmin(admin.ModelAdmin):
         return "0"
     display_fixp.short_description = '고정가격'
     display_fixp.admin_order_field = 'fixp'
+
+    def changelist_view(self, request, extra_context=None):
+        """ERP 실시간 데이터를 컨텍스트에 추가"""
+        extra_context = extra_context or {}
+        # ERP API에서 실시간 상품 개수 조회
+        erp_goods_count = ERPAPIClient.get_goods_count()
+        extra_context['erp_goods_count'] = erp_goods_count
+        return super().changelist_view(request, extra_context=extra_context)
 
     def get_search_results(self, request, queryset, search_term):
         """
