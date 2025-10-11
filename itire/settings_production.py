@@ -67,6 +67,11 @@ LOGGING = {
         },
     },
     'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
         'error_file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
@@ -82,12 +87,12 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['error_file'],
+            'handlers': ['console', 'error_file'],
             'level': 'ERROR',
             'propagate': True,
         },
         'tire_data': {
-            'handlers': ['info_file', 'error_file'],
+            'handlers': ['console', 'info_file', 'error_file'],
             'level': 'INFO',
             'propagate': False,
         },
