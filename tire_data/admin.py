@@ -49,6 +49,11 @@ class GoodsAdmin(admin.ModelAdmin):
     display_fixp.short_description = '고정가격'
     display_fixp.admin_order_field = 'fixp'
 
+    def get_queryset(self, request):
+        """빈 queryset 반환 (ERP 데이터 사용)"""
+        # Django admin의 기본 queryset을 사용하지 않음
+        return Goods.objects.none()
+
     def changelist_view(self, request, extra_context=None):
         """ERP 실시간 데이터로 완전 교체"""
         extra_context = extra_context or {}

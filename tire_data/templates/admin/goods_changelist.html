@@ -79,15 +79,19 @@
 
 <p class="paginator">
     {% if has_previous %}
-    <a href="?p={{ page_num|add:'-1' }}{% if search_term %}&q={{ search_term }}{% endif %}">‹ 이전</a>
+    <a href="?p={{ page_num|add:'-1' }}{% if search_term %}&q={{ search_term }}{% endif %}{% if filter_tire_only %}&tire_only=on{% endif %}{% if filter_stock_only %}&stock_only=on{% endif %}">‹ 이전</a>
     {% endif %}
 
     <span class="this-page">{{ page_num }} / {{ total_pages }}</span>
 
     {% if has_next %}
-    <a href="?p={{ page_num|add:'1' }}{% if search_term %}&q={{ search_term }}{% endif %}">다음 ›</a>
+    <a href="?p={{ page_num|add:'1' }}{% if search_term %}&q={{ search_term }}{% endif %}{% if filter_tire_only %}&tire_only=on{% endif %}{% if filter_stock_only %}&stock_only=on{% endif %}">다음 ›</a>
     {% endif %}
 
-    <span style="margin-left: 20px;">50개씩 보기</span>
+    <span style="margin-left: 20px;">50개씩 보기 | {{ erp_goods_count }} 상품목록</span>
 </p>
+{% endblock %}
+
+{% block pagination %}
+{# Django 기본 페이지네이션 숨김 #}
 {% endblock %}
