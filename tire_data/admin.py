@@ -56,23 +56,35 @@ class GoodsAdmin(admin.ModelAdmin):
 
     def is_tire_product(self, goods):
         """타이어 상품인지 정확하게 판별"""
-        name = goods.get('name', '')
-        bun1 = goods.get('bun1', '')
+        name = goods.get('name', '').upper()
+        bun1 = goods.get('bun1', '') or ''
 
-        # BUN1 필드가 "타이어" 관련이면 타이어
-        if bun1 and '타이어' in bun1:
+        # 타이어 사이즈 패턴 검사 (가장 정확한 방법)
+        # 패턴 1: 195/65R15, 205/55R16 (일반적인 타이어 사이즈)
+        # 패턴 2: 225/45ZR17 (고성능 타이어)
+        # 패턴 3: 175-70R13 (하이픈 구분)
+        tire_patterns = [
+            r'\d{3}/\d{2}R\d{2}',      # 195/65R15
+            r'\d{3}/\d{2}[A-Z]R\d{2}',  # 225/45ZR17
+            r'\d{3}-\d{2}R\d{2}',      # 175-70R13
+        ]
+
+        for pattern in tire_patterns:
+            if re.search(pattern, name):
+                return True
+
+        # BUN1 필드가 "타이어" 포함 (한글 인코딩 문제 대응)
+        if '타이어' in bun1 or 'TIRE' in bun1.upper():
             return True
 
-        # 타이어 사이즈 패턴 검사 (예: 205/55R16, 185/60R15, 225/45ZR17)
-        # 패턴: 숫자(2-3자리)/숫자(2자리)R또는ZR숫자(2자리)
-        tire_pattern = r'\b\d{2,3}[/-]\d{2}[A-Z]?R\d{2}\b'
-        if re.search(tire_pattern, name.upper()):
-            return True
-
-        # 타이어 관련 키워드 (한글)
-        tire_keywords = ['타이어', '승용', '트럭', 'SUV', '4계절']
-        if any(keyword in name for keyword in tire_keywords):
-            return True
+        # 타이어 브랜드명 포함 (영문)
+        tire_brands = ['HANKOOK', 'KUMHO', 'NEXEN', 'MICHELIN', 'BRIDGESTONE',
+                       'GOODYEAR', 'CONTINENTAL', 'PIRELLI', 'DUNLOP', 'YOKOHAMA',
+                       'ANNAITE', 'TRIANGLE']
+        if any(brand in name for brand in tire_brands):
+            # 브랜드명만으로는 부족, 사이즈 패턴도 함께 확인
+            if re.search(r'\d{3}[/-]\d{2}', name):
+                return True
 
         return False
 
@@ -108,21 +120,34 @@ class GoodsAdmin(admin.ModelAdmin):
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page)
             erp_goods_count = ERPAPIClient.get_goods_count()
 
+        # 필터 적용 전 원본 개수
+        original_count = len(erp_goods_list)
+
         # 클라이언트 사이드 필터 적용
+        filtered_goods = erp_goods_list
+
         if filter_tire_only == 'on':
-            # 타이어 상품만 필터링 (정확한 패턴 매칭)
-            erp_goods_list = [g for g in erp_goods_list if self.is_tire_product(g)]
+            # 타이어 상품만 필터링
+            filtered_goods = [g for g in filtered_goods if self.is_tire_product(g)]
+            # 디버깅: 필터링 후 개수 로깅
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"타이어 필터: {original_count} → {len(filtered_goods)}")
 
         if filter_stock_only == 'on':
             # 재고가 있는 상품만 필터링
-            erp_goods_list = [g for g in erp_goods_list if g.get('jaego', 0) > 0]
+            filtered_goods = [g for g in filtered_goods if g.get('jaego', 0) > 0]
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"재고 필터: {len(erp_goods_list)} → {len(filtered_goods)}")
 
-        # 필터 적용 후 실제 개수
+        # 필터 적용 후 최종 결과
+        erp_goods_list = filtered_goods
         filtered_count = len(erp_goods_list)
 
         # 페이지네이션 정보
         if has_filter:
-            # 필터 사용 시: 페이지네이션 비활성화 (전체 결과 표시)
+            # 필터 사용 시: 전체 결과 표시
             total_pages = 1
             has_previous = False
             has_next = False
@@ -144,6 +169,11 @@ class GoodsAdmin(admin.ModelAdmin):
         extra_context['search_term'] = search_term
         extra_context['filter_tire_only'] = filter_tire_only
         extra_context['filter_stock_only'] = filter_stock_only
+
+        # 필터 정보 추가
+        extra_context['original_count'] = original_count if has_filter else erp_goods_count
+        extra_context['filtered_count'] = filtered_count if has_filter else None
+        extra_context['has_filter'] = has_filter
 
         return super().changelist_view(request, extra_context=extra_context)
 
