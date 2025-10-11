@@ -2,7 +2,7 @@
 
 {% block result_list %}
 <div style="background: #f8f8f8; border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-    <div style="display: flex; align-items: center; gap: 20px;">
+    <div style="display: flex; align-items: center;">
         <div>
             <strong style="color: #417690; font-size: 14px;">🔄 ERP 실시간 연결</strong>
             <div style="margin-top: 5px;">
@@ -10,16 +10,6 @@
                 <span style="color: #666; margin-left: 5px;">개 상품 (광주 ERP 서버)</span>
             </div>
         </div>
-        <div style="border-left: 2px solid #ddd; padding-left: 20px;">
-            <div style="color: #666; font-size: 12px;">MySQL 캐시 데이터</div>
-            <div style="margin-top: 5px;">
-                <span style="font-size: 20px; font-weight: bold;">{{ result_count }}</span>
-                <span style="color: #666; margin-left: 5px;">개</span>
-            </div>
-        </div>
-    </div>
-    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 12px; color: #999;">
-        💡 위 숫자는 광주 ERP 서버에서 실시간으로 가져온 최신 데이터입니다. 아래 목록은 Django DB 캐시 데이터입니다.
     </div>
 </div>
 
