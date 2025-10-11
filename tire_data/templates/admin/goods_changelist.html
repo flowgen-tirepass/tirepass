@@ -129,18 +129,28 @@
         </span>
         <span style="margin-left: 20px; color: #666;">전체 {{ original_count }} 개 중</span>
     {% else %}
-        <!-- 일반 조회: 페이지네이션 표시 -->
+        <!-- 일반 조회 및 검색: 페이지네이션 표시 -->
         {% if has_previous %}
         <a href="?p={{ page_num|add:'-1' }}{% if search_term %}&q={{ search_term }}{% endif %}">‹ 이전</a>
         {% endif %}
 
-        <span class="this-page">{{ page_num }} / {{ total_pages }}</span>
+        {% if search_term %}
+            <span class="this-page">페이지 {{ page_num }}</span>
+        {% else %}
+            <span class="this-page">{{ page_num }} / {{ total_pages }}</span>
+        {% endif %}
 
         {% if has_next %}
         <a href="?p={{ page_num|add:'1' }}{% if search_term %}&q={{ search_term }}{% endif %}">다음 ›</a>
         {% endif %}
 
-        <span style="margin-left: 20px;">50개씩 보기 | {{ erp_goods_count }} 상품목록</span>
+        <span style="margin-left: 20px;">
+            {% if search_term %}
+                50개씩 보기 | 검색 결과
+            {% else %}
+                50개씩 보기 | {{ erp_goods_count }} 상품목록
+            {% endif %}
+        </span>
     {% endif %}
 </p>
 {% endblock %}

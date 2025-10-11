@@ -123,8 +123,12 @@ class GoodsAdmin(admin.ModelAdmin):
             # 검색만 사용 시: 검색 결과를 페이지네이션
             logger.info(f"검색 모드: '{search_term}' (offset={offset}, limit={per_page})")
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page, search=search_term)
-            erp_goods_count = len(erp_goods_list)  # 검색 시 대략적인 수
-            logger.info(f"검색 결과: {erp_goods_count}개 상품")
+            # 검색 결과가 limit만큼 반환되면 더 많은 결과가 있을 수 있음
+            if len(erp_goods_list) == per_page:
+                erp_goods_count = 9999  # 충분히 큰 숫자 (페이지네이션 가능하게)
+            else:
+                erp_goods_count = offset + len(erp_goods_list)
+            logger.info(f"검색 결과: {len(erp_goods_list)}개 상품 (현재 페이지)")
         else:
             # 일반 조회: 기본 페이지네이션
             logger.info(f"일반 조회 모드 (offset={offset}, limit={per_page})")
