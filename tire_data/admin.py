@@ -106,10 +106,13 @@ class GoodsAdmin(admin.ModelAdmin):
         filter_stock_only = request.GET.get('stock_only', '')
 
         logger.info(f"=== GoodsAdmin changelist_view ===")
-        logger.info(f"검색어: '{search_term}', 타이어필터: {filter_tire_only}, 재고필터: {filter_stock_only}")
+        logger.info(f"검색어: '{search_term}'")
+        logger.info(f"타이어 필터: '{filter_tire_only}' (타입: {type(filter_tire_only).__name__})")
+        logger.info(f"재고 필터: '{filter_stock_only}' (타입: {type(filter_stock_only).__name__})")
 
         # 필터 적용 여부 확인
         has_filter = (filter_tire_only == 'on' or filter_stock_only == 'on')
+        logger.info(f"필터 적용 여부: {has_filter}")
 
         # ERP API에서 실시간 데이터 조회
         if has_filter:
@@ -153,8 +156,24 @@ class GoodsAdmin(admin.ModelAdmin):
         if filter_stock_only == 'on':
             # 재고가 있는 상품만 필터링
             before_filter = len(filtered_goods)
-            filtered_goods = [g for g in filtered_goods if g.get('jaego', 0) > 0]
+
+            # 첫 3개 상품의 재고 값 확인 (디버깅)
+            if len(filtered_goods) > 0:
+                for i, g in enumerate(filtered_goods[:3]):
+                    jaego_value = g.get('jaego', 0)
+                    logger.info(f"  상품{i+1} 재고값: '{jaego_value}' (타입: {type(jaego_value).__name__})")
+
+            # 재고 필터링 (문자열도 고려)
+            def has_stock(goods):
+                jaego = goods.get('jaego', 0)
+                try:
+                    return float(jaego) > 0
+                except (ValueError, TypeError):
+                    return False
+
+            filtered_goods = [g for g in filtered_goods if has_stock(g)]
             logger.info(f"✓ 재고 필터 적용: {before_filter} → {len(filtered_goods)}")
+
             if len(filtered_goods) > 0:
                 logger.info(f"  재고 샘플: {filtered_goods[0].get('name', 'N/A')} (재고: {filtered_goods[0].get('jaego', 0)})")
 

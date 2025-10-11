@@ -20,9 +20,9 @@
                         </span>
                     </div>
                     <div style="margin-top: 5px; color: #ff6600; font-weight: bold; font-size: 13px;">
-                        {% if filter_tire_only %}🚗 타이어만{% endif %}
-                        {% if filter_tire_only and filter_stock_only %} + {% endif %}
-                        {% if filter_stock_only %}📦 재고있음{% endif %}
+                        {% if filter_tire_only == 'on' %}🚗 타이어만{% endif %}
+                        {% if filter_tire_only == 'on' and filter_stock_only == 'on' %} + {% endif %}
+                        {% if filter_stock_only == 'on' %}📦 재고있음{% endif %}
                     </div>
                 {% else %}
                     <!-- 일반 조회 시 -->
@@ -41,15 +41,15 @@
                 {% if search_term %}
                 <input type="hidden" name="q" value="{{ search_term }}">
                 {% endif %}
-                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; {% if filter_tire_only %}background: #fff3cd; border: 2px solid #ff6600;{% else %}background: white; border: 1px solid #ddd;{% endif %} border-radius: 4px;">
-                    <input type="checkbox" name="tire_only" {% if filter_tire_only %}checked{% endif %}
+                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; {% if filter_tire_only == 'on' %}background: #fff3cd; border: 2px solid #ff6600;{% else %}background: white; border: 1px solid #ddd;{% endif %} border-radius: 4px;">
+                    <input type="checkbox" name="tire_only" {% if filter_tire_only == 'on' %}checked{% endif %}
                            onchange="this.form.submit()" style="margin-right: 5px;">
-                    <span style="{% if filter_tire_only %}font-weight: bold; color: #ff6600;{% endif %}">🚗 타이어만</span>
+                    <span style="{% if filter_tire_only == 'on' %}font-weight: bold; color: #ff6600;{% endif %}">🚗 타이어만</span>
                 </label>
-                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; {% if filter_stock_only %}background: #d1ecf1; border: 2px solid #0c5460;{% else %}background: white; border: 1px solid #ddd;{% endif %} border-radius: 4px;">
-                    <input type="checkbox" name="stock_only" {% if filter_stock_only %}checked{% endif %}
+                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; {% if filter_stock_only == 'on' %}background: #d1ecf1; border: 2px solid #0c5460;{% else %}background: white; border: 1px solid #ddd;{% endif %} border-radius: 4px;">
+                    <input type="checkbox" name="stock_only" {% if filter_stock_only == 'on' %}checked{% endif %}
                            onchange="this.form.submit()" style="margin-right: 5px;">
-                    <span style="{% if filter_stock_only %}font-weight: bold; color: #0c5460;{% endif %}">📦 재고있는 상품만</span>
+                    <span style="{% if filter_stock_only == 'on' %}font-weight: bold; color: #0c5460;{% endif %}">📦 재고있는 상품만</span>
                 </label>
             </form>
         </div>
