@@ -1,0 +1,64 @@
+{% extends 'tire_data/base.html' %}
+
+{% block title %}고객 목록 - iTire{% endblock %}
+
+{% block content %}
+<h2>고객 목록 (총 {{ total_count }}개)</h2>
+
+<div class="card">
+    <form method="get" class="search-box">
+        <input type="text" name="search" placeholder="코드, 상호, 대표자, 전화번호 검색..." value="{{ search_query }}">
+        <button type="submit" class="btn">검색</button>
+        <a href="{% url 'customers_list' %}" class="btn" style="background: #6c757d;">초기화</a>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>코드</th>
+                <th>상호</th>
+                <th>대표자</th>
+                <th>전화번호</th>
+                <th>휴대전화</th>
+                <th>사업자번호</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in page_obj %}
+            <tr>
+                <td>{{ customer.code }}</td>
+                <td>{{ customer.name|default:"-" }}</td>
+                <td>{{ customer.rep|default:"-" }}</td>
+                <td>{{ customer.tel1|default:"-" }}</td>
+                <td>{{ customer.tel3|default:"-" }}</td>
+                <td>{{ customer.enno|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem;">검색 결과가 없습니다.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">&laquo; 처음</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">이전</a>
+    {% endif %}
+
+    <span class="current">
+        페이지 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">다음</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">마지막 &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

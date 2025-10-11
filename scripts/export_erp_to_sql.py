@@ -7,13 +7,14 @@ ERP Firebird에서 고객 데이터를 가져와 SQL INSERT 파일 생성
 
 import fdb
 
-# ERP Firebird 연결 정보
-FIREBIRD_CONFIG = {
+# ERP Firebird 연결 정보 (여러 charset 시도)
+FIREBIRD_CHARSETS = ['UTF8', 'WIN1251', 'WIN1252', 'EUCKR', 'NONE']
+
+FIREBIRD_CONFIG_BASE = {
     'host': 'ITIRE2.iptime.org',
     'database': r'C:\Program Files\PsimCarS\Data\ITIRE.GDB',
     'user': 'SYSDBA',
-    'password': 'masterkey',
-    'charset': 'UTF8'
+    'password': 'masterkey'
 }
 
 
@@ -21,9 +22,16 @@ def export_to_sql():
     """ERP 데이터를 SQL INSERT 문으로 생성"""
     print("=== ERP Firebird 서버 연결 중... ===")
 
-    try:
-        conn = fdb.connect(**FIREBIRD_CONFIG)
-        cursor = conn.cursor()
+    conn = None
+    customers = []
+
+    # 여러 charset 시도
+    for charset in FIREBIRD_CHARSETS:
+        try:
+            print(f"Trying charset: {charset}")
+            config = {**FIREBIRD_CONFIG_BASE, 'charset': charset}
+            conn = fdb.connect(**config)
+            cursor = conn.cursor()
 
         # CUSTOMS 테이블에서 데이터 조회
         query = """

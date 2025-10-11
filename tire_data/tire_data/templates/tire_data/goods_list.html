@@ -1,0 +1,571 @@
+{% extends 'tire_data/base.html' %}
+{% load custom_tags %}
+
+{% block title %}상품 목록 - iTire{% endblock %}
+
+{% block content %}
+<h2>상품 목록 (총 {{ total_count }}개)</h2>
+
+<style>
+    .year-input {
+        width: 60px;
+        padding: 4px;
+        text-align: center;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+    }
+
+    .year-input.error {
+        border-color: #dc3545;
+        background-color: #fff5f5;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 4px;
+        display: none;
+    }
+
+    .validation-message.show {
+        display: block;
+    }
+
+    table {
+        table-layout: auto;
+    }
+
+    .year-column {
+        min-width: 110px;
+        text-align: center;
+    }
+
+    .search-container {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-input-wrapper {
+        width: 25%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .search-input-wrapper input[type="text"] {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    .brand-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 0.5rem;
+        flex: 1;
+    }
+
+    .brand-btn {
+        width: 60px;
+        height: 25px;
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.75rem;
+        font-weight: 500;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.1rem;
+        word-break: keep-all;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .brand-btn:hover {
+        background: #f8f9fa;
+        border-color: #667eea;
+    }
+
+    .brand-btn.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+
+    .brand-btn.editable {
+        background: #f8f9fa;
+        border: 2px dashed #999;
+    }
+
+    .brand-btn.editable:hover {
+        border-color: #667eea;
+        background: #e8e8e8;
+    }
+
+    .brand-edit-input {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: transparent;
+        text-align: center;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .in-stock-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+    }
+
+    .old-brand-select {
+        display: none;
+    }
+</style>
+
+<div class="card">
+    <form method="get" id="searchForm">
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" name="search" placeholder="코드, 상품명 검색..." value="{{ search_query }}">
+            </div>
+
+            <div class="brand-grid" id="brandGrid">
+                <!-- Row 1 -->
+                <button type="button" class="brand-btn" data-brand="미쉐린">미쉐린</button>
+                <button type="button" class="brand-btn" data-brand="금호">금호</button>
+                <button type="button" class="brand-btn" data-brand="피렐리">피렐리</button>
+                <button type="button" class="brand-btn" data-brand="콘티넨탈">콘티넨탈</button>
+                <button type="button" class="brand-btn" data-brand="던롭">던롭</button>
+                <button type="button" class="brand-btn" data-brand="넥센">넥센</button>
+
+                <!-- Row 2 -->
+                <button type="button" class="brand-btn" data-brand="브리지스톤">브리지스톤</button>
+                <button type="button" class="brand-btn" data-brand="요코하마">요코하마</button>
+                <button type="button" class="brand-btn" data-brand="한국">한국</button>
+                <button type="button" class="brand-btn" data-brand="안나이트">안나이트</button>
+                <button type="button" class="brand-btn editable" data-brand="">+</button>
+                <button type="button" class="brand-btn editable" data-brand="">+</button>
+            </div>
+
+            <div class="action-buttons">
+                <label class="in-stock-label">
+                    <input type="checkbox" name="tire_only" {% if request.GET.tire_only %}checked{% endif %}>
+                    타이어만 보기
+                </label>
+                <label class="in-stock-label">
+                    <input type="checkbox" name="in_stock" {% if request.GET.in_stock %}checked{% endif %}>
+                    재고있는상품만
+                </label>
+                <button type="submit" class="btn">검색</button>
+                <a href="{% url 'goods_list' %}" class="btn" style="background: #6c757d;">초기화</a>
+            </div>
+        </div>
+
+        <!-- Hidden input for selected brand -->
+        <input type="hidden" name="brand" id="selectedBrand" value="{{ brand_filter }}">
+
+        <!-- Hidden select for compatibility -->
+        <select name="brand_old" class="old-brand-select">
+            <option value="">모든 브랜드</option>
+            {% for brand in brands %}
+                <option value="{{ brand }}" {% if brand == brand_filter %}selected{% endif %}>{{ brand }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="card" style="overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                <th>코드</th>
+                <th>상품명</th>
+                <th>브랜드</th>
+                <th style="text-align: right;">재고</th>
+                <th style="text-align: right;">가격</th>
+                <th style="text-align: right;">할인율</th>
+                <th style="text-align: right;">할인가</th>
+                <th class="year-column">2025년</th>
+                <th class="year-column">2024년</th>
+                <th class="year-column">2023년</th>
+                <th class="year-column">2022년</th>
+                <th class="year-column">2021년 이전</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for goods in page_obj %}
+            <tr data-code="{{ goods.code }}" data-stock="{{ goods.jaego }}">
+                <td><a href="{% url 'goods_detail' goods.code|urlencode:'' %}" style="color: #667eea;">{{ goods.code }}</a></td>
+                <td>{{ goods.name|truncatechars:40 }}</td>
+                <td>{{ goods.bun1|default:"-" }}</td>
+                <td style="text-align: right;" class="stock-qty">{{ goods.jaego }}</td>
+                <td style="text-align: right;">{{ goods.formatted_price }}원</td>
+                <td style="text-align: right;">
+                    <input type="number"
+                           class="discount-input"
+                           data-code="{{ goods.code }}"
+                           min="0"
+                           max="100"
+                           step="0.5"
+                           value="{{ goods.discount_rate|default:'0' }}"
+                           style="width: 60px; padding: 2px; text-align: center; border: 1px solid #ddd; border-radius: 3px;">
+                    <span style="font-size: 0.9em;">%</span>
+                </td>
+                <td style="text-align: right;" class="discounted-price" data-original-price="{{ goods.fixp }}">
+                    {% if goods.discount_rate and goods.discount_rate > 0 %}
+                        <span style="color: #28a745; font-weight: bold;">{{ goods.formatted_discounted_price }}원</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="year-column">
+                    <input type="number" class="year-input" data-year="2025" min="0" value="{{ allocations|get_item:goods.code|get_item:'2025'|default:0 }}" max="{{ goods.jaego }}">개
+                </td>
+                <td class="year-column">
+                    <input type="number" class="year-input" data-year="2024" min="0" value="{{ allocations|get_item:goods.code|get_item:'2024'|default:0 }}" max="{{ goods.jaego }}">개
+                </td>
+                <td class="year-column">
+                    <input type="number" class="year-input" data-year="2023" min="0" value="{{ allocations|get_item:goods.code|get_item:'2023'|default:0 }}" max="{{ goods.jaego }}">개
+                </td>
+                <td class="year-column">
+                    <input type="number" class="year-input" data-year="2022" min="0" value="{{ allocations|get_item:goods.code|get_item:'2022'|default:0 }}" max="{{ goods.jaego }}">개
+                </td>
+                <td class="year-column">
+                    <input type="number" class="year-input" data-year="2021" min="0" value="{{ allocations|get_item:goods.code|get_item:'2021'|default:0 }}" max="{{ goods.jaego }}">개
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="12" style="text-align: center; padding: 2rem;">검색 결과가 없습니다.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="validation-message" id="global-error"></div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if brand_filter %}&brand={{ brand_filter }}{% endif %}">&laquo; 처음</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if brand_filter %}&brand={{ brand_filter }}{% endif %}">이전</a>
+    {% endif %}
+
+    <span class="current">
+        페이지 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if brand_filter %}&brand={{ brand_filter }}{% endif %}">다음</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if brand_filter %}&brand={{ brand_filter }}{% endif %}">마지막 &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Brand button functionality
+    const brandButtons = document.querySelectorAll('.brand-btn');
+    const selectedBrandInput = document.getElementById('selectedBrand');
+    const searchForm = document.getElementById('searchForm');
+
+    // Load saved custom brands from localStorage
+    const customBrands = JSON.parse(localStorage.getItem('customBrands') || '{}');
+
+    // Apply saved custom brands to editable buttons
+    document.querySelectorAll('.brand-btn.editable').forEach((btn, index) => {
+        const savedBrand = customBrands[`custom_${index}`];
+        if (savedBrand) {
+            btn.textContent = savedBrand;
+            btn.dataset.brand = savedBrand;
+        }
+    });
+
+    // Highlight active brand on page load
+    if (selectedBrandInput.value) {
+        brandButtons.forEach(btn => {
+            if (btn.dataset.brand === selectedBrandInput.value) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    // Brand button click handler
+    brandButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // If it's an editable button and empty, make it editable
+            if (this.classList.contains('editable') && (this.textContent === '+' || this.textContent === '')) {
+                makeEditable(this);
+                return;
+            }
+
+            // If double-clicked on any button, make it editable
+            if (e.detail === 2) {
+                makeEditable(this);
+                return;
+            }
+
+            // Toggle brand selection
+            const currentBrand = this.dataset.brand;
+
+            if (this.classList.contains('active')) {
+                // Deselect
+                this.classList.remove('active');
+                selectedBrandInput.value = '';
+            } else {
+                // Select new brand
+                brandButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedBrandInput.value = currentBrand;
+            }
+
+            // Submit form
+            searchForm.submit();
+        });
+
+        // Add double-click event for editing
+        btn.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+            makeEditable(this);
+        });
+    });
+
+    // Make button editable
+    function makeEditable(btn) {
+        const currentText = btn.textContent === '+' ? '' : btn.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'brand-edit-input';
+        input.value = currentText;
+        input.placeholder = '브랜드명 입력';
+
+        btn.innerHTML = '';
+        btn.appendChild(input);
+        input.focus();
+        input.select();
+
+        // Save on Enter or blur
+        function saveEdit() {
+            const newValue = input.value.trim();
+            if (newValue) {
+                btn.textContent = newValue;
+                btn.dataset.brand = newValue;
+
+                // Save to localStorage if it's a custom button
+                if (btn.classList.contains('editable')) {
+                    const index = Array.from(document.querySelectorAll('.brand-btn.editable')).indexOf(btn);
+                    const customBrands = JSON.parse(localStorage.getItem('customBrands') || '{}');
+                    customBrands[`custom_${index}`] = newValue;
+                    localStorage.setItem('customBrands', JSON.stringify(customBrands));
+                }
+            } else {
+                btn.textContent = btn.classList.contains('editable') ? '+' : btn.dataset.brand || '+';
+            }
+        }
+
+        input.addEventListener('blur', saveEdit);
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveEdit();
+            }
+        });
+
+        // Prevent form submission while editing
+        input.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+
+    // Handle discount rate inputs
+    const discountInputs = document.querySelectorAll('.discount-input');
+
+    discountInputs.forEach(input => {
+        let saveTimeout;
+
+        input.addEventListener('input', function() {
+            const goodsCode = this.dataset.code;
+            const discountRate = parseFloat(this.value) || 0;
+            const row = this.closest('tr');
+            const priceCell = row.querySelector('.discounted-price');
+            const originalPrice = parseFloat(priceCell.dataset.originalPrice);
+
+            // Update discounted price display in real-time
+            if (discountRate > 0) {
+                const discountedPrice = Math.round(originalPrice * (1 - discountRate / 100));
+                const formattedPrice = discountedPrice.toLocaleString('ko-KR') + '원';
+                priceCell.innerHTML = `<span style="color: #28a745; font-weight: bold;">${formattedPrice}</span>`;
+            } else {
+                priceCell.innerHTML = '-';
+            }
+
+            // Validate input
+            if (discountRate < 0) {
+                this.value = 0;
+            } else if (discountRate > 100) {
+                this.value = 100;
+            }
+
+            // Clear previous timeout
+            clearTimeout(saveTimeout);
+
+            // Save after 500ms of no typing
+            saveTimeout = setTimeout(() => {
+                saveDiscountRate(goodsCode, this.value);
+            }, 500);
+        });
+
+        // Style change on focus
+        input.addEventListener('focus', function() {
+            this.style.borderColor = '#667eea';
+            this.style.boxShadow = '0 0 3px rgba(102, 126, 234, 0.3)';
+        });
+
+        input.addEventListener('blur', function() {
+            this.style.borderColor = '#ddd';
+            this.style.boxShadow = 'none';
+        });
+    });
+
+    // Function to save discount rate to server
+    function saveDiscountRate(goodsCode, discountRate) {
+        fetch('/api/save-discount-rate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                goods_code: goodsCode,
+                discount_rate: discountRate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('할인율 저장 실패:', data.message);
+            } else {
+                console.log(`할인율 ${discountRate}% 저장됨 (${goodsCode})`);
+            }
+        })
+        .catch(error => {
+            console.error('할인율 저장 중 오류:', error);
+        });
+    }
+
+    // Get all rows with inventory inputs
+    const rows = document.querySelectorAll('tr[data-stock]');
+
+    // Function to save allocation to server
+    function saveAllocation(goodsCode, year, value) {
+        fetch('/api/save-year-allocation/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                goods_code: goodsCode,
+                year: year,
+                value: value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('저장 실패:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('저장 중 오류:', error);
+        });
+    }
+
+    rows.forEach(row => {
+        const stockQty = parseInt(row.dataset.stock) || 0;
+        const inputs = row.querySelectorAll('.year-input');
+
+        inputs.forEach(input => {
+            let saveTimeout;
+
+            input.addEventListener('input', function() {
+                const goodsCode = row.dataset.code;
+                const year = this.dataset.year;
+                const value = parseInt(this.value) || 0;
+                // Remove any non-numeric characters
+                if (this.value < 0) this.value = 0;
+
+                // Calculate total across all year inputs for this row
+                let total = 0;
+                inputs.forEach(inp => {
+                    total += parseInt(inp.value) || 0;
+                });
+
+                // Check if total exceeds stock
+                if (total > stockQty) {
+                    // Show error state
+                    inputs.forEach(inp => inp.classList.add('error'));
+
+                    // Show alert message
+                    alert(`주의: 입력한 수량의 합(${total}개)이 재고 수량(${stockQty}개)을 초과했습니다.\n재고 수량 이하로 조정해주세요.`);
+
+                    // Reset this input to make total equal to stock
+                    const excess = total - stockQty;
+                    const currentValue = parseInt(this.value) || 0;
+                    this.value = Math.max(0, currentValue - excess);
+
+                    // Recalculate total
+                    total = 0;
+                    inputs.forEach(inp => {
+                        total += parseInt(inp.value) || 0;
+                    });
+                }
+
+                // Remove error state if valid
+                if (total <= stockQty) {
+                    inputs.forEach(inp => inp.classList.remove('error'));
+                }
+
+                // Update visual feedback
+                if (total === stockQty) {
+                    inputs.forEach(inp => inp.style.backgroundColor = '#e8f5e9');
+                } else if (total < stockQty) {
+                    inputs.forEach(inp => inp.style.backgroundColor = '');
+                }
+
+                // Save to database with debouncing (wait 500ms after user stops typing)
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    saveAllocation(goodsCode, year, value);
+                }, 500);
+            });
+
+            // Prevent invalid characters
+            input.addEventListener('keypress', function(e) {
+                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -7,7 +7,7 @@
             <strong style="color: #417690; font-size: 14px;">🔄 ERP 실시간 연결</strong>
             <div style="margin-top: 5px;">
                 <span style="font-size: 24px; font-weight: bold; color: #333;">{{ erp_goods_count|default:0 }}</span>
-                <span style="color: #666; margin-left: 5px;">개 상품</span>
+                <span style="color: #666; margin-left: 5px;">개 상품 (광주 ERP 서버)</span>
             </div>
         </div>
         <div style="border-left: 2px solid #ddd; padding-left: 20px;">
@@ -17,16 +17,9 @@
                 <span style="color: #666; margin-left: 5px;">개</span>
             </div>
         </div>
-        <div style="margin-left: auto;">
-            <a href="{% url 'admin_erp_goods_list' %}"
-               style="background: #417690; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-size: 13px;"
-               target="_blank">
-                📊 ERP 전체 데이터 보기
-            </a>
-        </div>
     </div>
     <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 12px; color: #999;">
-        💡 아래 목록은 Django DB 데이터입니다. 실시간 ERP 데이터는 "ERP 전체 데이터 보기" 버튼을 클릭하세요.
+        💡 위 숫자는 광주 ERP 서버에서 실시간으로 가져온 최신 데이터입니다. 아래 목록은 Django DB 캐시 데이터입니다.
     </div>
 </div>
 
