@@ -26,8 +26,13 @@
                     </div>
                 {% else %}
                     <!-- 일반 조회 시 -->
-                    <span style="font-size: 24px; font-weight: bold; color: #333;">{{ erp_goods_count|default:0 }}</span>
-                    <span style="color: #666; margin-left: 5px;">개 상품 (ERP)</span>
+                    {% if search_term %}
+                        <span style="font-size: 24px; font-weight: bold; color: #333;">검색 결과</span>
+                        <span style="color: #666; margin-left: 5px;">(페이지 {{ page_num }})</span>
+                    {% else %}
+                        <span style="font-size: 24px; font-weight: bold; color: #333;">{{ erp_goods_count|default:0 }}</span>
+                        <span style="color: #666; margin-left: 5px;">개 상품 (ERP)</span>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>

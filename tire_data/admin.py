@@ -146,13 +146,17 @@ class GoodsAdmin(admin.ModelAdmin):
             # 타이어 상품만 필터링
             before_filter = len(filtered_goods)
             filtered_goods = [g for g in filtered_goods if self.is_tire_product(g)]
-            logger.info(f"타이어 필터 적용: {before_filter} → {len(filtered_goods)}")
+            logger.info(f"✓ 타이어 필터 적용: {before_filter} → {len(filtered_goods)}")
+            if len(filtered_goods) > 0:
+                logger.info(f"  타이어 샘플: {filtered_goods[0].get('name', 'N/A')}")
 
         if filter_stock_only == 'on':
             # 재고가 있는 상품만 필터링
             before_filter = len(filtered_goods)
             filtered_goods = [g for g in filtered_goods if g.get('jaego', 0) > 0]
-            logger.info(f"재고 필터 적용: {before_filter} → {len(filtered_goods)}")
+            logger.info(f"✓ 재고 필터 적용: {before_filter} → {len(filtered_goods)}")
+            if len(filtered_goods) > 0:
+                logger.info(f"  재고 샘플: {filtered_goods[0].get('name', 'N/A')} (재고: {filtered_goods[0].get('jaego', 0)})")
 
         # 필터 적용 후 최종 결과
         erp_goods_list = filtered_goods
