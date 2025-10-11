@@ -37,21 +37,39 @@
             </div>
         </div>
         <div>
-            <form method="get" style="display: flex; gap: 15px; align-items: center;">
-                {% if search_term %}
-                <input type="hidden" name="q" value="{{ search_term }}">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                {% if filter_tire_only == 'on' %}
+                    <!-- 타이어 필터 ON: 클릭하면 OFF -->
+                    <a href="?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_stock_only == 'on' %}stock_only=on{% endif %}"
+                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #fff3cd; border: 2px solid #ff6600; border-radius: 4px; text-decoration: none;">
+                        <span style="margin-right: 5px;">☑</span>
+                        <span style="font-weight: bold; color: #ff6600;">🚗 타이어만</span>
+                    </a>
+                {% else %}
+                    <!-- 타이어 필터 OFF: 클릭하면 ON -->
+                    <a href="?{% if search_term %}q={{ search_term }}&{% endif %}tire_only=on{% if filter_stock_only == 'on' %}&stock_only=on{% endif %}"
+                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; text-decoration: none; color: #333;">
+                        <span style="margin-right: 5px;">☐</span>
+                        <span>🚗 타이어만</span>
+                    </a>
                 {% endif %}
-                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; {% if filter_tire_only == 'on' %}background: #fff3cd; border: 2px solid #ff6600;{% else %}background: white; border: 1px solid #ddd;{% endif %} border-radius: 4px;">
-                    <input type="checkbox" name="tire_only" {% if filter_tire_only == 'on' %}checked{% endif %}
-                           onchange="this.form.submit()" style="margin-right: 5px;">
-                    <span style="{% if filter_tire_only == 'on' %}font-weight: bold; color: #ff6600;{% endif %}">🚗 타이어만</span>
-                </label>
-                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; {% if filter_stock_only == 'on' %}background: #d1ecf1; border: 2px solid #0c5460;{% else %}background: white; border: 1px solid #ddd;{% endif %} border-radius: 4px;">
-                    <input type="checkbox" name="stock_only" {% if filter_stock_only == 'on' %}checked{% endif %}
-                           onchange="this.form.submit()" style="margin-right: 5px;">
-                    <span style="{% if filter_stock_only == 'on' %}font-weight: bold; color: #0c5460;{% endif %}">📦 재고있는 상품만</span>
-                </label>
-            </form>
+
+                {% if filter_stock_only == 'on' %}
+                    <!-- 재고 필터 ON: 클릭하면 OFF -->
+                    <a href="?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on{% endif %}"
+                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 4px; text-decoration: none;">
+                        <span style="margin-right: 5px;">☑</span>
+                        <span style="font-weight: bold; color: #0c5460;">📦 재고있는 상품만</span>
+                    </a>
+                {% else %}
+                    <!-- 재고 필터 OFF: 클릭하면 ON -->
+                    <a href="?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on&{% endif %}stock_only=on"
+                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; text-decoration: none; color: #333;">
+                        <span style="margin-right: 5px;">☐</span>
+                        <span>📦 재고있는 상품만</span>
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
