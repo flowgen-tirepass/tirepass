@@ -4,11 +4,21 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from .models import Goods
+from .erp_api_client import ERPAPIClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 def mobile_intro(request):
     """모바일 인트로"""
-    # ERP에서 실시간 상품 개수 조회
-    total_products = Goods.objects.count()
+    # FastAPI를 통해 ERP에서 실시간 상품 개수 조회
+    total_products = ERPAPIClient.get_goods_count()
+
+    # API 연결 실패 시 MySQL 데이터로 폴백
+    if total_products == 0:
+        logger.warning("ERP API unavailable, using MySQL fallback")
+        total_products = Goods.objects.count()
+
     return render(request, 'mobile/intro.html', {
         'total_products': total_products
     })
