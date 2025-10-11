@@ -34,7 +34,7 @@ FIREBIRD_CONFIG = {
     'database': r'C:\Program Files\PsimCarS\Data\ITIRE.GDB',
     'user': 'SYSDBA',
     'password': 'masterkey',
-    'charset': 'WIN1252'  # 한글 Windows 인코딩
+    'charset': 'NONE'  # charset을 NONE으로 설정하고 자동 감지
 }
 
 # API Key (보안용)

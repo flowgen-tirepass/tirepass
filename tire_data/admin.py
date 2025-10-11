@@ -58,8 +58,10 @@ class GoodsAdmin(admin.ModelAdmin):
         per_page = 50
         offset = (page - 1) * per_page
 
-        # 검색어
+        # 검색어 및 필터
         search_term = request.GET.get('q', '')
+        filter_tire_only = request.GET.get('tire_only', '')
+        filter_stock_only = request.GET.get('stock_only', '')
 
         # ERP API에서 실시간 데이터 조회
         if search_term:
@@ -68,6 +70,15 @@ class GoodsAdmin(admin.ModelAdmin):
         else:
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page)
             erp_goods_count = ERPAPIClient.get_goods_count()
+
+        # 클라이언트 사이드 필터 적용
+        if filter_tire_only == 'on':
+            # 타이어 패턴: 숫자/숫자R숫자 형식 포함
+            erp_goods_list = [g for g in erp_goods_list if any(char.isdigit() for char in g.get('name', '')) and ('/' in g.get('name', '') or 'R' in g.get('name', '').upper())]
+
+        if filter_stock_only == 'on':
+            # 재고가 있는 상품만
+            erp_goods_list = [g for g in erp_goods_list if g.get('jaego', 0) > 0]
 
         # 페이지네이션 정보
         total_pages = (erp_goods_count + per_page - 1) // per_page
@@ -82,6 +93,8 @@ class GoodsAdmin(admin.ModelAdmin):
         extra_context['has_previous'] = has_previous
         extra_context['has_next'] = has_next
         extra_context['search_term'] = search_term
+        extra_context['filter_tire_only'] = filter_tire_only
+        extra_context['filter_stock_only'] = filter_stock_only
 
         return super().changelist_view(request, extra_context=extra_context)
 

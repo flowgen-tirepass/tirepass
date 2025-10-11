@@ -2,13 +2,30 @@
 
 {% block result_list %}
 <div style="background: #f8f8f8; border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
-    <div style="display: flex; align-items: center;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
         <div>
             <strong style="color: #417690; font-size: 14px;">🔄 ERP 실시간 연결</strong>
             <div style="margin-top: 5px;">
                 <span style="font-size: 24px; font-weight: bold; color: #333;">{{ erp_goods_count|default:0 }}</span>
                 <span style="color: #666; margin-left: 5px;">개 상품 (ERP)</span>
             </div>
+        </div>
+        <div>
+            <form method="get" style="display: flex; gap: 15px; align-items: center;">
+                {% if search_term %}
+                <input type="hidden" name="q" value="{{ search_term }}">
+                {% endif %}
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" name="tire_only" {% if filter_tire_only %}checked{% endif %}
+                           onchange="this.form.submit()" style="margin-right: 5px;">
+                    <span>타이어만</span>
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" name="stock_only" {% if filter_stock_only %}checked{% endif %}
+                           onchange="this.form.submit()" style="margin-right: 5px;">
+                    <span>재고있는 상품만</span>
+                </label>
+            </form>
         </div>
     </div>
 </div>
