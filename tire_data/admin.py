@@ -113,8 +113,8 @@ class GoodsAdmin(admin.ModelAdmin):
 
         # ERP API에서 실시간 데이터 조회
         if has_filter:
-            # 필터 사용 시: 많은 데이터를 가져와서 필터링 (최대 500개)
-            fetch_limit = 500
+            # 필터 사용 시: 데이터를 가져와서 필터링 (타임아웃 방지)
+            fetch_limit = 100  # 500→100으로 축소 (타임아웃 방지)
             logger.info(f"필터 모드: {fetch_limit}개 로드")
             erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=search_term)
             erp_goods_count = ERPAPIClient.get_goods_count()

@@ -1,22 +1,6 @@
 {% extends "admin/change_list.html" %}
 
 {% block result_list %}
-<!-- 검색 박스 (상단 강조) -->
-<div style="background: #fff; border: 2px solid #417690; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
-    <form method="get" style="display: flex; gap: 10px; align-items: center;">
-        <label style="font-weight: bold; color: #417690;">🔍 상품 검색:</label>
-        <input type="text" name="q" value="{{ search_term }}"
-               placeholder="상품명, 상품코드, 숫자만 입력 (예: 205)"
-               style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-        <button type="submit" style="padding: 8px 20px; background: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">검색</button>
-        {% if search_term %}
-        <a href="?" style="padding: 8px 15px; background: #999; color: white; text-decoration: none; border-radius: 4px;">초기화</a>
-        {% endif %}
-    </form>
-    <div style="margin-top: 8px; font-size: 12px; color: #666;">
-        💡 숫자만 입력해도 검색 가능 (예: "205" 입력 → "205/55R16" 타이어 검색)
-    </div>
-</div>
 
 <!-- ERP 상태 및 필터 -->
 <div style="background: #f8f8f8; border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
@@ -32,7 +16,7 @@
                             <span style="color: #666; margin-left: 5px;">개 상품</span>
                         </div>
                         <span style="color: #999; font-size: 14px;">
-                            (전체 {{ original_count }} 개 중)
+                            (최대 100개 로드)
                         </span>
                     </div>
                     <div style="margin-top: 5px; color: #ff6600; font-weight: bold; font-size: 13px;">
@@ -127,7 +111,7 @@
                 (재고있음)
             {% endif %}
         </span>
-        <span style="margin-left: 20px; color: #666;">전체 {{ original_count }} 개 중</span>
+        <span style="margin-left: 20px; color: #666;">최대 100개 로드</span>
     {% else %}
         <!-- 일반 조회 및 검색: 페이지네이션 표시 -->
         {% if has_previous %}
