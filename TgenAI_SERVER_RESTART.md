@@ -6,11 +6,26 @@
 
 ## 재시작 방법
 
-### 옵션 1: 수동 재시작 (권장)
+### 🎯 준비사항 (최초 1회만)
+1. TeamViewer로 TgenAI PC 접속
+2. 노트북 Dropbox 폴더에서 `restart_erp_api.bat` 파일을 TgenAI PC의 `C:\TgenAI\` 폴더로 복사
+
+### 옵션 1: restart_erp_api.bat 스크립트 사용 (권장)
+
+**TgenAI PC**에서 실행:
+```cmd
+cd C:\TgenAI
+restart_erp_api.bat
+```
+
+또는 파일 탐색기에서 `C:\TgenAI\restart_erp_api.bat` 더블클릭
+
+### 옵션 2: 수동 재시작
+
+**TgenAI PC**에서 명령 프롬프트 실행:
 
 #### 1단계: 현재 실행 중인 서버 종료
 ```cmd
-# 관리자 권한으로 명령 프롬프트 실행
 # 8000번 포트 사용 중인 프로세스 찾기
 netstat -ano | findstr :8000
 
@@ -21,19 +36,8 @@ taskkill /F /PID <PID번호>
 #### 2단계: 서버 재시작
 ```cmd
 cd C:\TgenAI\erp_api
-C:\TgenAI\venv\Scripts\activate
-python erp_api_server.py
+C:\TgenAI\venv\Scripts\python.exe erp_api_server.py
 ```
-
-또는 시작 스크립트 사용:
-```cmd
-cd C:\TgenAI
-start_erp_api.bat
-```
-
-### 옵션 2: restart_erp_api.bat 스크립트 사용
-
-C:\TgenAI\ 폴더에서 `restart_erp_api.bat` 더블클릭
 
 ## 재시작 확인
 

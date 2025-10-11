@@ -70,8 +70,23 @@ python manage.py collectstatic --noinput
 
 ## 다음 단계 (배포 후)
 
-1. ✅ Pythonanywhere 배포 완료
-2. ⏳ TgenAI 서버 재시작 (한글 인코딩 적용)
+### 1️⃣ Pythonanywhere 배포 (수동 작업)
+```bash
+cd ~/itire
+git pull
+touch /var/www/tirepass_pythonanywhere_com_wsgi.py
+```
+
+### 2️⃣ TgenAI 서버 재시작 (수동 작업)
+**준비**: TeamViewer로 TgenAI PC 접속 → 노트북의 `restart_erp_api.bat` 파일을 TgenAI PC의 `C:\TgenAI\` 폴더로 복사
+
+**TgenAI PC에서 실행**:
+```cmd
+cd C:\TgenAI
+restart_erp_api.bat
+```
+
+### 이후 작업 예정
 3. ⏳ 관리자 통합 주문 내역 페이지
 4. ⏳ TgenAI 24/7 자동 시작 설정
 5. ⏳ 모바일 실시간 재고 표시
