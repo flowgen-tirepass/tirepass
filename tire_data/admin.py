@@ -54,6 +54,28 @@ class GoodsAdmin(admin.ModelAdmin):
         # Django admin의 기본 queryset을 사용하지 않음
         return Goods.objects.none()
 
+    def is_tire_product(self, goods):
+        """타이어 상품인지 정확하게 판별"""
+        name = goods.get('name', '')
+        bun1 = goods.get('bun1', '')
+
+        # BUN1 필드가 "타이어" 관련이면 타이어
+        if bun1 and '타이어' in bun1:
+            return True
+
+        # 타이어 사이즈 패턴 검사 (예: 205/55R16, 185/60R15, 225/45ZR17)
+        # 패턴: 숫자(2-3자리)/숫자(2자리)R또는ZR숫자(2자리)
+        tire_pattern = r'\b\d{2,3}[/-]\d{2}[A-Z]?R\d{2}\b'
+        if re.search(tire_pattern, name.upper()):
+            return True
+
+        # 타이어 관련 키워드 (한글)
+        tire_keywords = ['타이어', '승용', '트럭', 'SUV', '4계절']
+        if any(keyword in name for keyword in tire_keywords):
+            return True
+
+        return False
+
     def changelist_view(self, request, extra_context=None):
         """ERP 실시간 데이터로 완전 교체"""
         extra_context = extra_context or {}
@@ -68,30 +90,52 @@ class GoodsAdmin(admin.ModelAdmin):
         filter_tire_only = request.GET.get('tire_only', '')
         filter_stock_only = request.GET.get('stock_only', '')
 
+        # 필터 적용 여부 확인
+        has_filter = (filter_tire_only == 'on' or filter_stock_only == 'on')
+
         # ERP API에서 실시간 데이터 조회
-        if search_term:
+        if has_filter:
+            # 필터 사용 시: 많은 데이터를 가져와서 필터링 (최대 500개)
+            fetch_limit = 500
+            erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=search_term)
+            erp_goods_count = ERPAPIClient.get_goods_count()
+        elif search_term:
+            # 검색만 사용 시: 검색 결과를 페이지네이션
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page, search=search_term)
             erp_goods_count = len(erp_goods_list)  # 검색 시 대략적인 수
         else:
+            # 일반 조회: 기본 페이지네이션
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page)
             erp_goods_count = ERPAPIClient.get_goods_count()
 
         # 클라이언트 사이드 필터 적용
         if filter_tire_only == 'on':
-            # 타이어 패턴: 숫자/숫자R숫자 형식 포함
-            erp_goods_list = [g for g in erp_goods_list if any(char.isdigit() for char in g.get('name', '')) and ('/' in g.get('name', '') or 'R' in g.get('name', '').upper())]
+            # 타이어 상품만 필터링 (정확한 패턴 매칭)
+            erp_goods_list = [g for g in erp_goods_list if self.is_tire_product(g)]
 
         if filter_stock_only == 'on':
-            # 재고가 있는 상품만
+            # 재고가 있는 상품만 필터링
             erp_goods_list = [g for g in erp_goods_list if g.get('jaego', 0) > 0]
 
+        # 필터 적용 후 실제 개수
+        filtered_count = len(erp_goods_list)
+
         # 페이지네이션 정보
-        total_pages = (erp_goods_count + per_page - 1) // per_page
-        has_previous = page > 1
-        has_next = page < total_pages
+        if has_filter:
+            # 필터 사용 시: 페이지네이션 비활성화 (전체 결과 표시)
+            total_pages = 1
+            has_previous = False
+            has_next = False
+            display_count = filtered_count
+        else:
+            # 일반 조회: 기본 페이지네이션
+            total_pages = (erp_goods_count + per_page - 1) // per_page
+            has_previous = page > 1
+            has_next = page < total_pages
+            display_count = erp_goods_count
 
         # 컨텍스트에 ERP 데이터 추가
-        extra_context['erp_goods_count'] = erp_goods_count
+        extra_context['erp_goods_count'] = display_count
         extra_context['erp_goods_list'] = erp_goods_list
         extra_context['page_num'] = page
         extra_context['total_pages'] = total_pages
