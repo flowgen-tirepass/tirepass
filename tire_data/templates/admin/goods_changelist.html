@@ -40,34 +40,34 @@
             <div style="display: flex; gap: 15px; align-items: center;">
                 {% if filter_tire_only == 'on' %}
                     <!-- 타이어 필터 ON: 클릭하면 OFF -->
-                    <a href="?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_stock_only == 'on' %}stock_only=on{% endif %}"
-                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #fff3cd; border: 2px solid #ff6600; border-radius: 4px; text-decoration: none;">
+                    <button type="button" onclick="window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_stock_only == 'on' %}stock_only=on{% endif %}'"
+                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #fff3cd; border: 2px solid #ff6600; border-radius: 4px; font-size: 14px;">
                         <span style="margin-right: 5px;">☑</span>
                         <span style="font-weight: bold; color: #ff6600;">🚗 타이어만</span>
-                    </a>
+                    </button>
                 {% else %}
                     <!-- 타이어 필터 OFF: 클릭하면 ON -->
-                    <a href="?{% if search_term %}q={{ search_term }}&{% endif %}tire_only=on{% if filter_stock_only == 'on' %}&stock_only=on{% endif %}"
-                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; text-decoration: none; color: #333;">
+                    <button type="button" onclick="window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}tire_only=on{% if filter_stock_only == 'on' %}&stock_only=on{% endif %}'"
+                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; color: #333;">
                         <span style="margin-right: 5px;">☐</span>
                         <span>🚗 타이어만</span>
-                    </a>
+                    </button>
                 {% endif %}
 
                 {% if filter_stock_only == 'on' %}
                     <!-- 재고 필터 ON: 클릭하면 OFF -->
-                    <a href="?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on{% endif %}"
-                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 4px; text-decoration: none;">
+                    <button type="button" onclick="window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on{% endif %}'"
+                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 4px; font-size: 14px;">
                         <span style="margin-right: 5px;">☑</span>
                         <span style="font-weight: bold; color: #0c5460;">📦 재고있는 상품만</span>
-                    </a>
+                    </button>
                 {% else %}
                     <!-- 재고 필터 OFF: 클릭하면 ON -->
-                    <a href="?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on&{% endif %}stock_only=on"
-                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; text-decoration: none; color: #333;">
+                    <button type="button" onclick="window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on&{% endif %}stock_only=on'"
+                       style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; color: #333;">
                         <span style="margin-right: 5px;">☐</span>
                         <span>📦 재고있는 상품만</span>
-                    </a>
+                    </button>
                 {% endif %}
             </div>
         </div>
