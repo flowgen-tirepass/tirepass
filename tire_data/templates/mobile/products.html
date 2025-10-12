@@ -4,16 +4,203 @@
 {% block header_title %}상품검색{% endblock %}
 {% block nav_products %}active{% endblock %}
 
+{% block extra_css %}
+<style>
+/* 반응형 상품 카드 스타일 */
+.product-card {
+    position: relative;
+    padding: clamp(12px, 4vw, 20px);
+    border: 2px solid #e5e7eb;
+    border-radius: clamp(8px, 2vw, 12px);
+    margin-bottom: clamp(10px, 3vw, 15px);
+}
+
+.brand-logo-container {
+    position: absolute;
+    top: clamp(10px, 3vw, 15px);
+    right: clamp(10px, 3vw, 15px);
+    width: clamp(70px, 20vw, 100px);
+    height: clamp(40px, 12vw, 60px);
+}
+
+.performance-tags {
+    display: flex;
+    gap: clamp(4px, 1.5vw, 8px);
+    margin-bottom: clamp(8px, 2.5vw, 12px);
+    flex-wrap: wrap;
+}
+
+.performance-tag {
+    padding: clamp(4px, 1vw, 6px) clamp(8px, 2.5vw, 14px);
+    border: 2px solid #000;
+    border-radius: clamp(4px, 1vw, 6px);
+    font-size: clamp(11px, 2.8vw, 13px);
+    font-weight: 600;
+    background: white;
+    white-space: nowrap;
+}
+
+.product-title-container {
+    margin-bottom: clamp(10px, 3vw, 15px);
+    padding-right: clamp(80px, 22vw, 110px);
+}
+
+.tire-size {
+    font-size: clamp(18px, 5vw, 22px);
+    font-weight: 800;
+    margin-bottom: clamp(8px, 2vw, 10px);
+    line-height: 1.3;
+}
+
+.product-name {
+    font-size: clamp(13px, 3.5vw, 15px);
+    color: #374151;
+    line-height: 1.4;
+}
+
+.dot-button {
+    width: 100%;
+    padding: clamp(10px, 2.5vw, 12px);
+    margin-bottom: clamp(10px, 3vw, 15px);
+    background: #fff;
+    border: 2px solid #38bdf8;
+    color: #0284c7;
+    border-radius: clamp(6px, 1.5vw, 8px);
+    font-size: clamp(13px, 3.5vw, 15px);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dot-inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: clamp(8px, 2vw, 10px);
+}
+
+.dot-item {
+    border-radius: clamp(6px, 1.5vw, 8px);
+    padding: clamp(10px, 2.5vw, 12px);
+    background: white;
+}
+
+.price-section {
+    margin-bottom: clamp(10px, 3vw, 15px);
+}
+
+.factory-price {
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 2vw, 10px);
+    margin-bottom: clamp(6px, 1.5vw, 8px);
+    flex-wrap: wrap;
+}
+
+.supply-price-label {
+    font-size: clamp(12px, 3vw, 14px);
+    color: #6b7280;
+}
+
+.supply-price {
+    font-size: clamp(20px, 6vw, 28px);
+    font-weight: 800;
+    color: #000;
+}
+
+.stock-badge {
+    display: inline-block;
+    background: #16a34a;
+    color: white;
+    padding: clamp(6px, 1.5vw, 8px) clamp(12px, 3vw, 16px);
+    border-radius: clamp(4px, 1vw, 6px);
+    font-size: clamp(13px, 3.5vw, 15px);
+    font-weight: 600;
+    margin-bottom: clamp(10px, 3vw, 15px);
+}
+
+.action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    gap: clamp(8px, 2vw, 10px);
+}
+
+.cart-button, .buy-button {
+    padding: clamp(12px, 3.5vw, 16px);
+    border: none;
+    border-radius: clamp(6px, 1.5vw, 8px);
+    font-size: clamp(14px, 4vw, 18px);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.cart-button {
+    background: #2563eb;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.buy-button {
+    background: #fbbf24;
+    color: #000;
+}
+
+/* 검색 섹션 반응형 */
+.search-container {
+    display: flex;
+    gap: clamp(6px, 2vw, 10px);
+    margin-bottom: 0;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-button {
+    padding: clamp(10px, 2.5vw, 12px) clamp(12px, 3vw, 20px);
+    white-space: nowrap;
+    font-size: clamp(13px, 3.5vw, 15px);
+}
+
+/* 작은 화면 (320px ~ 374px) */
+@media (max-width: 374px) {
+    .product-card {
+        padding: 12px;
+    }
+    .performance-tag {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+    .tire-size {
+        font-size: 18px;
+    }
+    .supply-price {
+        font-size: 20px;
+    }
+}
+
+/* 큰 화면 (768px+) */
+@media (min-width: 768px) {
+    .product-card {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- 검색 필터 -->
 <div class="card">
-    <div style="display: flex; gap: 10px; margin-bottom: 0;">
-        <input type="text" class="form-input" id="searchInput" placeholder="상품명, 코드 또는 숫자로 검색 (예: 2055516)" style="flex: 1;">
-        <button class="btn btn-primary" onclick="performSearch()" style="padding: 12px 20px; white-space: nowrap;">
+    <div class="search-container">
+        <input type="text" class="form-input search-input" id="searchInput" placeholder="상품명, 코드 또는 숫자로 검색 (예: 2055516)">
+        <button class="btn btn-primary search-button" onclick="performSearch()">
             🔍 검색
         </button>
     </div>
-    <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+    <div style="font-size: clamp(11px, 2.8vw, 12px); color: #6b7280; margin-top: 8px;">
         💡 팁: 타이어 사이즈를 숫자로만 입력해도 검색됩니다 (예: 2055516 → 205/55R16)
     </div>
 </div>
@@ -119,26 +306,26 @@ function renderProducts(products) {
         const dotColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];  // 파랑, 초록, 주황, 빨강
 
         return `
-        <div class="card" id="card-${product.code}" style="position: relative; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; margin-bottom: 15px;">
+        <div class="card product-card" id="card-${product.code}">
             <!-- 브랜드 로고 -->
-            <div style="position: absolute; top: 15px; right: 15px; width: 100px; height: 60px;">
+            <div class="brand-logo-container">
                 ${product.brand ? `<img src="${brandLogo}" alt="${product.brand}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.style.display='none'">` : ''}
             </div>
 
             <!-- 상단 태그 버튼들 (성능 표기) -->
-            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                ${product.brand ? `<span style="padding: 6px 14px; border: 2px solid #000; border-radius: 6px; font-size: 13px; font-weight: 600; background: white;">${product.brand}</span>` : ''}
+            <div class="performance-tags">
+                ${product.brand ? `<span class="performance-tag">${product.brand}</span>` : ''}
                 ${product.performance_tags && product.performance_tags.length > 0
-                    ? product.performance_tags.map(tag => `<span style="padding: 6px 14px; border: 2px solid #000; border-radius: 6px; font-size: 13px; font-weight: 600; background: white;">${tag.tag}</span>`).join('')
+                    ? product.performance_tags.map(tag => `<span class="performance-tag">${tag.tag}</span>`).join('')
                     : ''}
             </div>
 
             <!-- 상품명 -->
-            <div style="margin-bottom: 15px; padding-right: 110px;">
-                <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 10px; line-height: 1.3;">
+            <div class="product-title-container">
+                <h3 class="tire-size">
                     ${tireSize || ''}
                 </h3>
-                <div style="font-size: 15px; color: #374151; line-height: 1.4;">
+                <div class="product-name">
                     ${product.name}
                 </div>
             </div>
@@ -146,20 +333,20 @@ function renderProducts(products) {
             <!-- DOT 재고 확인 버튼 -->
             <button onclick="event.stopPropagation(); toggleDOTInfo('${product.code}')"
                     id="dot-btn-${product.code}"
-                    style="width: 100%; padding: 12px; margin-bottom: 15px; background: #fff; border: 2px solid #38bdf8; color: #0284c7; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                    class="dot-button">
                 📦 DOT 재고 확인
             </button>
 
             <!-- DOT 재고 정보 (토글) -->
             <div id="dot-info-${product.code}" style="display: none; margin-bottom: 15px;">
                 ${product.dot_inventory && product.dot_inventory.length > 0 ? `
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <div class="dot-inventory-grid">
                         ${product.dot_inventory.map((dot, index) => `
-                            <div style="border: 2px solid ${dotColors[index % 4]}; border-radius: 8px; padding: 12px; background: white;">
-                                <div style="font-size: 16px; font-weight: 700; color: #000; margin-bottom: 8px;">${dot.year}</div>
-                                <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">재고 ${dot.stock}개</div>
-                                <div style="font-size: 13px; color: #6b7280; margin-bottom: 8px;">할인 ${dot.discount}%</div>
-                                <div style="font-size: 18px; font-weight: 700; color: #ef4444;">₩${dot.price.toLocaleString()}</div>
+                            <div class="dot-item" style="border: 2px solid ${dotColors[index % 4]};">
+                                <div style="font-size: clamp(14px, 4vw, 16px); font-weight: 700; color: #000; margin-bottom: 8px;">${dot.year}</div>
+                                <div style="font-size: clamp(12px, 3vw, 13px); color: #6b7280; margin-bottom: 4px;">재고 ${dot.stock}개</div>
+                                <div style="font-size: clamp(12px, 3vw, 13px); color: #6b7280; margin-bottom: 8px;">할인 ${dot.discount}%</div>
+                                <div style="font-size: clamp(16px, 4.5vw, 18px); font-weight: 700; color: #ef4444;">₩${dot.price.toLocaleString()}</div>
                             </div>
                         `).join('')}
                     </div>
@@ -167,36 +354,36 @@ function renderProducts(products) {
             </div>
 
             <!-- 가격 정보 -->
-            <div style="margin-bottom: 15px;">
+            <div class="price-section">
                 <!-- 공장도가 -->
                 ${originalPrice > 0 ? `
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <span style="font-size: 14px; color: #6b7280;">공장도가</span>
-                    <span style="font-size: 16px; color: #9ca3af; text-decoration: line-through;">₩${originalPrice.toLocaleString()}</span>
-                    ${discount > 0 ? `<span style="background: #dc2626; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 700;">${discount}% OFF</span>` : ''}
+                <div class="factory-price">
+                    <span style="font-size: clamp(12px, 3vw, 14px); color: #6b7280;">공장도가</span>
+                    <span style="font-size: clamp(14px, 4vw, 16px); color: #9ca3af; text-decoration: line-through;">₩${originalPrice.toLocaleString()}</span>
+                    ${discount > 0 ? `<span style="background: #dc2626; color: white; padding: clamp(3px, 1vw, 4px) clamp(8px, 2.5vw, 12px); border-radius: 4px; font-size: clamp(12px, 3vw, 14px); font-weight: 700;">${discount}% OFF</span>` : ''}
                 </div>
                 ` : ''}
 
                 <!-- 공급가 -->
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                    <span style="font-size: 14px; color: #6b7280;">공급가</span>
-                    <span style="font-size: 28px; font-weight: 800; color: #000;">₩${discountedPrice.toLocaleString()}</span>
+                <div style="display: flex; align-items: center; gap: clamp(6px, 2vw, 10px); margin-bottom: 10px; flex-wrap: wrap;">
+                    <span class="supply-price-label">공급가</span>
+                    <span class="supply-price">₩${discountedPrice.toLocaleString()}</span>
                 </div>
             </div>
 
             <!-- 재고 -->
-            <div style="display: inline-block; background: #16a34a; color: white; padding: 8px 16px; border-radius: 6px; font-size: 15px; font-weight: 600; margin-bottom: 15px;">
+            <div class="stock-badge">
                 재고: ${product.stock || 0}개
             </div>
 
             <!-- 장바구니 / 구매하기 버튼 -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="action-buttons">
                 <button onclick="event.stopPropagation(); addToCart('${product.code}')"
-                        style="padding: 16px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        class="cart-button">
                     🛒
                 </button>
                 <button onclick="event.stopPropagation(); buyNow('${product.code}')"
-                        style="padding: 16px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer;">
+                        class="buy-button">
                     구매하기
                 </button>
             </div>
