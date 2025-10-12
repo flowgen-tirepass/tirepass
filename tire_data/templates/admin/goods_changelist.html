@@ -27,13 +27,19 @@
                             (페이지 {{ page_num }}/{{ total_pages }})
                         </span>
                     </div>
-                    <div style="margin-top: 5px; color: #ff6600; font-weight: bold; font-size: 13px;">
-                        {% if filter_tire_only == 'on' %}🚗 타이어만{% endif %}
-                        {% if filter_tire_only == 'on' and filter_stock_only == 'on' %} + {% endif %}
-                        {% if filter_stock_only == 'on' %}📦 재고있음{% endif %}
-                        {% if filter_tire_only == 'on' and filter_brand %} + {% endif %}
-                        {% if filter_stock_only == 'on' and filter_brand and not filter_tire_only %} + {% endif %}
-                        {% if filter_brand %}🏷️ 브랜드: {{ filter_brand }}{% endif %}
+                    <div style="margin-top: 5px; display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #ff6600; font-weight: bold; font-size: 13px;">
+                            {% if filter_tire_only == 'on' %}🚗 타이어만{% endif %}
+                            {% if filter_tire_only == 'on' and filter_stock_only == 'on' %} + {% endif %}
+                            {% if filter_stock_only == 'on' %}📦 재고있음{% endif %}
+                            {% if filter_tire_only == 'on' and filter_brand %} + {% endif %}
+                            {% if filter_stock_only == 'on' and filter_brand and not filter_tire_only %} + {% endif %}
+                            {% if filter_brand %}🏷️ 브랜드: {{ filter_brand }}{% endif %}
+                        </span>
+                        <a href="{% url 'admin:tire_data_goods_changelist' %}"
+                           style="padding: 4px 12px; background: #417690; color: white; border-radius: 4px; font-size: 12px; text-decoration: none; font-weight: bold;">
+                            🔄 전체 상품 보기
+                        </a>
                     </div>
                 {% else %}
                     <!-- 일반 조회 시 -->
