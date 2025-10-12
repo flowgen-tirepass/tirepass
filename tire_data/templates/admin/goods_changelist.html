@@ -1,5 +1,13 @@
 {% extends "admin/change_list.html" %}
 
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">홈</a>
+&rsaquo; <a href="{% url 'admin:app_list' 'tire_data' %}">Tire_Data</a>
+&rsaquo; 상품 목록
+</div>
+{% endblock %}
+
 {% block result_list %}
 
 <!-- ERP 상태 및 필터 -->

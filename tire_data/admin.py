@@ -174,8 +174,13 @@ class GoodsAdmin(admin.ModelAdmin):
         """
         Django admin이 데이터베이스 쿼리를 하지 않도록 빈 queryset 반환
         실제 데이터는 changelist_view에서 ERP API로 가져옴
+
+        중요: none()을 사용하되 model 정보는 유지
         """
-        return Goods.objects.none()
+        qs = Goods.objects.none()
+        # model 정보가 확실히 설정되도록 보장
+        qs.model = Goods
+        return qs
 
     def changelist_view(self, request, extra_context=None):
         """ERP 실시간 데이터로 완전 교체"""
@@ -354,6 +359,15 @@ class GoodsAdmin(admin.ModelAdmin):
         extra_context['original_count'] = original_count if has_filter else erp_goods_count
         extra_context['filtered_count'] = filtered_count if has_filter else None
         extra_context['has_filter'] = has_filter
+
+        # Django admin 템플릿이 필요로 하는 컨텍스트 명시적으로 추가
+        extra_context.update({
+            'opts': self.model._meta,
+            'has_view_permission': self.has_view_permission(request),
+            'has_add_permission': self.has_add_permission(request),
+            'has_change_permission': self.has_change_permission(request),
+            'has_delete_permission': self.has_delete_permission(request),
+        })
 
         # tire_only, stock_only, brand를 SimpleListFilter로 등록했으므로
         # Django admin이 이제 이 파라미터들을 인식하고 리다이렉트하지 않음
