@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.admin import SimpleListFilter
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -11,10 +12,43 @@ from .models import (
 )
 from .erp_api_client import ERPAPIClient
 
+
+class TireBrandFilter(SimpleListFilter):
+    """ERP 타이어 브랜드 필터 (우측 사이드바)"""
+    title = '브랜드'
+    parameter_name = 'brand'
+
+    def lookups(self, request, model_admin):
+        """브랜드 목록"""
+        return [
+            ('annaite', '안나이트'),
+            ('bfg', 'BFG'),
+            ('bridgestone', '브리지스톤'),
+            ('continental', '콘티넨탈'),
+            ('dunlop', '던롭'),
+            ('goodyear', '굳이어'),
+            ('hankook', '한국'),
+            ('hilo', '하이로'),
+            ('kumho', '금호'),
+            ('michelin', '미쉐린'),
+            ('nexen', '넥센'),
+            ('pirelli', '피렐리'),
+            ('yokohama', '요코하마'),
+            ('maxxis', 'MAXXIS'),
+            ('hifly', 'HIFLY'),
+        ]
+
+    def queryset(self, request, queryset):
+        """
+        이 메서드는 호출되지 않음 (changelist_view에서 직접 처리)
+        하지만 필수 메서드이므로 구현
+        """
+        return queryset
+
 @admin.register(Goods)
 class GoodsAdmin(admin.ModelAdmin):
     list_display = ['code', 'name', 'bun1', 'display_jaego', 'display_fixp']
-    list_filter = ['bun1']
+    list_filter = [TireBrandFilter]  # 커스텀 브랜드 필터
     search_fields = ['code', 'name', 'bun1']
     readonly_fields = ['code']  # 상품코드는 읽기 전용
     list_per_page = 50
@@ -135,14 +169,16 @@ class GoodsAdmin(admin.ModelAdmin):
         search_term = request.GET.get('q', '')
         filter_tire_only = request.GET.get('tire_only', '')
         filter_stock_only = request.GET.get('stock_only', '')
+        filter_brand = request.GET.get('brand', '')  # 우측 사이드바 브랜드 필터
 
         logger.info(f"=== GoodsAdmin changelist_view ===")
         logger.info(f"검색어: '{search_term}'")
         logger.info(f"타이어 필터: '{filter_tire_only}' (타입: {type(filter_tire_only).__name__})")
         logger.info(f"재고 필터: '{filter_stock_only}' (타입: {type(filter_stock_only).__name__})")
+        logger.info(f"브랜드 필터: '{filter_brand}'")
 
         # 필터 적용 여부 확인
-        has_filter = (filter_tire_only == 'on' or filter_stock_only == 'on')
+        has_filter = (filter_tire_only == 'on' or filter_stock_only == 'on' or filter_brand)
         logger.info(f"필터 적용 여부: {has_filter}")
 
         # ERP API에서 실시간 데이터 조회
@@ -217,6 +253,49 @@ class GoodsAdmin(admin.ModelAdmin):
             if len(filtered_goods) > 0:
                 logger.info(f"  재고 샘플: {filtered_goods[0].get('name', 'N/A')} (재고: {filtered_goods[0].get('jaego', 0)})")
 
+        if filter_brand:
+            # 브랜드 필터링 (우측 사이드바 필터)
+            before_filter = len(filtered_goods)
+
+            # 브랜드 매핑 (파라미터 → 검색 키워드)
+            brand_mapping = {
+                'annaite': ['안나이트', 'ANNAITE'],
+                'bfg': ['BFG'],
+                'bridgestone': ['브리지스톤', 'BRIDGESTONE'],
+                'continental': ['콘티넨탈', 'CONTINENTAL'],
+                'dunlop': ['던롭', 'DUNLOP'],
+                'goodyear': ['굳이어', 'GOODYEAR'],
+                'hankook': ['한국', 'HANKOOK'],
+                'hilo': ['하이로', 'HILO'],
+                'kumho': ['금호', 'KUMHO'],
+                'michelin': ['미쉐린', 'MICHELIN'],
+                'nexen': ['넥센', 'NEXEN'],
+                'pirelli': ['피렐리', 'PIRELLI'],
+                'yokohama': ['요코하마', 'YOKOHAMA'],
+                'maxxis': ['맥시스', 'MAXXIS'],
+                'hifly': ['하이플라이', 'HIFLY'],
+            }
+
+            brand_keywords = brand_mapping.get(filter_brand.lower(), [])
+            if brand_keywords:
+                def matches_brand(goods):
+                    bun1 = (goods.get('bun1', '') or '').strip()
+                    bun1_upper = bun1.upper()
+                    for keyword in brand_keywords:
+                        if keyword.isupper():  # 영문은 대문자 비교
+                            if keyword in bun1_upper:
+                                return True
+                        else:  # 한글은 원본 비교
+                            if keyword in bun1:
+                                return True
+                    return False
+
+                filtered_goods = [g for g in filtered_goods if matches_brand(g)]
+                logger.info(f"✓ 브랜드 필터 적용 ({filter_brand}): {before_filter} → {len(filtered_goods)}")
+
+                if len(filtered_goods) > 0:
+                    logger.info(f"  브랜드 샘플: BUN1={filtered_goods[0].get('bun1', 'N/A')}, NAME={filtered_goods[0].get('name', 'N/A')[:30]}")
+
         # 필터 적용 후 최종 결과
         erp_goods_list = filtered_goods
         filtered_count = len(erp_goods_list)
@@ -245,6 +324,7 @@ class GoodsAdmin(admin.ModelAdmin):
         extra_context['search_term'] = search_term
         extra_context['filter_tire_only'] = filter_tire_only
         extra_context['filter_stock_only'] = filter_stock_only
+        extra_context['filter_brand'] = filter_brand
 
         # 필터 정보 추가
         extra_context['original_count'] = original_count if has_filter else erp_goods_count

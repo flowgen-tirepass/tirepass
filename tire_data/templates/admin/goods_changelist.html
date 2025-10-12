@@ -23,6 +23,9 @@
                         {% if filter_tire_only == 'on' %}🚗 타이어만{% endif %}
                         {% if filter_tire_only == 'on' and filter_stock_only == 'on' %} + {% endif %}
                         {% if filter_stock_only == 'on' %}📦 재고있음{% endif %}
+                        {% if filter_tire_only == 'on' and filter_brand %} + {% endif %}
+                        {% if filter_stock_only == 'on' and filter_brand and not filter_tire_only %} + {% endif %}
+                        {% if filter_brand %}🏷️ 브랜드: {{ filter_brand }}{% endif %}
                     </div>
                 {% else %}
                     <!-- 일반 조회 시 -->
