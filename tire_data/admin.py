@@ -161,6 +161,7 @@ class GoodsAdmin(admin.ModelAdmin):
 
         # 2. CODE 접두사 체크
         tire_code_prefixes = [
+            'ANNAITE-',  # 안나이트 추가!
             'BFG-', 'BS-', 'C-', 'CT-', 'D-', 'G-', 'H-',
             'HIFLY-', 'HILO-', 'K-', 'M-', 'MAXXIS-', 'N-', 'P-'
         ]
