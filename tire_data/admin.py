@@ -88,6 +88,13 @@ class GoodsAdmin(admin.ModelAdmin):
 
         return False
 
+    def get_queryset(self, request):
+        """
+        Django admin이 데이터베이스 쿼리를 하지 않도록 빈 queryset 반환
+        실제 데이터는 changelist_view에서 ERP API로 가져옴
+        """
+        return Goods.objects.none()
+
     def changelist_view(self, request, extra_context=None):
         """ERP 실시간 데이터로 완전 교체"""
         import logging
