@@ -249,6 +249,14 @@ class GoodsAdmin(admin.ModelAdmin):
             erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=brand_search_term)
             erp_goods_count = ERPAPIClient.get_goods_count()
             logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품, 전체: {erp_goods_count}")
+
+            # ERP 응답 샘플 로그 (처음 3개)
+            if len(erp_goods_list) > 0:
+                logger.info(f"ERP 응답 샘플 (처음 3개):")
+                for i, g in enumerate(erp_goods_list[:3]):
+                    logger.info(f"  [{i+1}] CODE: {g.get('code', 'N/A')}, BUN1: {g.get('bun1', 'N/A')}, NAME: {g.get('name', 'N/A')[:50]}")
+            else:
+                logger.warning(f"⚠️ ERP 응답 0개! 검색어: '{brand_search_term}', 브랜드 필터: {filter_brand}")
         elif search_term:
             # 검색만 사용 시: 검색 결과를 페이지네이션
             logger.info(f"검색 모드: '{search_term}' (offset={offset}, limit={per_page})")
@@ -276,18 +284,35 @@ class GoodsAdmin(admin.ModelAdmin):
             # 타이어 상품만 필터링
             before_filter = len(filtered_goods)
 
-            # 디버깅: 첫 3개 상품의 BUN1, CODE 값 확인
+            # 디버깅: 첫 5개 상품의 BUN1, CODE 값 확인
             if len(filtered_goods) > 0:
-                logger.info(f"필터 전 샘플 (처음 3개):")
-                for i, g in enumerate(filtered_goods[:3]):
-                    logger.info(f"  [{i+1}] CODE: {g.get('code', 'N/A')}, BUN1: {g.get('bun1', 'N/A')}, NAME: {g.get('name', 'N/A')[:30]}")
+                logger.info(f"타이어 필터 적용 전 샘플 (처음 5개):")
+                for i, g in enumerate(filtered_goods[:5]):
+                    logger.info(f"  [{i+1}] CODE: {g.get('code', 'N/A')}, BUN1: {g.get('bun1', 'N/A')}, NAME: {g.get('name', 'N/A')[:50]}")
 
-            filtered_goods = [g for g in filtered_goods if self.is_tire_product(g)]
-            logger.info(f"✓ 타이어 필터 적용: {before_filter} → {len(filtered_goods)}")
+            # 브랜드 필터 사용 시: 타이어 필터 검증 완화 (BUN1 또는 CODE 중 하나만)
+            if filter_brand:
+                # 이미 브랜드로 검색했으므로, CODE만 확인
+                tire_code_prefixes = [
+                    'ANNAITE-', 'BFG-', 'BS-', 'C-', 'CT-', 'D-', 'G-', 'H-',
+                    'HIFLY-', 'HILO-', 'K-', 'M-', 'MAXXIS-', 'N-', 'P-'
+                ]
+                def is_tire_by_code(goods):
+                    code = (goods.get('code', '') or '').strip().upper()
+                    return any(code.startswith(prefix) for prefix in tire_code_prefixes)
+
+                filtered_goods = [g for g in filtered_goods if is_tire_by_code(g)]
+                logger.info(f"✓ 타이어 필터 적용 (브랜드+CODE 검증): {before_filter} → {len(filtered_goods)}")
+            else:
+                # 일반 타이어 필터: BUN1 + CODE 모두 확인
+                filtered_goods = [g for g in filtered_goods if self.is_tire_product(g)]
+                logger.info(f"✓ 타이어 필터 적용 (BUN1+CODE 검증): {before_filter} → {len(filtered_goods)}")
 
             if len(filtered_goods) > 0:
                 sample = filtered_goods[0]
-                logger.info(f"  타이어 샘플: CODE={sample.get('code', 'N/A')}, BUN1={sample.get('bun1', 'N/A')}, NAME={sample.get('name', 'N/A')[:30]}")
+                logger.info(f"  타이어 필터 후 샘플: CODE={sample.get('code', 'N/A')}, BUN1={sample.get('bun1', 'N/A')}, NAME={sample.get('name', 'N/A')[:50]}")
+            else:
+                logger.warning(f"  ⚠️ 타이어 필터 후 0개! 브랜드 필터: {filter_brand}")
 
         if filter_stock_only == 'on':
             # 재고가 있는 상품만 필터링
@@ -313,8 +338,10 @@ class GoodsAdmin(admin.ModelAdmin):
             if len(filtered_goods) > 0:
                 logger.info(f"  재고 샘플: {filtered_goods[0].get('name', 'N/A')} (재고: {filtered_goods[0].get('jaego', 0)})")
 
-        if filter_brand:
-            # 브랜드 필터링 (우측 사이드바 필터)
+        # 브랜드 필터는 이미 ERP API 검색 시 적용됨 (brand_search_term)
+        # 추가 필터링 불필요 (중복 방지)
+        if filter_brand and search_term:
+            # 검색어와 브랜드 필터를 같이 사용한 경우만 추가 필터링
             before_filter = len(filtered_goods)
 
             # 브랜드 매핑 (파라미터 → 검색 키워드)
@@ -355,6 +382,9 @@ class GoodsAdmin(admin.ModelAdmin):
 
                 if len(filtered_goods) > 0:
                     logger.info(f"  브랜드 샘플: BUN1={filtered_goods[0].get('bun1', 'N/A')}, NAME={filtered_goods[0].get('name', 'N/A')[:30]}")
+        elif filter_brand:
+            # 브랜드 필터만 사용: 이미 ERP API에서 검색했으므로 스킵
+            logger.info(f"✓ 브랜드 필터: 이미 ERP API 검색 완료 ({filter_brand})")
 
         # 필터 적용 후 최종 결과
         erp_goods_list = filtered_goods
