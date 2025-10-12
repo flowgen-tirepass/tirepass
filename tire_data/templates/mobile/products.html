@@ -25,19 +25,28 @@
 
 .performance-tags {
     display: flex;
-    gap: clamp(4px, 1.5vw, 8px);
+    gap: clamp(3px, 1vw, 5px);
     margin-bottom: clamp(8px, 2.5vw, 12px);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+}
+
+.performance-tags::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
 }
 
 .performance-tag {
-    padding: clamp(4px, 1vw, 6px) clamp(8px, 2.5vw, 14px);
-    border: 2px solid #000;
-    border-radius: clamp(4px, 1vw, 6px);
-    font-size: clamp(11px, 2.8vw, 13px);
+    padding: clamp(4px, 1vw, 5px) clamp(6px, 1.8vw, 10px);
+    border: 1.5px solid #000;
+    border-radius: clamp(3px, 0.8vw, 5px);
+    font-size: clamp(10px, 2.5vw, 11px);
     font-weight: 600;
     background: white;
     white-space: nowrap;
+    flex-shrink: 0;
+    min-width: fit-content;
 }
 
 .product-title-container {
