@@ -189,6 +189,12 @@ function initFromURL() {
     if (brandsParam) {
         selectedBrands = brandsParam;
     }
+
+    // 타이어만 보기 필터
+    const tireOnlyParam = urlParams.get('tire_only');
+    if (tireOnlyParam === '1') {
+        document.getElementById('tireOnly').checked = true;
+    }
 }
 
 // 초기화 및 로드

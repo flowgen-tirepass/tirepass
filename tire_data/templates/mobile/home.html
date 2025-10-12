@@ -294,6 +294,9 @@ function performSearch() {
     if (searchText || selectedBrands.length > 0) {
         const params = new URLSearchParams();
 
+        // 타이어만 필터 기본 적용
+        params.append('tire_only', '1');
+
         if (searchText) {
             params.append('search', searchText);
         }
@@ -304,13 +307,13 @@ function performSearch() {
 
         location.href = '/mobile/products/?' + params.toString();
     } else {
-        location.href = '/mobile/products/';
+        location.href = '/mobile/products/?tire_only=1';
     }
 }
 
-// 전체 상품 보기
+// 전체 상품 보기 (타이어만)
 function viewAllProducts() {
-    location.href = '/mobile/products/';
+    location.href = '/mobile/products/?tire_only=1';
 }
 
 // Enter 키로 검색
