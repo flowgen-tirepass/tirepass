@@ -550,7 +550,7 @@ async function addToCartWithYear(code, year) {
     }
 }
 
-// 바로 구매 (최신 연도 상품 → 장바구니 → 장바구니 페이지로 이동)
+// 바로 구매 (최신 연도 상품 → 장바구니 → 주문 생성 → 주문 목록으로 이동)
 async function buyNow(code) {
     const customerCode = getCustomerCode();
     if (!customerCode) {
@@ -570,7 +570,7 @@ async function buyNow(code) {
             const product = data.data.products.find(p => p.code === code);
             const newestYear = getNewestYear(product.dot_inventory);
 
-            // 장바구니에 추가
+            // 1단계: 장바구니에 추가
             const cartResponse = await fetch('/api/mobile/cart/add/', {
                 method: 'POST',
                 headers: {
@@ -585,13 +585,36 @@ async function buyNow(code) {
             });
 
             const cartData = await cartResponse.json();
-            hideLoading();
 
-            if (cartData.success) {
-                // 장바구니 페이지로 이동
-                location.href = '/mobile/cart/';
+            if (cartData.success && cartData.data && cartData.data.cart_id) {
+                // 2단계: 바로 주문 생성
+                const orderResponse = await fetch('/api/mobile/orders/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        customer_code: customerCode,
+                        cart_ids: [cartData.data.cart_id],
+                        shipping_address: '',
+                        shipping_memo: '',
+                        payment_method: 'transfer'
+                    })
+                });
+
+                const orderData = await orderResponse.json();
+                hideLoading();
+
+                if (orderData.success) {
+                    showAlert('주문이 완료되었습니다!', 'success');
+                    // 주문 목록 페이지로 이동
+                    location.href = '/mobile/orders/';
+                } else {
+                    showAlert(orderData.message || '주문 생성 실패', 'error');
+                }
             } else {
-                showAlert(cartData.message || '구매 진행 실패', 'error');
+                hideLoading();
+                showAlert(cartData.message || '장바구니 추가 실패', 'error');
             }
         } else {
             hideLoading();
