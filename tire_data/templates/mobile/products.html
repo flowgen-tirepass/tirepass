@@ -87,6 +87,19 @@ async function loadProducts(page = 1) {
     }
 }
 
+// 타이어 사이즈 추출 함수
+function extractTireSize(name) {
+    const sizeMatch = name.match(/(\d{3}\/\d{2}R?\d{2})/i);
+    return sizeMatch ? sizeMatch[1] : '';
+}
+
+// 브랜드 로고 경로 생성
+function getBrandLogo(brand) {
+    if (!brand) return '';
+    const brandLower = brand.toLowerCase().replace(/\s+/g, '');
+    return `/static/mobile/img/brands/${brandLower}.png`;
+}
+
 function renderProducts(products) {
     const container = document.getElementById('productsList');
 
@@ -95,32 +108,88 @@ function renderProducts(products) {
         return;
     }
 
-    container.innerHTML = products.map(product => `
-        <div class="card" style="cursor: pointer;" onclick="location.href='/mobile/products/${product.code}/'">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                <div>
-                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${product.name}</h3>
-                    <div style="font-size: 13px; color: #6b7280;">
-                        ${product.brand || '브랜드 없음'} • ${product.code}
-                    </div>
-                </div>
-                ${product.is_tire ? '<span class="badge badge-blue">타이어</span>' : ''}
+    container.innerHTML = products.map(product => {
+        const tireSize = extractTireSize(product.name);
+        const discount = product.discount_rate || 0;
+        const originalPrice = product.price || 0;
+        const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
+        const brandLogo = getBrandLogo(product.brand);
+
+        return `
+        <div class="card" style="position: relative; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; margin-bottom: 15px;">
+            <!-- 브랜드 로고 -->
+            <div style="position: absolute; top: 15px; right: 15px; width: 80px; height: 50px;">
+                ${product.brand ? `<img src="${brandLogo}" alt="${product.brand}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.style.display='none'">` : ''}
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div style="font-size: 18px; font-weight: 600; color: #2563eb;">
-                        ${product.price ? product.price.toLocaleString() + '원' : '가격문의'}
-                    </div>
-                    <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">
-                        재고: ${product.stock || 0}개
-                    </div>
+
+            <!-- 상품명 -->
+            <div style="margin-bottom: 15px; padding-right: 90px;">
+                <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; line-height: 1.3;">
+                    ${product.name}
+                </h3>
+                ${tireSize ? `<div style="display: inline-block; background: #fbbf24; color: #000; padding: 4px 12px; border-radius: 4px; font-size: 16px; font-weight: 700; margin-top: 5px;">${tireSize}</div>` : ''}
+            </div>
+
+            <!-- DOT 재고 확인 버튼 -->
+            <button onclick="event.stopPropagation(); showDOTInfo('${product.code}')"
+                    style="width: 100%; padding: 12px; margin-bottom: 15px; background: #fff; border: 2px solid #38bdf8; color: #0284c7; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                📦 DOT 재고 확인
+            </button>
+
+            <!-- 가격 정보 -->
+            <div style="margin-bottom: 15px;">
+                <!-- 공장도가 -->
+                ${originalPrice > 0 ? `
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <span style="font-size: 14px; color: #6b7280;">공장도가</span>
+                    <span style="font-size: 16px; color: #9ca3af; text-decoration: line-through;">₩${originalPrice.toLocaleString()}</span>
+                    ${discount > 0 ? `<span style="background: #dc2626; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 700;">${discount}% OFF</span>` : ''}
                 </div>
-                <button class="btn btn-primary" style="padding: 8px 16px;" onclick="event.stopPropagation(); viewDetail('${product.code}')">
-                    상세보기
+                ` : ''}
+
+                <!-- 공급가 -->
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <span style="font-size: 14px; color: #6b7280;">공급가</span>
+                    <span style="font-size: 28px; font-weight: 800; color: #000;">₩${discountedPrice.toLocaleString()}</span>
+                </div>
+            </div>
+
+            <!-- 재고 -->
+            <div style="display: inline-block; background: #16a34a; color: white; padding: 8px 16px; border-radius: 6px; font-size: 15px; font-weight: 600; margin-bottom: 15px;">
+                재고: ${product.stock || 0}개
+            </div>
+
+            <!-- 장바구니 / 구매하기 버튼 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button onclick="event.stopPropagation(); addToCart('${product.code}')"
+                        style="padding: 16px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    🛒
+                </button>
+                <button onclick="event.stopPropagation(); buyNow('${product.code}')"
+                        style="padding: 16px; background: #fbbf24; color: #000; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer;">
+                    구매하기
                 </button>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
+}
+
+// DOT 재고 확인
+function showDOTInfo(code) {
+    showAlert('DOT 재고 정보는 상세 페이지에서 확인할 수 있습니다.', 'info');
+    location.href = `/mobile/products/${code}/`;
+}
+
+// 장바구니 담기
+function addToCart(code) {
+    showAlert('장바구니에 담겼습니다.', 'success');
+    // TODO: 실제 장바구니 API 연동
+}
+
+// 바로 구매
+function buyNow(code) {
+    location.href = `/mobile/products/${code}/`;
 }
 
 function renderPagination() {
