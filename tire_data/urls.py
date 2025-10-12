@@ -1,7 +1,8 @@
 from django.urls import path
 from django.contrib.auth import logout as auth_logout
 from django.shortcuts import redirect
-from . import views, api_views, api_views_mobile, mobile_views, views_sync_api
+from . import views, api_views, mobile_views, views_sync_api
+# from . import api_views_mobile  # 임시 비활성화 (인코딩 이슈)
 
 
 def admin_logout_view(request):
@@ -39,9 +40,9 @@ urlpatterns = [
     # Mobile API URLs
     path('api/mobile/', api_views.api_index, name='api_index'),
 
-    # 상품 API (ERP 실시간 연동)
-    path('api/mobile/products/', api_views_mobile.api_products_erp, name='api_products_list'),
-    path('api/mobile/products/<str:code>/', api_views_mobile.api_product_detail_erp, name='api_product_detail'),
+    # 상품 API (임시로 MySQL 사용, ERP 연동은 추후 재적용)
+    path('api/mobile/products/', api_views.api_products_list, name='api_products_list'),
+    path('api/mobile/products/<str:code>/', api_views.api_product_detail, name='api_product_detail'),
 
     # 장바구니 API
     path('api/mobile/cart/', api_views.api_cart_list, name='api_cart_list'),
@@ -65,9 +66,9 @@ urlpatterns = [
     path('api/mobile/auth/profile/', api_views.api_auth_profile, name='api_auth_profile'),
     path('api/mobile/auth/change-password/', api_views.api_auth_change_password, name='api_auth_change_password'),
 
-    # 결제 API (토스페이먼츠)
-    path('api/mobile/payment/prepare/', api_views_mobile.api_payment_prepare_toss, name='api_payment_prepare'),
-    path('api/mobile/payment/confirm/', api_views_mobile.api_payment_confirm_toss, name='api_payment_confirm'),
+    # 결제 API (토스페이먼츠 - 임시로 기존 API 사용)
+    path('api/mobile/payment/prepare/', api_views.api_payment_prepare, name='api_payment_prepare'),
+    path('api/mobile/payment/confirm/', api_views.api_payment_confirm, name='api_payment_confirm'),
     path('api/mobile/payment/cancel/', api_views.api_payment_cancel, name='api_payment_cancel'),
     path('api/mobile/payment/status/<str:payment_key>/', api_views.api_payment_status, name='api_payment_status'),
 
