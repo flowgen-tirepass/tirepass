@@ -39,18 +39,38 @@
         <div>
             <div style="display: flex; gap: 15px; align-items: center;">
                 <!-- 타이어만 필터 -->
-                <button type="button" onclick="return toggleFilter('tire_only', '{{ filter_tire_only }}');"
-                   style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; {% if filter_tire_only == 'on' %}background: #fff3cd; border: 2px solid #ff6600;{% else %}background: white; border: 1px solid #ddd;{% endif %} border-radius: 4px; font-size: 14px; {% if filter_tire_only != 'on' %}color: #333;{% endif %}">
-                    <span style="margin-right: 5px;">{% if filter_tire_only == 'on' %}☑{% else %}☐{% endif %}</span>
-                    <span {% if filter_tire_only == 'on' %}style="font-weight: bold; color: #ff6600;"{% endif %}>🚗 타이어만</span>
-                </button>
+                {% if filter_tire_only == 'on' %}
+                <a href="?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_stock_only == 'on' %}{% if search_term %}&{% endif %}stock_only=on{% endif %}"
+                   class="erp-filter-link" data-filter="tire"
+                   style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #fff3cd; border: 2px solid #ff6600; border-radius: 4px; font-size: 14px; text-decoration: none;">
+                    <span style="margin-right: 5px;">☑</span>
+                    <span style="font-weight: bold; color: #ff6600;">🚗 타이어만</span>
+                </a>
+                {% else %}
+                <a href="?{% if search_term %}q={{ search_term }}&{% endif %}tire_only=on{% if filter_stock_only == 'on' %}&stock_only=on{% endif %}"
+                   class="erp-filter-link" data-filter="tire"
+                   style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; color: #333; text-decoration: none;">
+                    <span style="margin-right: 5px;">☐</span>
+                    <span>🚗 타이어만</span>
+                </a>
+                {% endif %}
 
                 <!-- 재고있는 상품만 필터 -->
-                <button type="button" onclick="return toggleFilter('stock_only', '{{ filter_stock_only }}');"
-                   style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; {% if filter_stock_only == 'on' %}background: #d1ecf1; border: 2px solid #0c5460;{% else %}background: white; border: 1px solid #ddd;{% endif %} border-radius: 4px; font-size: 14px; {% if filter_stock_only != 'on' %}color: #333;{% endif %}">
-                    <span style="margin-right: 5px;">{% if filter_stock_only == 'on' %}☑{% else %}☐{% endif %}</span>
-                    <span {% if filter_stock_only == 'on' %}style="font-weight: bold; color: #0c5460;"{% endif %}>📦 재고있는 상품만</span>
-                </button>
+                {% if filter_stock_only == 'on' %}
+                <a href="?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_tire_only == 'on' %}{% if search_term %}&{% endif %}tire_only=on{% endif %}"
+                   class="erp-filter-link" data-filter="stock"
+                   style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 4px; font-size: 14px; text-decoration: none;">
+                    <span style="margin-right: 5px;">☑</span>
+                    <span style="font-weight: bold; color: #0c5460;">📦 재고있는 상품만</span>
+                </a>
+                {% else %}
+                <a href="?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on&{% endif %}stock_only=on"
+                   class="erp-filter-link" data-filter="stock"
+                   style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; color: #333; text-decoration: none;">
+                    <span style="margin-right: 5px;">☐</span>
+                    <span>📦 재고있는 상품만</span>
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -147,28 +167,19 @@
 {% block extrahead %}
 {{ block.super }}
 <script>
-function toggleFilter(filterName, currentState) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    // URL 파라미터 구성
-    var params = new URLSearchParams(window.location.search);
-
-    // e 파라미터 제거 (Django admin 팝업 모드)
-    params.delete('e');
-
-    // 현재 필터 토글
-    if (currentState === 'on') {
-        params.delete(filterName);
-    } else {
-        params.set(filterName, 'on');
-    }
-
-    // 페이지 이동
-    var newUrl = window.location.pathname + '?' + params.toString();
-    window.location.href = newUrl;
-    return false;
-}
+// Django admin의 RelatedObjectLookups.js가 필터 링크를 가로채지 못하도록 보호
+document.addEventListener('DOMContentLoaded', function() {
+    // ERP 필터 링크에 대해서만 Django admin JS 차단
+    var filterLinks = document.querySelectorAll('.erp-filter-link');
+    filterLinks.forEach(function(link) {
+        // Capture phase에서 먼저 처리 (Django admin보다 우선)
+        link.addEventListener('click', function(e) {
+            // 기본 링크 동작 허용
+            // Django admin의 팝업 처리는 차단
+            e.stopPropagation();  // 부모로 이벤트 전파 차단
+        }, true);  // true = capture phase
+    });
+});
 </script>
 {% endblock %}
 
