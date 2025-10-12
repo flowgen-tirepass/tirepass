@@ -215,8 +215,33 @@ class GoodsAdmin(admin.ModelAdmin):
         if has_filter:
             # 필터 사용 시: 데이터를 가져와서 필터링 (타임아웃 방지)
             fetch_limit = 100  # 500→100으로 축소 (타임아웃 방지)
+
+            # 브랜드 필터가 있으면 브랜드명으로 검색 (더 효율적)
+            brand_search_term = search_term
+            if filter_brand and not search_term:
+                # 브랜드 매핑에서 한글 키워드 가져오기
+                brand_mapping = {
+                    'annaite': '안나이트',
+                    'bfg': 'BFG',
+                    'bridgestone': '브리지스톤',
+                    'continental': '콘티넨탈',
+                    'dunlop': '던롭',
+                    'goodyear': '굳이어',
+                    'hankook': '한국',
+                    'hilo': '하이로',
+                    'kumho': '금호',
+                    'michelin': '미쉐린',
+                    'nexen': '넥센',
+                    'pirelli': '피렐리',
+                    'yokohama': '요코하마',
+                    'maxxis': '맥시스',
+                    'hifly': '하이플라이',
+                }
+                brand_search_term = brand_mapping.get(filter_brand.lower(), '')
+                logger.info(f"브랜드 검색: '{brand_search_term}' (브랜드: {filter_brand})")
+
             logger.info(f"필터 모드: {fetch_limit}개 로드")
-            erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=search_term)
+            erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=brand_search_term)
             erp_goods_count = ERPAPIClient.get_goods_count()
             logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품, 전체: {erp_goods_count}")
         elif search_term:
