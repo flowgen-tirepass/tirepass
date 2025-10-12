@@ -55,38 +55,62 @@ class GoodsAdmin(admin.ModelAdmin):
         return Goods.objects.none()
 
     def is_tire_product(self, goods):
-        """타이어 상품인지 정확하게 판별"""
-        name = goods.get('name', '').upper()
-        bun1 = goods.get('bun1', '') or ''
+        """
+        타이어 상품 판별 (BUN1 브랜드명 + CODE 접두사 기반)
 
-        # 타이어 사이즈 패턴 검사 (가장 정확한 방법)
-        # 패턴 1: 195/65R15, 205/55R16 (일반적인 타이어 사이즈)
-        # 패턴 2: 225/45ZR17 (고성능 타이어)
-        # 패턴 3: 175-70R13 (하이픈 구분)
-        tire_patterns = [
-            r'\d{3}/\d{2}R\d{2}',      # 195/65R15
-            r'\d{3}/\d{2}[A-Z]R\d{2}',  # 225/45ZR17
-            r'\d{3}-\d{2}R\d{2}',      # 175-70R13
+        조건:
+        1. BUN1에 타이어 브랜드명이 있어야 함
+        2. CODE에 타이어 브랜드 접두사가 있어야 함
+        → 두 조건 모두 만족해야 타이어로 판단
+        """
+        bun1 = (goods.get('bun1', '') or '').strip()
+        code = (goods.get('code', '') or '').strip()
+
+        # BUN1, CODE를 대문자로 변환 (영문 비교용)
+        bun1_upper = bun1.upper()
+        code_upper = code.upper()
+
+        # 1. BUN1 브랜드명 체크 (한글 + 영문)
+        tire_brands_bun1 = [
+            '안나이트', 'ANNAITE',
+            'BFG',
+            '브리지스톤', 'BRIDGESTONE',
+            '콘티넨탈', 'CONTINENTAL',
+            '던롭', 'DUNLOP',
+            '굳이어', 'GOODYEAR',
+            '한국', 'HANKOOK',
+            '하이로', 'HILO',
+            '금호', 'KUMHO',
+            '미쉐린', 'MICHELIN',
+            '넥센', 'NEXEN',
+            '피렐리', 'PIRELLI',
+            '요코하마', 'YOKOHAMA',
+            'MAXXIS', '맥시스',
+            'HIFLY', '하이플라이'
         ]
 
-        for pattern in tire_patterns:
-            if re.search(pattern, name):
-                return True
+        # BUN1에 브랜드명이 있는지 확인 (한글은 원본, 영문은 대문자 비교)
+        has_tire_brand = False
+        for brand in tire_brands_bun1:
+            if brand.isupper():  # 영문은 대문자 비교
+                if brand in bun1_upper:
+                    has_tire_brand = True
+                    break
+            else:  # 한글은 원본 비교
+                if brand in bun1:
+                    has_tire_brand = True
+                    break
 
-        # BUN1 필드가 "타이어" 포함 (한글 인코딩 문제 대응)
-        if '타이어' in bun1 or 'TIRE' in bun1.upper():
-            return True
+        # 2. CODE 접두사 체크
+        tire_code_prefixes = [
+            'BFG-', 'BS-', 'C-', 'CT-', 'D-', 'G-', 'H-',
+            'HIFLY-', 'HILO-', 'K-', 'M-', 'MAXXIS-', 'N-', 'P-'
+        ]
 
-        # 타이어 브랜드명 포함 (영문)
-        tire_brands = ['HANKOOK', 'KUMHO', 'NEXEN', 'MICHELIN', 'BRIDGESTONE',
-                       'GOODYEAR', 'CONTINENTAL', 'PIRELLI', 'DUNLOP', 'YOKOHAMA',
-                       'ANNAITE', 'TRIANGLE']
-        if any(brand in name for brand in tire_brands):
-            # 브랜드명만으로는 부족, 사이즈 패턴도 함께 확인
-            if re.search(r'\d{3}[/-]\d{2}', name):
-                return True
+        has_tire_code = any(code_upper.startswith(prefix) for prefix in tire_code_prefixes)
 
-        return False
+        # 3. 두 조건 모두 만족해야 타이어
+        return has_tire_brand and has_tire_code
 
     def get_queryset(self, request):
         """
@@ -155,10 +179,19 @@ class GoodsAdmin(admin.ModelAdmin):
         if filter_tire_only == 'on':
             # 타이어 상품만 필터링
             before_filter = len(filtered_goods)
+
+            # 디버깅: 첫 3개 상품의 BUN1, CODE 값 확인
+            if len(filtered_goods) > 0:
+                logger.info(f"필터 전 샘플 (처음 3개):")
+                for i, g in enumerate(filtered_goods[:3]):
+                    logger.info(f"  [{i+1}] CODE: {g.get('code', 'N/A')}, BUN1: {g.get('bun1', 'N/A')}, NAME: {g.get('name', 'N/A')[:30]}")
+
             filtered_goods = [g for g in filtered_goods if self.is_tire_product(g)]
             logger.info(f"✓ 타이어 필터 적용: {before_filter} → {len(filtered_goods)}")
+
             if len(filtered_goods) > 0:
-                logger.info(f"  타이어 샘플: {filtered_goods[0].get('name', 'N/A')}")
+                sample = filtered_goods[0]
+                logger.info(f"  타이어 샘플: CODE={sample.get('code', 'N/A')}, BUN1={sample.get('bun1', 'N/A')}, NAME={sample.get('name', 'N/A')[:30]}")
 
         if filter_stock_only == 'on':
             # 재고가 있는 상품만 필터링
