@@ -217,9 +217,24 @@ def api_products_list(request):
         products_page = products[start:end]
 
     # YearAllocation 정보 가져오기
-    from .models import YearAllocation
+    from .models import YearAllocation, GoodsPerformanceTag
     product_codes = [p.code for p in products_page]
     year_allocations = {ya.goods_code: ya for ya in YearAllocation.objects.filter(goods_code__in=product_codes)}
+
+    # 성능 표기 정보 가져오기
+    performance_tags_qs = GoodsPerformanceTag.objects.filter(
+        goods_code__in=product_codes
+    ).select_related('tag', 'tag__category').order_by('tag__category__order', 'tag__order')
+
+    # 상품별로 성능 표기 그룹화
+    performance_tags_by_goods = {}
+    for pt in performance_tags_qs:
+        if pt.goods_code not in performance_tags_by_goods:
+            performance_tags_by_goods[pt.goods_code] = []
+        performance_tags_by_goods[pt.goods_code].append({
+            'category': pt.tag.category.display_name,
+            'tag': pt.tag.name
+        })
 
     # 결과 구성
     products_data = []
@@ -281,7 +296,8 @@ def api_products_list(request):
             'discount_rate': float(p.discount_rate),
             'stock': p.jaego,
             'is_tire': p.is_tire,
-            'dot_inventory': dot_inventory
+            'dot_inventory': dot_inventory,
+            'performance_tags': performance_tags_by_goods.get(p.code, [])
         })
 
     result = {

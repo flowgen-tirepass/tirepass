@@ -507,6 +507,86 @@ class CustomerProductDiscount(models.Model):
 
 
 # ============================================
+# 성능 표기 관련 모델
+# ============================================
+
+class PerformanceCategory(models.Model):
+    """성능 표기 카테고리 (Section)"""
+    name = models.CharField(max_length=50, unique=True, verbose_name='카테고리명')
+    display_name = models.CharField(max_length=50, verbose_name='표시명')
+    order = models.IntegerField(default=0, verbose_name='정렬순서')
+    is_active = models.BooleanField(default=True, verbose_name='활성화')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'performance_categories'
+        managed = True
+        verbose_name = '성능표기 카테고리'
+        verbose_name_plural = '성능표기 카테고리'
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.display_name
+
+
+class PerformanceTag(models.Model):
+    """성능 표기 태그 (Key)"""
+    category = models.ForeignKey(
+        PerformanceCategory,
+        on_delete=models.CASCADE,
+        related_name='tags',
+        verbose_name='카테고리'
+    )
+    name = models.CharField(max_length=50, verbose_name='태그명')
+    order = models.IntegerField(default=0, verbose_name='정렬순서')
+    is_active = models.BooleanField(default=True, verbose_name='활성화')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'performance_tags'
+        managed = True
+        verbose_name = '성능표기 태그'
+        verbose_name_plural = '성능표기 태그'
+        ordering = ['category__order', 'category', 'order', 'name']
+        unique_together = ['category', 'name']
+
+    def __str__(self):
+        return f"{self.category.display_name} - {self.name}"
+
+
+class GoodsPerformanceTag(models.Model):
+    """상품별 성능 표기 배정"""
+    goods_code = models.CharField(max_length=20, verbose_name='상품코드', db_index=True)
+    tag = models.ForeignKey(
+        PerformanceTag,
+        on_delete=models.CASCADE,
+        related_name='goods_tags',
+        verbose_name='성능표기'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'goods_performance_tags'
+        managed = True
+        verbose_name = '상품 성능표기'
+        verbose_name_plural = '상품 성능표기'
+        unique_together = ['goods_code', 'tag']
+        ordering = ['goods_code', 'tag__category__order', 'tag__order']
+
+    def __str__(self):
+        return f"{self.goods_code} - {self.tag}"
+
+    def goods_name(self):
+        """상품명 조회"""
+        try:
+            goods = Goods.objects.get(code=self.goods_code)
+            return goods.name
+        except Goods.DoesNotExist:
+            return None
+    goods_name.short_description = '상품명'
+
+
+# ============================================
 # 쇼핑/주문 관련 모델
 # ============================================
 from .models_shopping import ShoppingCart, Order, OrderItem, Payment

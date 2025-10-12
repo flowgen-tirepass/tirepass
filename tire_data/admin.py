@@ -8,7 +8,8 @@ import re
 from .models import (
     Goods, CustomersFull, Customers, YearAllocation, BrandGroup,
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
-    CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment
+    CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
+    PerformanceCategory, PerformanceTag, GoodsPerformanceTag
 )
 from .erp_api_client import ERPAPIClient
 
@@ -1038,3 +1039,13 @@ class PaymentAdmin(admin.ModelAdmin):
         return obj.order.order_number
     get_order_number.short_description = '주문번호'
     get_order_number.admin_order_field = 'order__order_number'
+
+
+# ============================================
+# 성능 표기 Admin (별도 파일에서 import)
+# ============================================
+from .admin_performance import (
+    PerformanceCategoryAdmin,
+    PerformanceTagAdmin,
+    GoodsPerformanceTagAdmin
+)
