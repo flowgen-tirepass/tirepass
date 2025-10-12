@@ -51,13 +51,13 @@
             <div style="display: flex; gap: 15px; align-items: center;">
                 <!-- 타이어만 필터 -->
                 {% if filter_tire_only == 'on' %}
-                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_stock_only == 'on' %}{% if search_term %}&{% endif %}stock_only=on{% endif %}'; return false;"
+                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_stock_only == 'on' %}{% if search_term %}&{% endif %}stock_only=on{% endif %}{% if filter_brand %}{% if search_term or filter_stock_only %}&{% endif %}brand={{ filter_brand }}{% endif %}'; return false;"
                    style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #fff3cd; border: 2px solid #ff6600; border-radius: 4px; font-size: 14px; text-decoration: none;">
                     <span style="margin-right: 5px;">☑</span>
                     <span style="font-weight: bold; color: #ff6600;">🚗 타이어만</span>
                 </a>
                 {% else %}
-                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}tire_only=on{% if filter_stock_only == 'on' %}&stock_only=on{% endif %}'; return false;"
+                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}tire_only=on{% if filter_stock_only == 'on' %}&stock_only=on{% endif %}{% if filter_brand %}&brand={{ filter_brand }}{% endif %}'; return false;"
                    style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; color: #333; text-decoration: none;">
                     <span style="margin-right: 5px;">☐</span>
                     <span>🚗 타이어만</span>
@@ -66,13 +66,13 @@
 
                 <!-- 재고있는 상품만 필터 -->
                 {% if filter_stock_only == 'on' %}
-                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_tire_only == 'on' %}{% if search_term %}&{% endif %}tire_only=on{% endif %}'; return false;"
+                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_tire_only == 'on' %}{% if search_term %}&{% endif %}tire_only=on{% endif %}{% if filter_brand %}{% if search_term or filter_tire_only %}&{% endif %}brand={{ filter_brand }}{% endif %}'; return false;"
                    style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 4px; font-size: 14px; text-decoration: none;">
                     <span style="margin-right: 5px;">☑</span>
                     <span style="font-weight: bold; color: #0c5460;">📦 재고있는 상품만</span>
                 </a>
                 {% else %}
-                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on&{% endif %}stock_only=on'; return false;"
+                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on&{% endif %}stock_only=on{% if filter_brand %}&brand={{ filter_brand }}{% endif %}'; return false;"
                    style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; color: #333; text-decoration: none;">
                     <span style="margin-right: 5px;">☐</span>
                     <span>📦 재고있는 상품만</span>
