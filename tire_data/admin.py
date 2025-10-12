@@ -216,16 +216,18 @@ class GoodsAdmin(admin.ModelAdmin):
             # 필터 사용 시: 데이터를 가져와서 필터링
             # 브랜드 필터는 검색 대신 전체 로드 후 BUN1 필터링 (검색으로는 정비용품만 나옴)
             if filter_brand:
-                fetch_limit = 3000  # 브랜드 필터 시 전체에서 필터링 (6528개 중 3000개)
-                logger.info(f"브랜드 필터 모드: {fetch_limit}개 로드 (전체 검색)")
+                # 브랜드 필터 시: 전체 상품 개수 확인 후 모두 로드
+                erp_goods_count = ERPAPIClient.get_goods_count()
+                fetch_limit = erp_goods_count  # 전체 상품 로드
+                logger.info(f"브랜드 필터 모드: 전체 {erp_goods_count}개 로드")
             else:
                 fetch_limit = 100  # 타이어/재고 필터만 사용 시 100개
                 logger.info(f"필터 모드: {fetch_limit}개 로드")
+                erp_goods_count = ERPAPIClient.get_goods_count()
 
             # 검색어는 사용자 입력만 사용 (브랜드는 BUN1 필터링으로 처리)
             erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=search_term)
-            erp_goods_count = ERPAPIClient.get_goods_count()
-            logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품, 전체: {erp_goods_count}")
+            logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품")
 
             # ERP 응답 샘플 로그 (처음 3개)
             if len(erp_goods_list) > 0:
@@ -245,7 +247,7 @@ class GoodsAdmin(admin.ModelAdmin):
                         'hankook': ['한국', 'HANKOOK'],
                         'hilo': ['하이로', 'HILO'],
                         'kumho': ['금호', 'KUMHO'],
-                        'michelin': ['미쉐린', 'MICHELIN'],
+                        'michelin': ['미쉐린', '미슐랭', 'MICHELIN'],
                         'nexen': ['넥센', 'NEXEN'],
                         'pirelli': ['피렐리', 'PIRELLI'],
                         'yokohama': ['요코하마', 'YOKOHAMA'],
@@ -309,7 +311,7 @@ class GoodsAdmin(admin.ModelAdmin):
                 'hankook': ['한국', 'HANKOOK'],
                 'hilo': ['하이로', 'HILO'],
                 'kumho': ['금호', 'KUMHO'],
-                'michelin': ['미쉐린', 'MICHELIN'],
+                'michelin': ['미쉐린', '미슐랭', 'MICHELIN'],
                 'nexen': ['넥센', 'NEXEN'],
                 'pirelli': ['피렐리', 'PIRELLI'],
                 'yokohama': ['요코하마', 'YOKOHAMA'],
