@@ -213,9 +213,6 @@ class GoodsAdmin(admin.ModelAdmin):
 
         # ERP API에서 실시간 데이터 조회
         if has_filter:
-            # 필터 사용 시: 데이터를 가져와서 필터링 (타임아웃 방지)
-            fetch_limit = 100  # 500→100으로 축소 (타임아웃 방지)
-
             # 브랜드 필터가 있으면 브랜드명으로 검색 (더 효율적)
             brand_search_term = search_term
             if filter_brand and not search_term:
@@ -240,7 +237,15 @@ class GoodsAdmin(admin.ModelAdmin):
                 brand_search_term = brand_mapping.get(filter_brand.lower(), '')
                 logger.info(f"브랜드 검색: '{brand_search_term}' (브랜드: {filter_brand})")
 
-            logger.info(f"필터 모드: {fetch_limit}개 로드")
+            # 필터 사용 시: 데이터를 가져와서 필터링
+            # 브랜드 검색 시 전체 상품(6528개)에서 검색하도록 limit 증가
+            if filter_brand:
+                fetch_limit = 1000  # 브랜드 검색 시 전체에서 검색
+                logger.info(f"브랜드 필터 모드: {fetch_limit}개 로드 (전체 검색)")
+            else:
+                fetch_limit = 100  # 타이어/재고 필터만 사용 시 100개
+                logger.info(f"필터 모드: {fetch_limit}개 로드")
+
             erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=brand_search_term)
             erp_goods_count = ERPAPIClient.get_goods_count()
             logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품, 전체: {erp_goods_count}")

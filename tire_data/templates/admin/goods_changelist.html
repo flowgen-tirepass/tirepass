@@ -24,7 +24,11 @@
                             <span style="color: #666; margin-left: 5px;">개 상품</span>
                         </div>
                         <span style="color: #999; font-size: 14px;">
-                            (최대 100개 로드)
+                            {% if filter_brand %}
+                                (최대 1000개 로드)
+                            {% else %}
+                                (최대 100개 로드)
+                            {% endif %}
                         </span>
                     </div>
                     <div style="margin-top: 5px; color: #ff6600; font-weight: bold; font-size: 13px;">
@@ -143,7 +147,13 @@
                 (재고있음)
             {% endif %}
         </span>
-        <span style="margin-left: 20px; color: #666;">최대 100개 로드</span>
+        <span style="margin-left: 20px; color: #666;">
+            {% if filter_brand %}
+                최대 1000개 로드
+            {% else %}
+                최대 100개 로드
+            {% endif %}
+        </span>
     {% else %}
         <!-- 일반 조회 및 검색: 페이지네이션 표시 -->
         {% if has_previous %}
