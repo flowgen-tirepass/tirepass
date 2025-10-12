@@ -258,7 +258,7 @@ class GoodsAdmin(admin.ModelAdmin):
         filtered_goods = erp_goods_list
         brand_filtered = False  # 브랜드 필터 적용 여부
 
-        # 1. 브랜드 필터: BUN1 필드로 필터링 (최우선)
+        # 1. 브랜드 필터: BUN1 필드로 필터링 (타이어만)
         if filter_brand:
             before_filter = len(filtered_goods)
 
@@ -285,21 +285,36 @@ class GoodsAdmin(admin.ModelAdmin):
             logger.info(f"브랜드 필터 키워드: {brand_keywords}")
 
             if brand_keywords:
-                def matches_brand(goods):
+                def matches_brand_and_tire(goods):
+                    # BUN1 브랜드 체크
                     bun1 = (goods.get('bun1', '') or '').strip()
                     bun1_upper = bun1.upper()
+                    brand_match = False
                     for keyword in brand_keywords:
                         if keyword.isupper():  # 영문은 대문자 비교
                             if keyword in bun1_upper:
-                                return True
+                                brand_match = True
+                                break
                         else:  # 한글은 원본 비교
                             if keyword in bun1:
-                                return True
-                    return False
+                                brand_match = True
+                                break
 
-                filtered_goods = [g for g in filtered_goods if matches_brand(g)]
+                    # 브랜드 매칭 안되면 False
+                    if not brand_match:
+                        return False
+
+                    # 브랜드 매칭되면 타이어 상품인지 확인 (CODE 접두사)
+                    code = (goods.get('code', '') or '').strip().upper()
+                    tire_code_prefixes = [
+                        'ANNAITE-', 'BFG-', 'BS-', 'C-', 'CT-', 'D-', 'G-', 'H-',
+                        'HIFLY-', 'HILO-', 'K-', 'M-', 'MAXXIS-', 'N-', 'P-'
+                    ]
+                    return any(code.startswith(prefix) for prefix in tire_code_prefixes)
+
+                filtered_goods = [g for g in filtered_goods if matches_brand_and_tire(g)]
                 brand_filtered = True
-                logger.info(f"✓ 브랜드 필터 적용 ({filter_brand}): {before_filter} → {len(filtered_goods)}")
+                logger.info(f"✓ 브랜드 필터 (타이어만) 적용 ({filter_brand}): {before_filter} → {len(filtered_goods)}")
 
                 if len(filtered_goods) > 0:
                     logger.info(f"  브랜드 샘플 (처음 3개):")
