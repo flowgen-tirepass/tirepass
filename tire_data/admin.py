@@ -706,26 +706,33 @@ class CustomerDiscountAdmin(admin.ModelAdmin):
 
 @admin.register(YearAllocation)
 class YearAllocationAdmin(admin.ModelAdmin):
-    list_display = ['goods_code', 'base_discount', 'year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
+    list_display = ['goods_code', 'stock_quantity', 'year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
                    'year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount',
                    'total_allocated', 'last_updated']
-    list_editable = ['base_discount', 'year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
+    list_editable = ['year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
                     'year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount']
     search_fields = ['goods_code']
     ordering = ['goods_code']
-    readonly_fields = ['last_updated', 'total_allocated']
+    readonly_fields = ['last_updated', 'total_allocated', 'stock_quantity']
     list_per_page = 50
+
+    def stock_quantity(self, obj):
+        """Goods 테이블의 재고수량 표시"""
+        try:
+            from .models import Goods
+            goods = Goods.objects.get(code=obj.goods_code)
+            return goods.jaego
+        except Goods.DoesNotExist:
+            return 0
+    stock_quantity.short_description = '재고수량'
 
     fieldsets = (
         ('상품 정보', {
-            'fields': ('goods_code',)
-        }),
-        ('상품 기본 할인율', {
-            'fields': ('base_discount',),
-            'description': '모든 상품에 적용되는 기본 할인율을 설정합니다. (음수 입력 불가)'
+            'fields': ('goods_code', 'stock_quantity')
         }),
         ('연도별 재고 수량', {
-            'fields': ('year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before')
+            'fields': ('year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before'),
+            'description': 'ERP의 전체 재고 중 각 제조년도별로 할당된 수량을 입력합니다.'
         }),
         ('DOT 할인율 (연도별)', {
             'fields': ('year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount'),
