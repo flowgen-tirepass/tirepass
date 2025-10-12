@@ -201,6 +201,22 @@ class GoodsAdmin(admin.ModelAdmin):
         filter_stock_only = request.GET.get('stock_only', '')
         filter_brand = request.GET.get('brand', '')  # 우측 사이드바 브랜드 필터
 
+        # 검색어 변환: 숫자만 입력 시 타이어 사이즈로 변환 (예: 2355519 → 235/55R19)
+        enhanced_search_term = search_term
+        if search_term:
+            numeric_only = re.sub(r'[^0-9]', '', search_term)
+            if len(numeric_only) >= 6 and numeric_only == search_term:  # 순수 숫자만 입력한 경우
+                width = numeric_only[:3]
+                aspect = numeric_only[3:5]
+                if len(numeric_only) >= 7:
+                    rim = numeric_only[5:7]
+                else:
+                    rim = numeric_only[5:]
+                enhanced_search_term = f"{width}/{aspect}R{rim}"
+                logger.info(f"검색어 변환: '{search_term}' → '{enhanced_search_term}'")
+            else:
+                logger.info(f"검색어 유지: '{search_term}'")
+
         logger.info(f"=== GoodsAdmin changelist_view ===")
         logger.info(f"검색어: '{search_term}'")
         logger.info(f"타이어 필터: '{filter_tire_only}' (타입: {type(filter_tire_only).__name__})")
@@ -219,14 +235,14 @@ class GoodsAdmin(admin.ModelAdmin):
             if search_term:
                 # 검색어가 있으면 검색 우선 (검색 결과에서 필터링)
                 fetch_limit = 1000  # 검색 결과 충분히 가져오기
-                logger.info(f"검색 + 필터 모드: {fetch_limit}개 로드, 검색어: '{search_term}'")
+                logger.info(f"검색 + 필터 모드: {fetch_limit}개 로드, 검색어: '{enhanced_search_term}'")
             else:
                 # 필터만 사용: 전체 상품 로드 후 필터링
                 fetch_limit = erp_goods_count
                 logger.info(f"필터 모드: 전체 {erp_goods_count}개 로드")
 
-            erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=search_term)
-            logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품 (검색어: '{search_term}')")
+            erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=enhanced_search_term)
+            logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품 (검색어: '{enhanced_search_term}')")
 
             # ERP 응답 샘플 로그 (처음 3개)
             if len(erp_goods_list) > 0:
@@ -270,11 +286,11 @@ class GoodsAdmin(admin.ModelAdmin):
                         for i, g in enumerate(brand_samples):
                             logger.info(f"    [{i+1}] CODE: {g.get('code', 'N/A')}, BUN1: {g.get('bun1', 'N/A')}, NAME: {g.get('name', 'N/A')[:50]}")
             else:
-                logger.warning(f"⚠️ ERP 응답 0개! 검색어: '{search_term}', 브랜드 필터: {filter_brand}")
+                logger.warning(f"⚠️ ERP 응답 0개! 검색어: '{enhanced_search_term}', 브랜드 필터: {filter_brand}")
         elif search_term:
             # 검색만 사용 시: 검색 결과를 페이지네이션
-            logger.info(f"검색 모드: '{search_term}' (offset={offset}, limit={per_page})")
-            erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page, search=search_term)
+            logger.info(f"검색 모드: '{enhanced_search_term}' (offset={offset}, limit={per_page})")
+            erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page, search=enhanced_search_term)
             # 검색 결과가 limit만큼 반환되면 더 많은 결과가 있을 수 있음
             if len(erp_goods_list) == per_page:
                 erp_goods_count = 9999  # 충분히 큰 숫자 (페이지네이션 가능하게)
