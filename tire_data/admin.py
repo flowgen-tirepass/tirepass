@@ -434,7 +434,8 @@ class GoodsAdmin(admin.ModelAdmin):
 
         # YearAllocation 데이터를 각 상품에 추가 (base_discount)
         goods_codes = [g.get('code') for g in erp_goods_list if g.get('code')]
-        year_allocations = YearAllocation.objects.filter(goods_code__in=goods_codes).in_bulk(field_name='goods_code')
+        year_allocations_list = YearAllocation.objects.filter(goods_code__in=goods_codes)
+        year_allocations = {ya.goods_code: ya for ya in year_allocations_list}
 
         # 각 상품에 base_discount 추가
         for goods in erp_goods_list:
