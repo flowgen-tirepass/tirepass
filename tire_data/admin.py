@@ -331,7 +331,25 @@ class GoodsAdmin(admin.ModelAdmin):
         extra_context['filtered_count'] = filtered_count if has_filter else None
         extra_context['has_filter'] = has_filter
 
-        return super().changelist_view(request, extra_context=extra_context)
+        # Django admin의 기본 컨텍스트 추가 (메뉴, 헤더 등)
+        extra_context.update({
+            'site_title': self.admin_site.site_title,
+            'site_header': self.admin_site.site_header,
+            'has_permission': self.has_view_permission(request),
+            'opts': self.model._meta,
+            'app_label': self.model._meta.app_label,
+            'model_name': self.model._meta.model_name,
+            'title': '상품 목록',
+            'cl': type('ChangeList', (), {
+                'result_count': display_count,
+                'full_result_count': erp_goods_count,
+            })(),
+        })
+
+        # Django admin이 알 수 없는 파라미터를 제거하고 리다이렉트하는 것을 방지
+        # super() 호출 대신 직접 템플릿 렌더링
+        from django.shortcuts import render
+        return render(request, self.change_list_template, extra_context)
 
     def get_search_results(self, request, queryset, search_term):
         """
