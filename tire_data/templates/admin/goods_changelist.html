@@ -148,8 +148,14 @@
 {{ block.super }}
 <script>
 function toggleFilter(filterName, currentState) {
+    event.preventDefault();
+    event.stopPropagation();
+
     // URL 파라미터 구성
     var params = new URLSearchParams(window.location.search);
+
+    // e 파라미터 제거 (Django admin 팝업 모드)
+    params.delete('e');
 
     // 현재 필터 토글
     if (currentState === 'on') {
@@ -159,7 +165,8 @@ function toggleFilter(filterName, currentState) {
     }
 
     // 페이지 이동
-    window.location.href = '?' + params.toString();
+    var newUrl = window.location.pathname + '?' + params.toString();
+    window.location.href = newUrl;
     return false;
 }
 </script>
