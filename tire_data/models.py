@@ -275,6 +275,7 @@ class CustomerDiscount(models.Model):
     """고객별 브랜드/그룹 할인율 모델"""
     customer_code = models.CharField(max_length=10, verbose_name='고객 코드')
     brand = models.CharField(max_length=50, verbose_name='브랜드명')
+    brand_code = models.CharField(max_length=10, null=True, blank=True, default='', verbose_name='브랜드 코드')
     group = models.ForeignKey(BrandGroup, on_delete=models.SET_NULL,
                              null=True, blank=True,
                              related_name='customer_discounts',
