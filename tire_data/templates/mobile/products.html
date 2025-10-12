@@ -115,8 +115,11 @@ function renderProducts(products) {
         const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
         const brandLogo = getBrandLogo(product.brand);
 
+        // DOT 재고 카드 색상 매핑
+        const dotColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];  // 파랑, 초록, 주황, 빨강
+
         return `
-        <div class="card" style="position: relative; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; margin-bottom: 15px;">
+        <div class="card" id="card-${product.code}" style="position: relative; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; margin-bottom: 15px;">
             <!-- 브랜드 로고 -->
             <div style="position: absolute; top: 15px; right: 15px; width: 80px; height: 50px;">
                 ${product.brand ? `<img src="${brandLogo}" alt="${product.brand}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.style.display='none'">` : ''}
@@ -131,10 +134,27 @@ function renderProducts(products) {
             </div>
 
             <!-- DOT 재고 확인 버튼 -->
-            <button onclick="event.stopPropagation(); showDOTInfo('${product.code}')"
+            <button onclick="event.stopPropagation(); toggleDOTInfo('${product.code}')"
+                    id="dot-btn-${product.code}"
                     style="width: 100%; padding: 12px; margin-bottom: 15px; background: #fff; border: 2px solid #38bdf8; color: #0284c7; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
                 📦 DOT 재고 확인
             </button>
+
+            <!-- DOT 재고 정보 (토글) -->
+            <div id="dot-info-${product.code}" style="display: none; margin-bottom: 15px;">
+                ${product.dot_inventory && product.dot_inventory.length > 0 ? `
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        ${product.dot_inventory.map((dot, index) => `
+                            <div style="border: 2px solid ${dotColors[index % 4]}; border-radius: 8px; padding: 12px; background: white;">
+                                <div style="font-size: 16px; font-weight: 700; color: #000; margin-bottom: 8px;">${dot.year}</div>
+                                <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">재고 ${dot.stock}개</div>
+                                <div style="font-size: 13px; color: #6b7280; margin-bottom: 8px;">할인 ${dot.discount}%</div>
+                                <div style="font-size: 18px; font-weight: 700; color: #ef4444;">₩${dot.price.toLocaleString()}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '<p style="text-align: center; color: #6b7280; padding: 10px;">DOT 재고 정보가 없습니다.</p>'}
+            </div>
 
             <!-- 가격 정보 -->
             <div style="margin-bottom: 15px;">
@@ -175,10 +195,22 @@ function renderProducts(products) {
     }).join('');
 }
 
-// DOT 재고 확인
-function showDOTInfo(code) {
-    showAlert('DOT 재고 정보는 상세 페이지에서 확인할 수 있습니다.', 'info');
-    location.href = `/mobile/products/${code}/`;
+// DOT 재고 정보 토글
+function toggleDOTInfo(code) {
+    const dotInfo = document.getElementById(`dot-info-${code}`);
+    const dotBtn = document.getElementById(`dot-btn-${code}`);
+
+    if (dotInfo.style.display === 'none') {
+        dotInfo.style.display = 'block';
+        dotBtn.textContent = '📦 DOT 재고 닫기';
+        dotBtn.style.background = '#38bdf8';
+        dotBtn.style.color = 'white';
+    } else {
+        dotInfo.style.display = 'none';
+        dotBtn.textContent = '📦 DOT 재고 확인';
+        dotBtn.style.background = '#fff';
+        dotBtn.style.color = '#0284c7';
+    }
 }
 
 // 장바구니 담기

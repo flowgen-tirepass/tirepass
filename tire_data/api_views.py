@@ -190,22 +190,78 @@ def api_products_list(request):
         end = start + page_size
         products_page = products[start:end]
 
+    # YearAllocation 정보 가져오기
+    from .models import YearAllocation
+    product_codes = [p.code for p in products_page]
+    year_allocations = {ya.goods_code: ya for ya in YearAllocation.objects.filter(goods_code__in=product_codes)}
+
     # 결과 구성
+    products_data = []
+    for p in products_page:
+        ya = year_allocations.get(p.code)
+
+        # DOT 재고 정보 (제조년도별)
+        dot_inventory = []
+        if ya:
+            base_price = p.fixp
+
+            # 2025년
+            if ya.year_2025 > 0:
+                dot_inventory.append({
+                    'year': '2025/01',
+                    'stock': ya.year_2025,
+                    'discount': 0.00,  # 2025년은 할인 없음
+                    'price': base_price
+                })
+
+            # 2024년
+            if ya.year_2024 > 0:
+                discount_2024 = float(ya.year_2024_discount)
+                price_2024 = int(base_price * (1 - discount_2024 / 100))
+                dot_inventory.append({
+                    'year': '2024/06',
+                    'stock': ya.year_2024,
+                    'discount': discount_2024,
+                    'price': price_2024
+                })
+
+            # 2023년
+            if ya.year_2023 > 0:
+                discount_2023 = float(ya.year_2023_discount)
+                price_2023 = int(base_price * (1 - discount_2023 / 100))
+                dot_inventory.append({
+                    'year': '2023/06',
+                    'stock': ya.year_2023,
+                    'discount': discount_2023,
+                    'price': price_2023
+                })
+
+            # 2022년
+            if ya.year_2022 > 0:
+                discount_2022 = float(ya.year_2022_discount)
+                price_2022 = int(base_price * (1 - discount_2022 / 100))
+                dot_inventory.append({
+                    'year': '2022/06',
+                    'stock': ya.year_2022,
+                    'discount': discount_2022,
+                    'price': price_2022
+                })
+
+        products_data.append({
+            'code': p.code,
+            'name': p.name,
+            'brand': p.bun1 or '',
+            'price': p.fixp,
+            'discount_rate': float(p.discount_rate),
+            'stock': p.jaego,
+            'is_tire': p.is_tire,
+            'dot_inventory': dot_inventory
+        })
+
     result = {
         'success': True,
         'data': {
-            'products': [
-                {
-                    'code': p.code,
-                    'name': p.name,
-                    'brand': p.bun1 or '',
-                    'price': p.fixp,
-                    'discount_rate': float(p.discount_rate),
-                    'stock': p.jaego,
-                    'is_tire': p.is_tire,
-                }
-                for p in products_page
-            ],
+            'products': products_data,
             'total_count': total_count,
             'page': page,
             'page_size': page_size,
