@@ -98,7 +98,7 @@ def api_products_list(request):
         tire_patterns = ['K-', 'H-', 'M-', 'N-', 'P-', 'BS-', 'CT-', 'D-', 'Y-', 'F-', 'T-', 'G-', 'BFG']
         tire_filter = Q()
         for pattern in tire_patterns:
-            tire_filter |= Q(code__istartswith=pattern)
+            tire_filter |= Q(code__startswith=pattern)
         products = products.filter(tire_filter)
 
     # 재고 필터
