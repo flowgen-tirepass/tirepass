@@ -91,7 +91,15 @@ def api_products_list(request):
     page_size = int(request.GET.get('page_size', 20))
 
     # 기본 쿼리셋
-    products = Goods.objects.filter(is_tire=True) if tire_only else Goods.objects.all()
+    products = Goods.objects.all()
+
+    # 타이어만 필터 (코드 패턴으로 필터링)
+    if tire_only:
+        tire_patterns = ['K-', 'H-', 'M-', 'N-', 'P-', 'BS-', 'CT-', 'D-', 'Y-', 'F-', 'T-', 'G-', 'BFG']
+        tire_filter = Q()
+        for pattern in tire_patterns:
+            tire_filter |= Q(code__istartswith=pattern)
+        products = products.filter(tire_filter)
 
     # 재고 필터
     if in_stock:
