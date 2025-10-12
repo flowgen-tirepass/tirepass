@@ -236,9 +236,19 @@ ADMIN_INDEX_TITLE = '타이어패스 관리 시스템'
 # ============================================
 # 인증 설정
 # ============================================
+
+# 커스텀 인증 백엔드 (사업자등록번호 admin 로그인 차단)
+AUTHENTICATION_BACKENDS = [
+    'tire_data.auth_backends.AdminAuthBackend',
+]
+
 # 로그인 필요 시 리다이렉트할 URL (모바일 로그인 페이지로)
 LOGIN_URL = '/mobile/login/'
+
 # 로그인 성공 후 리다이렉트할 URL (모바일 홈으로)
 LOGIN_REDIRECT_URL = '/mobile/home/'
-# 로그아웃 후 리다이렉트할 URL (모바일 인트로로)
-LOGOUT_REDIRECT_URL = '/mobile/'
+
+# 로그아웃 후 리다이렉트할 URL
+# admin 로그아웃 → admin 로그인 페이지
+# mobile 로그아웃 → mobile 인트로 페이지 (뷰에서 명시적으로 처리)
+LOGOUT_REDIRECT_URL = '/admin/login/'
