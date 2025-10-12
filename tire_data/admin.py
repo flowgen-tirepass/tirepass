@@ -747,6 +747,16 @@ class YearAllocationAdmin(admin.ModelAdmin):
         }),
     )
 
+    def save_model(self, request, obj, form, change):
+        """저장 전 유효성 검증"""
+        try:
+            obj.clean()  # clean() 메서드 호출하여 검증
+            super().save_model(request, obj, form, change)
+        except Exception as e:
+            from django.contrib import messages
+            messages.error(request, str(e))
+            raise
+
 @admin.register(DiscountHistory)
 class DiscountHistoryAdmin(admin.ModelAdmin):
     list_display = ['customer_code', 'product_code', 'brand', 'applied_discount', 'original_price', 'final_price', 'transaction_date']

@@ -273,6 +273,29 @@ class YearAllocation(models.Model):
         return (self.year_2025 + self.year_2024 + self.year_2023 +
                 self.year_2022 + self.year_2021_before)
 
+    def clean(self):
+        """연도별 수량 합계가 재고수량을 초과하지 않는지 검증"""
+        from django.core.exceptions import ValidationError
+
+        # Goods 테이블에서 실제 재고수량 조회
+        try:
+            goods = Goods.objects.get(code=self.goods_code)
+            stock_quantity = int(goods.jaego)
+        except Goods.DoesNotExist:
+            raise ValidationError({'goods_code': '존재하지 않는 상품코드입니다.'})
+        except (ValueError, TypeError):
+            stock_quantity = 0
+
+        # 연도별 수량 합계 계산
+        total = (self.year_2025 + self.year_2024 + self.year_2023 +
+                self.year_2022 + self.year_2021_before)
+
+        # 재고수량 초과 검증
+        if total > stock_quantity:
+            raise ValidationError({
+                '__all__': f'연도별 수량 합계({total})가 재고수량({stock_quantity})을 초과할 수 없습니다.'
+            })
+
 
 class BrandGroup(models.Model):
     """브랜드별 그룹 관리 모델"""
