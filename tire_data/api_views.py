@@ -184,7 +184,7 @@ def api_products_list(request):
 
     else:
         # 브랜드 필터 없음 - 일반 정렬
-        products = products.order_by('-is_tire', '-jaego', 'code')
+        products = products.order_by('-jaego', 'code')
         total_count = products.count()
         start = (page - 1) * page_size
         end = start + page_size
