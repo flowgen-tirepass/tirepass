@@ -20,5 +20,5 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     # path('mobile/', include('mobile.urls')),  # 기존 mobile 앱 비활성화
-    path('', include('tire_data.urls')),
+    path('', include('tire_data.urls')),  # admin/logout/ 오버라이드 포함
 ]

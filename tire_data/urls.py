@@ -1,7 +1,19 @@
 from django.urls import path
+from django.contrib.auth import logout as auth_logout
+from django.shortcuts import redirect
 from . import views, api_views, mobile_views, views_sync_api
 
+
+def admin_logout_view(request):
+    """Admin 로그아웃 핸들러 - admin 로그인 페이지로 리다이렉트"""
+    auth_logout(request)
+    return redirect('/admin/login/')
+
+
 urlpatterns = [
+    # Admin 로그아웃 오버라이드
+    path('admin/logout/', admin_logout_view, name='admin_logout'),
+
     # Mobile Web URLs
     path('mobile/', mobile_views.mobile_intro, name='mobile_intro'),
     path('mobile/home/', mobile_views.mobile_home, name='mobile_home'),

@@ -57,6 +57,9 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
 # 로깅 설정
+# Django admin 로그아웃 리다이렉트 (settings.py에서 상속되지만 명시적으로 설정)
+LOGOUT_REDIRECT_URL = '/admin/login/'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
