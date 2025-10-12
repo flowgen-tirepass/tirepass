@@ -16,6 +16,26 @@ from .models import Goods, Customers, ShoppingCart, Order, OrderItem, Payment
 from .utils import calculate_discount_price, generate_order_number, update_stock
 
 
+# 브랜드명 영문-한글 매핑
+BRAND_NAME_MAP = {
+    'GOODYEAR': '굿이어',
+    'KUMHO': '금호',
+    'NEXEN': '넥센',
+    'DUNLOP': '던롭',
+    'MICHELIN': '미쉐린',
+    'BRIDGESTONE': '브리지스톤',
+    'YOKOHAMA': '요코하마',
+    'CONTINENTAL': '콘티넨탈',
+    'PIRELLI': '피렐리',
+    'HANKOOK': '한국',
+    'HANKOOKTIRE': '한국',
+    'TOYO': '토요',
+    'FIRESTONE': '파이어스톤',
+    'BFG': 'BFG',
+    'BFGOODRICH': 'BFG',
+}
+
+
 # ============================================
 # API 인덱스
 # ============================================
@@ -141,7 +161,13 @@ def api_products_list(request):
     # 브랜드 필터
     if brands:
         # 다중 브랜드 검색 (교차 정렬)
-        brand_list = [b.strip().upper() for b in brands.split(',') if b.strip()]
+        brand_list_eng = [b.strip().upper() for b in brands.split(',') if b.strip()]
+
+        # 영문 브랜드명을 한글로 변환
+        brand_list = []
+        for brand_eng in brand_list_eng:
+            brand_kor = BRAND_NAME_MAP.get(brand_eng, brand_eng)
+            brand_list.append(brand_kor)
 
         if len(brand_list) > 0:
             # 각 브랜드별로 상품 조회 (재고 많은 순 + 가격 높은 순)
