@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator
 
 class Goods(models.Model):
     """상품(타이어) 정보 모델"""
@@ -203,6 +204,13 @@ class YearAllocation(models.Model):
     year_2023_discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name='2023년 할인율(%)')
     year_2022_discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name='2022년 할인율(%)')
     year_2021_before_discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name='2021년 이전 할인율(%)')
+    base_discount = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        verbose_name='상품기본할인(%)',
+        validators=[MinValueValidator(0.00)]
+    )
     last_updated = models.DateTimeField(auto_now=True, verbose_name='최종수정')
 
     class Meta:

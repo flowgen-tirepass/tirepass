@@ -108,13 +108,19 @@
                 <th scope="col" class="column-fixp">
                     <div class="text">공장도가</div>
                 </th>
+                <th scope="col" class="column-base-discount">
+                    <div class="text">할인율(%)</div>
+                </th>
             </tr>
         </thead>
         <tbody>
             {% for goods in erp_goods_list %}
             <tr class="{% cycle 'row1' 'row2' %}">
                 <td class="field-code">
-                    <code style="font-size: 11px;">{{ goods.code }}</code>
+                    <a href="/admin/tire_data/yearallocation/?goods_code={{ goods.code }}"
+                       style="text-decoration: none; color: #417690; font-weight: bold;">
+                        <code style="font-size: 11px;">{{ goods.code }}</code>
+                    </a>
                 </td>
                 <td class="field-name">{{ goods.name }}</td>
                 <td class="field-bun1">{{ goods.bun1|default:"-" }}</td>
@@ -124,10 +130,21 @@
                 <td class="field-fixp" style="text-align: right;">
                     {{ goods.fixp|floatformat:0 }}원
                 </td>
+                <td class="field-base-discount" style="text-align: center;">
+                    <input type="number"
+                           class="discount-input"
+                           data-goods-code="{{ goods.code }}"
+                           value="{{ goods.base_discount|floatformat:2 }}"
+                           min="0"
+                           max="100"
+                           step="0.01"
+                           style="width: 70px; text-align: right; padding: 2px 5px;"
+                           onblur="saveDiscount(this)">
+                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align: center; padding: 20px;">
+                <td colspan="6" style="text-align: center; padding: 20px;">
                     상품이 없습니다.
                 </td>
             </tr>
@@ -191,7 +208,53 @@
 
 {% block extrahead %}
 {{ block.super }}
-<!-- Inline onclick으로 직접 처리하므로 별도 JavaScript 불필요 -->
+<script>
+function saveDiscount(input) {
+    const goodsCode = input.dataset.goodsCode;
+    const discountRate = parseFloat(input.value) || 0;
+
+    // 음수 입력 방지
+    if (discountRate < 0) {
+        alert('할인율은 음수가 될 수 없습니다.');
+        input.value = 0;
+        return;
+    }
+
+    if (discountRate > 100) {
+        alert('할인율은 100%를 초과할 수 없습니다.');
+        input.value = 100;
+        return;
+    }
+
+    // AJAX 요청으로 할인율 저장
+    fetch('/api/save-discount-rate/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            goods_code: goodsCode,
+            discount_rate: discountRate
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 성공 시 입력 필드 배경색 변경 (피드백)
+            input.style.backgroundColor = '#d4edda';
+            setTimeout(() => {
+                input.style.backgroundColor = '';
+            }, 1000);
+        } else {
+            alert('저장 실패: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('저장 중 오류가 발생했습니다.');
+        console.error('Error:', error);
+    });
+}
+</script>
 {% endblock %}
 
 {% block pagination %}

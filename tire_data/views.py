@@ -260,7 +260,7 @@ def save_year_allocation(request):
 @csrf_exempt
 @staff_member_required(login_url='/admin/login/')
 def save_discount_rate(request):
-    """할인율 저장 API - 관리자 전용"""
+    """할인율 저장 API - 관리자 전용 (상품기본할인)"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -274,29 +274,22 @@ def save_discount_rate(request):
                     'message': '할인율은 0~100% 사이여야 합니다.'
                 }, status=400)
 
-            # Goods 객체 업데이트
-            try:
-                goods = Goods.objects.get(code=goods_code)
-                goods.discount_rate = discount_rate
-                goods.save()
+            # YearAllocation 객체 가져오거나 생성
+            year_allocation, created = YearAllocation.objects.get_or_create(
+                goods_code=goods_code,
+                defaults={'base_discount': discount_rate}
+            )
 
-                # 할인가 계산
-                discounted_price = goods.discounted_price
-                formatted_discounted_price = f"{discounted_price:,}원"
+            # 이미 존재하면 base_discount 업데이트
+            if not created:
+                year_allocation.base_discount = discount_rate
+                year_allocation.save()
 
-                return JsonResponse({
-                    'success': True,
-                    'message': '할인율이 저장되었습니다.',
-                    'discount_rate': discount_rate,
-                    'discounted_price': discounted_price,
-                    'formatted_discounted_price': formatted_discounted_price
-                })
-
-            except Goods.DoesNotExist:
-                return JsonResponse({
-                    'success': False,
-                    'message': '상품을 찾을 수 없습니다.'
-                }, status=404)
+            return JsonResponse({
+                'success': True,
+                'message': '할인율이 저장되었습니다.',
+                'discount_rate': discount_rate
+            })
 
         except Exception as e:
             return JsonResponse({

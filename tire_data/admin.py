@@ -432,6 +432,18 @@ class GoodsAdmin(admin.ModelAdmin):
             has_next = page < total_pages
             display_count = erp_goods_count
 
+        # YearAllocation 데이터를 각 상품에 추가 (base_discount)
+        goods_codes = [g.get('code') for g in erp_goods_list if g.get('code')]
+        year_allocations = YearAllocation.objects.filter(goods_code__in=goods_codes).in_bulk(field_name='goods_code')
+
+        # 각 상품에 base_discount 추가
+        for goods in erp_goods_list:
+            goods_code = goods.get('code')
+            if goods_code and goods_code in year_allocations:
+                goods['base_discount'] = float(year_allocations[goods_code].base_discount)
+            else:
+                goods['base_discount'] = 0.00
+
         # 컨텍스트에 ERP 데이터 추가
         extra_context['erp_goods_count'] = display_count
         extra_context['erp_goods_list'] = erp_goods_list
@@ -693,10 +705,10 @@ class CustomerDiscountAdmin(admin.ModelAdmin):
 
 @admin.register(YearAllocation)
 class YearAllocationAdmin(admin.ModelAdmin):
-    list_display = ['goods_code', 'year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
+    list_display = ['goods_code', 'base_discount', 'year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
                    'year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount',
                    'total_allocated', 'last_updated']
-    list_editable = ['year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
+    list_editable = ['base_discount', 'year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
                     'year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount']
     search_fields = ['goods_code']
     ordering = ['goods_code']
@@ -706,6 +718,10 @@ class YearAllocationAdmin(admin.ModelAdmin):
     fieldsets = (
         ('상품 정보', {
             'fields': ('goods_code',)
+        }),
+        ('상품 기본 할인율', {
+            'fields': ('base_discount',),
+            'description': '모든 상품에 적용되는 기본 할인율을 설정합니다. (음수 입력 불가)'
         }),
         ('연도별 재고 수량', {
             'fields': ('year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before')
