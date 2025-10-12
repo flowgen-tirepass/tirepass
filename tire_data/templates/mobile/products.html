@@ -156,15 +156,24 @@
     color: #000;
 }
 
+.stock-dot-container {
+    display: flex;
+    gap: clamp(6px, 1.5vw, 10px);
+    margin-bottom: clamp(10px, 3vw, 15px);
+    align-items: center;
+}
+
 .stock-badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     background: #16a34a;
     color: white;
-    padding: clamp(6px, 1.5vw, 8px) clamp(12px, 3vw, 16px);
+    padding: clamp(6px, 1.5vw, 8px) clamp(10px, 2.5vw, 14px);
     border-radius: clamp(4px, 1vw, 6px);
-    font-size: clamp(13px, 3.5vw, 15px);
+    font-size: clamp(12px, 3vw, 13px);
     font-weight: 600;
-    margin-bottom: clamp(10px, 3vw, 15px);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .action-buttons {
@@ -380,12 +389,17 @@ function renderProducts(products) {
                 </div>
             </div>
 
-            <!-- DOT 재고 확인 버튼 -->
-            <button onclick="event.stopPropagation(); toggleDOTInfo('${product.code}')"
-                    id="dot-btn-${product.code}"
-                    class="dot-button">
-                📦 DOT 재고 확인
-            </button>
+            <!-- 재고 + DOT 재고 확인 버튼 -->
+            <div class="stock-dot-container">
+                <div class="stock-badge">
+                    재고: ${product.stock || 0}개
+                </div>
+                <button onclick="event.stopPropagation(); toggleDOTInfo('${product.code}')"
+                        id="dot-btn-${product.code}"
+                        class="dot-button" style="flex: 1; margin-bottom: 0;">
+                    📦 DOT 재고 확인
+                </button>
+            </div>
 
             <!-- DOT 재고 정보 (토글) -->
             <div id="dot-info-${product.code}" style="display: none; margin-bottom: 15px;">
@@ -424,11 +438,6 @@ function renderProducts(products) {
                 </div>
             </div>
 
-            <!-- 재고 -->
-            <div class="stock-badge">
-                재고: ${product.stock || 0}개
-            </div>
-
             <!-- 장바구니 / 구매하기 버튼 -->
             <div class="action-buttons">
                 <button onclick="event.stopPropagation(); addToCart('${product.code}')"
@@ -463,21 +472,136 @@ function toggleDOTInfo(code) {
     }
 }
 
-// 장바구니 담기
-function addToCart(code) {
-    showAlert('장바구니에 담겼습니다.', 'success');
-    // TODO: 실제 장바구니 API 연동
+// 가장 최신 연도 찾기 (DOT 재고에서)
+function getNewestYear(dotInventory) {
+    if (!dotInventory || dotInventory.length === 0) {
+        return null;
+    }
+    // DOT 재고는 이미 최신순으로 정렬되어 있음
+    return dotInventory[0].year;
+}
+
+// 장바구니 담기 (기본: 최신 연도 상품)
+async function addToCart(code) {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        showAlert('로그인이 필요합니다.', 'error');
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    // 현재 상품 정보 가져오기 (DOT 정보 포함)
+    try {
+        const response = await fetch(`/api/mobile/products/?search=${code}`);
+        const data = await response.json();
+
+        if (data.success && data.data.products.length > 0) {
+            const product = data.data.products.find(p => p.code === code);
+            const newestYear = getNewestYear(product.dot_inventory);
+
+            // 장바구니에 추가
+            await addToCartWithYear(code, newestYear);
+        } else {
+            showAlert('상품 정보를 불러올 수 없습니다.', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('오류가 발생했습니다.', 'error');
+    }
 }
 
 // DOT 년도 선택 장바구니 담기
-function addToCartWithYear(code, year) {
-    showAlert(`${year} 상품을 장바구니에 담겼습니다.`, 'success');
-    // TODO: 실제 장바구니 API 연동 (년도 정보 포함)
+async function addToCartWithYear(code, year) {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        showAlert('로그인이 필요합니다.', 'error');
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch('/api/mobile/cart/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_code: customerCode,
+                product_code: code,
+                quantity: 1,
+                selected_year: year
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert(year ? `${year} 상품을 장바구니에 담았습니다.` : '장바구니에 담았습니다.', 'success');
+        } else {
+            showAlert(data.message || '장바구니 추가 실패', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Error:', error);
+        showAlert('오류가 발생했습니다.', 'error');
+    }
 }
 
-// 바로 구매
-function buyNow(code) {
-    location.href = `/mobile/products/${code}/`;
+// 바로 구매 (최신 연도 상품 → 장바구니 → 장바구니 페이지로 이동)
+async function buyNow(code) {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        showAlert('로그인이 필요합니다.', 'error');
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        // 현재 상품 정보 가져오기 (DOT 정보 포함)
+        const response = await fetch(`/api/mobile/products/?search=${code}`);
+        const data = await response.json();
+
+        if (data.success && data.data.products.length > 0) {
+            const product = data.data.products.find(p => p.code === code);
+            const newestYear = getNewestYear(product.dot_inventory);
+
+            // 장바구니에 추가
+            const cartResponse = await fetch('/api/mobile/cart/add/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    customer_code: customerCode,
+                    product_code: code,
+                    quantity: 1,
+                    selected_year: newestYear
+                })
+            });
+
+            const cartData = await cartResponse.json();
+            hideLoading();
+
+            if (cartData.success) {
+                // 장바구니 페이지로 이동
+                location.href = '/mobile/cart/';
+            } else {
+                showAlert(cartData.message || '구매 진행 실패', 'error');
+            }
+        } else {
+            hideLoading();
+            showAlert('상품 정보를 불러올 수 없습니다.', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Error:', error);
+        showAlert('오류가 발생했습니다.', 'error');
+    }
 }
 
 function renderPagination() {
