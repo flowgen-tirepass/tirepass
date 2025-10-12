@@ -216,7 +216,7 @@ class GoodsAdmin(admin.ModelAdmin):
             # 필터 사용 시: 데이터를 가져와서 필터링
             # 브랜드 필터는 검색 대신 전체 로드 후 BUN1 필터링 (검색으로는 정비용품만 나옴)
             if filter_brand:
-                fetch_limit = 1000  # 브랜드 필터 시 전체에서 필터링
+                fetch_limit = 3000  # 브랜드 필터 시 전체에서 필터링 (6528개 중 3000개)
                 logger.info(f"브랜드 필터 모드: {fetch_limit}개 로드 (전체 검색)")
             else:
                 fetch_limit = 100  # 타이어/재고 필터만 사용 시 100개
@@ -232,6 +232,42 @@ class GoodsAdmin(admin.ModelAdmin):
                 logger.info(f"ERP 응답 샘플 (처음 3개):")
                 for i, g in enumerate(erp_goods_list[:3]):
                     logger.info(f"  [{i+1}] CODE: {g.get('code', 'N/A')}, BUN1: {g.get('bun1', 'N/A')}, NAME: {g.get('name', 'N/A')[:50]}")
+
+                # 브랜드 필터 사용 시: 해당 브랜드 상품이 몇 개나 있는지 확인
+                if filter_brand:
+                    brand_mapping = {
+                        'annaite': ['안나이트', 'ANNAITE'],
+                        'bfg': ['BFG'],
+                        'bridgestone': ['브리지스톤', 'BRIDGESTONE'],
+                        'continental': ['콘티넨탈', 'CONTINENTAL'],
+                        'dunlop': ['던롭', 'DUNLOP'],
+                        'goodyear': ['굳이어', 'GOODYEAR'],
+                        'hankook': ['한국', 'HANKOOK'],
+                        'hilo': ['하이로', 'HILO'],
+                        'kumho': ['금호', 'KUMHO'],
+                        'michelin': ['미쉐린', 'MICHELIN'],
+                        'nexen': ['넥센', 'NEXEN'],
+                        'pirelli': ['피렐리', 'PIRELLI'],
+                        'yokohama': ['요코하마', 'YOKOHAMA'],
+                        'maxxis': ['맥시스', 'MAXXIS'],
+                        'hifly': ['하이플라이', 'HIFLY'],
+                    }
+                    brand_keywords = brand_mapping.get(filter_brand.lower(), [])
+                    brand_count = sum(1 for g in erp_goods_list if any(
+                        (kw in (g.get('bun1', '') or '').upper() if kw.isupper() else kw in (g.get('bun1', '') or ''))
+                        for kw in brand_keywords
+                    ))
+                    logger.info(f"🔍 {fetch_limit}개 중 BUN1에 {brand_keywords} 포함된 상품: {brand_count}개")
+
+                    if brand_count > 0:
+                        # 해당 브랜드 상품 샘플 보기
+                        brand_samples = [g for g in erp_goods_list if any(
+                            (kw in (g.get('bun1', '') or '').upper() if kw.isupper() else kw in (g.get('bun1', '') or ''))
+                            for kw in brand_keywords
+                        )][:5]
+                        logger.info(f"  {filter_brand} 브랜드 샘플 (처음 5개):")
+                        for i, g in enumerate(brand_samples):
+                            logger.info(f"    [{i+1}] CODE: {g.get('code', 'N/A')}, BUN1: {g.get('bun1', 'N/A')}, NAME: {g.get('name', 'N/A')[:50]}")
             else:
                 logger.warning(f"⚠️ ERP 응답 0개! 검색어: '{search_term}', 브랜드 필터: {filter_brand}")
         elif search_term:
