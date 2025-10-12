@@ -43,15 +43,13 @@
             <div style="display: flex; gap: 15px; align-items: center;">
                 <!-- 타이어만 필터 -->
                 {% if filter_tire_only == 'on' %}
-                <a href="?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_stock_only == 'on' %}{% if search_term %}&{% endif %}stock_only=on{% endif %}"
-                   class="erp-filter-link" data-filter="tire"
+                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_stock_only == 'on' %}{% if search_term %}&{% endif %}stock_only=on{% endif %}'; return false;"
                    style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #fff3cd; border: 2px solid #ff6600; border-radius: 4px; font-size: 14px; text-decoration: none;">
                     <span style="margin-right: 5px;">☑</span>
                     <span style="font-weight: bold; color: #ff6600;">🚗 타이어만</span>
                 </a>
                 {% else %}
-                <a href="?{% if search_term %}q={{ search_term }}&{% endif %}tire_only=on{% if filter_stock_only == 'on' %}&stock_only=on{% endif %}"
-                   class="erp-filter-link" data-filter="tire"
+                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}tire_only=on{% if filter_stock_only == 'on' %}&stock_only=on{% endif %}'; return false;"
                    style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; color: #333; text-decoration: none;">
                     <span style="margin-right: 5px;">☐</span>
                     <span>🚗 타이어만</span>
@@ -60,15 +58,13 @@
 
                 <!-- 재고있는 상품만 필터 -->
                 {% if filter_stock_only == 'on' %}
-                <a href="?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_tire_only == 'on' %}{% if search_term %}&{% endif %}tire_only=on{% endif %}"
-                   class="erp-filter-link" data-filter="stock"
+                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}{% endif %}{% if filter_tire_only == 'on' %}{% if search_term %}&{% endif %}tire_only=on{% endif %}'; return false;"
                    style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: #d1ecf1; border: 2px solid #0c5460; border-radius: 4px; font-size: 14px; text-decoration: none;">
                     <span style="margin-right: 5px;">☑</span>
                     <span style="font-weight: bold; color: #0c5460;">📦 재고있는 상품만</span>
                 </a>
                 {% else %}
-                <a href="?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on&{% endif %}stock_only=on"
-                   class="erp-filter-link" data-filter="stock"
+                <a href="#" onclick="event.preventDefault(); event.stopPropagation(); window.location.href='?{% if search_term %}q={{ search_term }}&{% endif %}{% if filter_tire_only == 'on' %}tire_only=on&{% endif %}stock_only=on'; return false;"
                    style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; color: #333; text-decoration: none;">
                     <span style="margin-right: 5px;">☐</span>
                     <span>📦 재고있는 상품만</span>
@@ -169,21 +165,7 @@
 
 {% block extrahead %}
 {{ block.super }}
-<script>
-// Django admin의 RelatedObjectLookups.js가 필터 링크를 가로채지 못하도록 보호
-document.addEventListener('DOMContentLoaded', function() {
-    // ERP 필터 링크에 대해서만 Django admin JS 차단
-    var filterLinks = document.querySelectorAll('.erp-filter-link');
-    filterLinks.forEach(function(link) {
-        // Capture phase에서 먼저 처리 (Django admin보다 우선)
-        link.addEventListener('click', function(e) {
-            // 기본 링크 동작 허용
-            // Django admin의 팝업 처리는 차단
-            e.stopPropagation();  // 부모로 이벤트 전파 차단
-        }, true);  // true = capture phase
-    });
-});
-</script>
+<!-- Inline onclick으로 직접 처리하므로 별도 JavaScript 불필요 -->
 {% endblock %}
 
 {% block pagination %}
