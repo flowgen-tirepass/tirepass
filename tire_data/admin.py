@@ -13,6 +13,30 @@ from .models import (
 from .erp_api_client import ERPAPIClient
 
 
+class TireOnlyFilter(SimpleListFilter):
+    """타이어만 필터"""
+    title = '타이어 필터'
+    parameter_name = 'tire_only'
+
+    def lookups(self, request, model_admin):
+        return [('on', '타이어만')]
+
+    def queryset(self, request, queryset):
+        return queryset
+
+
+class StockOnlyFilter(SimpleListFilter):
+    """재고있는 상품만 필터"""
+    title = '재고 필터'
+    parameter_name = 'stock_only'
+
+    def lookups(self, request, model_admin):
+        return [('on', '재고있음')]
+
+    def queryset(self, request, queryset):
+        return queryset
+
+
 class TireBrandFilter(SimpleListFilter):
     """ERP 타이어 브랜드 필터 (우측 사이드바)"""
     title = '브랜드'
@@ -48,7 +72,7 @@ class TireBrandFilter(SimpleListFilter):
 @admin.register(Goods)
 class GoodsAdmin(admin.ModelAdmin):
     list_display = ['code', 'name', 'bun1', 'display_jaego', 'display_fixp']
-    list_filter = [TireBrandFilter]  # 커스텀 브랜드 필터
+    list_filter = [TireOnlyFilter, StockOnlyFilter, TireBrandFilter]  # 커스텀 필터들
     search_fields = ['code', 'name', 'bun1']
     readonly_fields = ['code']  # 상품코드는 읽기 전용
     list_per_page = 50
@@ -331,25 +355,9 @@ class GoodsAdmin(admin.ModelAdmin):
         extra_context['filtered_count'] = filtered_count if has_filter else None
         extra_context['has_filter'] = has_filter
 
-        # Django admin의 기본 컨텍스트 추가 (메뉴, 헤더 등)
-        extra_context.update({
-            'site_title': self.admin_site.site_title,
-            'site_header': self.admin_site.site_header,
-            'has_permission': self.has_view_permission(request),
-            'opts': self.model._meta,
-            'app_label': self.model._meta.app_label,
-            'model_name': self.model._meta.model_name,
-            'title': '상품 목록',
-            'cl': type('ChangeList', (), {
-                'result_count': display_count,
-                'full_result_count': erp_goods_count,
-            })(),
-        })
-
-        # Django admin이 알 수 없는 파라미터를 제거하고 리다이렉트하는 것을 방지
-        # super() 호출 대신 직접 템플릿 렌더링
-        from django.shortcuts import render
-        return render(request, self.change_list_template, extra_context)
+        # tire_only, stock_only, brand를 SimpleListFilter로 등록했으므로
+        # Django admin이 이제 이 파라미터들을 인식하고 리다이렉트하지 않음
+        return super().changelist_view(request, extra_context=extra_context)
 
     def get_search_results(self, request, queryset, search_term):
         """
