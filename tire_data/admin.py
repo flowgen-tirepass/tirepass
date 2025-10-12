@@ -409,18 +409,25 @@ class GoodsAdmin(admin.ModelAdmin):
                 logger.info(f"  재고 샘플: {filtered_goods[0].get('name', 'N/A')} (재고: {filtered_goods[0].get('jaego', 0)})")
 
         # 필터 적용 후 최종 결과
-        erp_goods_list = filtered_goods
-        filtered_count = len(erp_goods_list)
+        filtered_count = len(filtered_goods)
 
         # 페이지네이션 정보
         if has_filter:
-            # 필터 사용 시: 전체 결과 표시
-            total_pages = 1
-            has_previous = False
-            has_next = False
+            # 필터 사용 시: 페이지네이션 적용
+            total_pages = (filtered_count + per_page - 1) // per_page
+            has_previous = page > 1
+            has_next = page < total_pages
+
+            # 현재 페이지 결과만 추출
+            start_index = (page - 1) * per_page
+            end_index = start_index + per_page
+            erp_goods_list = filtered_goods[start_index:end_index]
+
             display_count = filtered_count
+            logger.info(f"📄 페이지네이션: {filtered_count}개 중 {start_index+1}~{min(end_index, filtered_count)}번째 표시 (페이지 {page}/{total_pages})")
         else:
             # 일반 조회: 기본 페이지네이션
+            erp_goods_list = filtered_goods
             total_pages = (erp_goods_count + per_page - 1) // per_page
             has_previous = page > 1
             has_next = page < total_pages

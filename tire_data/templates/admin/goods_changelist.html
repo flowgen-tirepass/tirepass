@@ -24,11 +24,7 @@
                             <span style="color: #666; margin-left: 5px;">개 상품</span>
                         </div>
                         <span style="color: #999; font-size: 14px;">
-                            {% if filter_brand %}
-                                (전체 로드)
-                            {% else %}
-                                (최대 100개 로드)
-                            {% endif %}
+                            (페이지 {{ page_num }}/{{ total_pages }})
                         </span>
                     </div>
                     <div style="margin-top: 5px; color: #ff6600; font-weight: bold; font-size: 13px;">
@@ -136,9 +132,19 @@
 
 <p class="paginator">
     {% if has_filter %}
-        <!-- 필터 적용 시: 페이지네이션 없음 -->
-        <span style="color: #ff6600; font-weight: bold;">
-            필터 결과: {{ erp_goods_count }} 개
+        <!-- 필터 적용 시: 페이지네이션 표시 -->
+        {% if has_previous %}
+        <a href="?p={{ page_num|add:'-1' }}{% if search_term %}&q={{ search_term }}{% endif %}{% if filter_tire_only %}&tire_only=on{% endif %}{% if filter_stock_only %}&stock_only=on{% endif %}{% if filter_brand %}&brand={{ filter_brand }}{% endif %}">‹ 이전</a>
+        {% endif %}
+
+        <span class="this-page">{{ page_num }} / {{ total_pages }}</span>
+
+        {% if has_next %}
+        <a href="?p={{ page_num|add:'1' }}{% if search_term %}&q={{ search_term }}{% endif %}{% if filter_tire_only %}&tire_only=on{% endif %}{% if filter_stock_only %}&stock_only=on{% endif %}{% if filter_brand %}&brand={{ filter_brand }}{% endif %}">다음 ›</a>
+        {% endif %}
+
+        <span style="margin-left: 20px;">
+            50개씩 보기 | 필터 결과: {{ erp_goods_count }} 개
             {% if filter_tire_only and filter_stock_only %}
                 (타이어 + 재고있음)
             {% elif filter_tire_only %}
@@ -146,12 +152,8 @@
             {% elif filter_stock_only %}
                 (재고있음)
             {% endif %}
-        </span>
-        <span style="margin-left: 20px; color: #666;">
             {% if filter_brand %}
-                전체 로드
-            {% else %}
-                최대 100개 로드
+                <span style="margin-left: 10px; color: #ff6600;">🏷️ {{ filter_brand }}</span>
             {% endif %}
         </span>
     {% else %}
