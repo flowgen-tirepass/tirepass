@@ -717,13 +717,16 @@ class YearAllocationAdmin(admin.ModelAdmin):
     list_per_page = 50
 
     def stock_quantity(self, obj):
-        """Goods 테이블의 재고수량 표시"""
+        """Goods 테이블의 재고수량 표시 (정수)"""
         try:
             from .models import Goods
+            from django.utils.html import format_html
             goods = Goods.objects.get(code=obj.goods_code)
-            return goods.jaego
+            return format_html('<span>{}</span>', int(goods.jaego))
         except Goods.DoesNotExist:
-            return 0
+            return format_html('<span>0</span>')
+        except (ValueError, TypeError):
+            return format_html('<span>0</span>')
     stock_quantity.short_description = '재고수량'
 
     fieldsets = (
