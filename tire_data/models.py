@@ -195,15 +195,59 @@ class Customers(models.Model):
 class YearAllocation(models.Model):
     """상품별 연도별 재고 할당 및 DOT 할인 모델"""
     goods_code = models.CharField(max_length=20, verbose_name='상품코드')
-    year_2025 = models.IntegerField(default=0, verbose_name='2025년 수량')
-    year_2024 = models.IntegerField(default=0, verbose_name='2024년 수량')
-    year_2023 = models.IntegerField(default=0, verbose_name='2023년 수량')
-    year_2022 = models.IntegerField(default=0, verbose_name='2022년 수량')
-    year_2021_before = models.IntegerField(default=0, verbose_name='2021년 이전 수량')
-    year_2024_discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name='2024년 할인율(%)')
-    year_2023_discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name='2023년 할인율(%)')
-    year_2022_discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name='2022년 할인율(%)')
-    year_2021_before_discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name='2021년 이전 할인율(%)')
+    year_2025 = models.IntegerField(
+        default=0,
+        verbose_name='2025년 수량',
+        validators=[MinValueValidator(0)]
+    )
+    year_2024 = models.IntegerField(
+        default=0,
+        verbose_name='2024년 수량',
+        validators=[MinValueValidator(0)]
+    )
+    year_2023 = models.IntegerField(
+        default=0,
+        verbose_name='2023년 수량',
+        validators=[MinValueValidator(0)]
+    )
+    year_2022 = models.IntegerField(
+        default=0,
+        verbose_name='2022년 수량',
+        validators=[MinValueValidator(0)]
+    )
+    year_2021_before = models.IntegerField(
+        default=0,
+        verbose_name='2021년 이전 수량',
+        validators=[MinValueValidator(0)]
+    )
+    year_2024_discount = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        verbose_name='2024년 할인율(%)',
+        validators=[MinValueValidator(0.00)]
+    )
+    year_2023_discount = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        verbose_name='2023년 할인율(%)',
+        validators=[MinValueValidator(0.00)]
+    )
+    year_2022_discount = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        verbose_name='2022년 할인율(%)',
+        validators=[MinValueValidator(0.00)]
+    )
+    year_2021_before_discount = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0.00,
+        verbose_name='2021년 이전 할인율(%)',
+        validators=[MinValueValidator(0.00)]
+    )
     base_discount = models.DecimalField(
         max_digits=5,
         decimal_places=2,
