@@ -80,16 +80,57 @@
     cursor: pointer;
 }
 
-.dot-inventory-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: clamp(8px, 2vw, 10px);
+.dot-inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1.5vw, 8px);
 }
 
-.dot-item {
-    border-radius: clamp(6px, 1.5vw, 8px);
-    padding: clamp(10px, 2.5vw, 12px);
+.dot-item-row {
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 1.5vw, 10px);
+    padding: clamp(8px, 2vw, 10px);
     background: white;
+    border-radius: clamp(6px, 1.5vw, 8px);
+    flex-wrap: wrap;
+}
+
+.dot-year {
+    font-size: clamp(13px, 3.5vw, 14px);
+    font-weight: 700;
+    color: #000;
+    min-width: clamp(50px, 12vw, 60px);
+}
+
+.dot-info {
+    font-size: clamp(12px, 3vw, 13px);
+    color: #4b5563;
+    white-space: nowrap;
+}
+
+.dot-price {
+    font-size: clamp(14px, 4vw, 16px);
+    font-weight: 700;
+    color: #ef4444;
+    margin-left: auto;
+}
+
+.dot-cart-button {
+    padding: clamp(6px, 1.5vw, 8px) clamp(10px, 2.5vw, 12px);
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: clamp(4px, 1vw, 6px);
+    font-size: clamp(11px, 2.8vw, 12px);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.dot-cart-button:active {
+    background: #1d4ed8;
 }
 
 .price-section {
@@ -349,13 +390,16 @@ function renderProducts(products) {
             <!-- DOT 재고 정보 (토글) -->
             <div id="dot-info-${product.code}" style="display: none; margin-bottom: 15px;">
                 ${product.dot_inventory && product.dot_inventory.length > 0 ? `
-                    <div class="dot-inventory-grid">
+                    <div class="dot-inventory-list">
                         ${product.dot_inventory.map((dot, index) => `
-                            <div class="dot-item" style="border: 2px solid ${dotColors[index % 4]};">
-                                <div style="font-size: clamp(14px, 4vw, 16px); font-weight: 700; color: #000; margin-bottom: 8px;">${dot.year}</div>
-                                <div style="font-size: clamp(12px, 3vw, 13px); color: #6b7280; margin-bottom: 4px;">재고 ${dot.stock}개</div>
-                                <div style="font-size: clamp(12px, 3vw, 13px); color: #6b7280; margin-bottom: 8px;">할인 ${dot.discount}%</div>
-                                <div style="font-size: clamp(16px, 4.5vw, 18px); font-weight: 700; color: #ef4444;">₩${dot.price.toLocaleString()}</div>
+                            <div class="dot-item-row" style="border-left: 4px solid ${dotColors[index % 4]};">
+                                <span class="dot-year">${dot.year.replace('/01', '년').replace('/06', '년')}</span>
+                                <span class="dot-info">재고 ${dot.stock}개</span>
+                                <span class="dot-info">할인 ${dot.discount}%</span>
+                                <span class="dot-price">₩${dot.price.toLocaleString()}</span>
+                                <button class="dot-cart-button" onclick="event.stopPropagation(); addToCartWithYear('${product.code}', '${dot.year}')">
+                                    🛒 장바구니
+                                </button>
                             </div>
                         `).join('')}
                     </div>
@@ -423,6 +467,12 @@ function toggleDOTInfo(code) {
 function addToCart(code) {
     showAlert('장바구니에 담겼습니다.', 'success');
     // TODO: 실제 장바구니 API 연동
+}
+
+// DOT 년도 선택 장바구니 담기
+function addToCartWithYear(code, year) {
+    showAlert(`${year} 상품을 장바구니에 담겼습니다.`, 'success');
+    // TODO: 실제 장바구니 API 연동 (년도 정보 포함)
 }
 
 // 바로 구매
