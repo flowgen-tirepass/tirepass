@@ -907,6 +907,11 @@ class CustomUserAdmin(BaseUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
+# Django 관리자 사이트 커스터마이즈
+admin.site.site_header = 'TirePASS 관리'
+admin.site.site_title = 'TirePASS 관리자'
+admin.site.index_title = 'TirePASS 관리 시스템'
+
 
 # ============================================
 # 쇼핑/주문 관련 Admin
