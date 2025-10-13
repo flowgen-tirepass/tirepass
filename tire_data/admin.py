@@ -9,7 +9,7 @@ from .models import (
     Goods, CustomersFull, Customers, YearAllocation, BrandGroup,
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
-    PerformanceCategory, PerformanceTag, GoodsPerformanceTag
+    ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag
 )
 from .erp_api_client import ERPAPIClient
 
@@ -1044,6 +1044,33 @@ class PaymentAdmin(admin.ModelAdmin):
         return obj.order.order_number
     get_order_number.short_description = '주문번호'
     get_order_number.admin_order_field = 'order__order_number'
+
+
+@admin.register(ShippingAddress)
+class ShippingAddressAdmin(admin.ModelAdmin):
+    list_display = ['id', 'customer_code', 'get_customer_name', 'recipient_name',
+                   'phone_number', 'address', 'is_default', 'created_at']
+    list_filter = ['is_default', 'created_at']
+    search_fields = ['customer_code', 'recipient_name', 'phone_number', 'address']
+    ordering = ['-is_default', '-created_at']
+    list_per_page = 50
+
+    fieldsets = (
+        ('고객 정보', {
+            'fields': ('customer_code', 'recipient_name', 'phone_number')
+        }),
+        ('주소 정보', {
+            'fields': ('postal_code', 'address', 'address_detail')
+        }),
+        ('설정', {
+            'fields': ('is_default',)
+        }),
+    )
+    readonly_fields = []
+
+    def get_customer_name(self, obj):
+        return obj.customer_name
+    get_customer_name.short_description = '고객명'
 
 
 # ============================================

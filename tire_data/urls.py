@@ -26,6 +26,7 @@ urlpatterns = [
     path('mobile/orders/', mobile_views.mobile_orders, name='mobile_orders'),
     path('mobile/orders/<int:order_id>/', mobile_views.mobile_order_detail, name='mobile_order_detail'),
     path('mobile/profile/', mobile_views.mobile_profile, name='mobile_profile'),
+    path('mobile/addresses/', mobile_views.mobile_addresses, name='mobile_addresses'),
     path('mobile/quote/', mobile_views.mobile_quote, name='mobile_quote'),
 
     # Dashboard URLs
@@ -71,6 +72,13 @@ urlpatterns = [
     path('api/mobile/payment/confirm/', api_views.api_payment_confirm, name='api_payment_confirm'),
     path('api/mobile/payment/cancel/', api_views.api_payment_cancel, name='api_payment_cancel'),
     path('api/mobile/payment/status/<str:payment_key>/', api_views.api_payment_status, name='api_payment_status'),
+
+    # 배송지 주소 API
+    path('api/mobile/shipping-addresses/', api_views.api_shipping_addresses_list, name='api_shipping_addresses_list'),
+    path('api/mobile/shipping-addresses/add/', api_views.api_shipping_address_add, name='api_shipping_address_add'),
+    path('api/mobile/shipping-addresses/<int:address_id>/update/', api_views.api_shipping_address_update, name='api_shipping_address_update'),
+    path('api/mobile/shipping-addresses/<int:address_id>/delete/', api_views.api_shipping_address_delete, name='api_shipping_address_delete'),
+    path('api/mobile/shipping-addresses/<int:address_id>/set-default/', api_views.api_shipping_address_set_default, name='api_shipping_address_set_default'),
 
     # ERP 실시간 동기화 API
     path('api/sync/customer/', views_sync_api.sync_customer, name='sync_customer'),

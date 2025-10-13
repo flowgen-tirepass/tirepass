@@ -12,7 +12,7 @@ import json
 import secrets
 import re
 
-from .models import Goods, Customers, ShoppingCart, Order, OrderItem, Payment
+from .models import Goods, Customers, ShoppingCart, Order, OrderItem, Payment, ShippingAddress
 from .utils import calculate_discount_price, generate_order_number, update_stock
 
 
@@ -77,6 +77,13 @@ def api_index(request):
                 'POST /api/mobile/payment/confirm/': '결제 승인',
                 'POST /api/mobile/payment/cancel/': '결제 취소',
                 'GET /api/mobile/payment/status/<payment_key>/': '결제 상태 조회',
+            },
+            '배송지 주소 API': {
+                'GET /api/mobile/shipping-addresses/': '배송지 목록 조회',
+                'POST /api/mobile/shipping-addresses/add/': '배송지 추가',
+                'POST /api/mobile/shipping-addresses/<id>/update/': '배송지 수정',
+                'DELETE /api/mobile/shipping-addresses/<id>/delete/': '배송지 삭제',
+                'POST /api/mobile/shipping-addresses/<id>/set-default/': '기본 배송지 설정',
             }
         },
         'documentation': 'http://localhost:8080/api/mobile/docs/'
@@ -1538,3 +1545,203 @@ def api_payment_status(request, payment_key):
 
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'결제 조회 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
+# ============================================
+# 배송지 주소 API
+# ============================================
+
+@require_http_methods(["GET"])
+def api_shipping_addresses_list(request):
+    """배송지 주소 목록 조회 API"""
+    customer_code = request.GET.get('customer_code')
+
+    if not customer_code:
+        return JsonResponse({'success': False, 'message': '고객 코드가 필요합니다.'}, status=400)
+
+    try:
+        addresses = ShippingAddress.objects.filter(customer_code=customer_code).order_by('-is_default', '-created_at')
+
+        addresses_data = []
+        for addr in addresses:
+            addresses_data.append({
+                'id': addr.id,
+                'recipient_name': addr.recipient_name,
+                'phone_number': addr.phone_number,
+                'postal_code': addr.postal_code,
+                'address': addr.address,
+                'address_detail': addr.address_detail,
+                'full_address': addr.full_address,
+                'is_default': addr.is_default,
+                'created_at': addr.created_at.isoformat()
+            })
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'addresses': addresses_data,
+                'count': len(addresses_data)
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'배송지 목록 조회 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_shipping_address_add(request):
+    """배송지 주소 추가 API"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=400)
+
+    customer_code = data.get('customer_code')
+    recipient_name = data.get('recipient_name')
+    phone_number = data.get('phone_number')
+    address = data.get('address')
+
+    if not all([customer_code, recipient_name, phone_number, address]):
+        return JsonResponse({'success': False, 'message': '필수 항목을 입력해주세요.'}, status=400)
+
+    try:
+        # 고객이 첫 배송지를 추가하는 경우 자동으로 기본 배송지로 설정
+        existing_count = ShippingAddress.objects.filter(customer_code=customer_code).count()
+        is_default = data.get('is_default', existing_count == 0)
+
+        address_obj = ShippingAddress.objects.create(
+            customer_code=customer_code,
+            recipient_name=recipient_name,
+            phone_number=phone_number,
+            postal_code=data.get('postal_code', ''),
+            address=address,
+            address_detail=data.get('address_detail', ''),
+            is_default=is_default
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': '배송지가 추가되었습니다.',
+            'data': {
+                'id': address_obj.id,
+                'recipient_name': address_obj.recipient_name,
+                'phone_number': address_obj.phone_number,
+                'postal_code': address_obj.postal_code,
+                'address': address_obj.address,
+                'address_detail': address_obj.address_detail,
+                'full_address': address_obj.full_address,
+                'is_default': address_obj.is_default
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'배송지 추가 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST", "PUT"])
+def api_shipping_address_update(request, address_id):
+    """배송지 주소 수정 API"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=400)
+
+    try:
+        address_obj = ShippingAddress.objects.get(id=address_id)
+
+        # 수정 가능한 필드 업데이트
+        if 'recipient_name' in data:
+            address_obj.recipient_name = data['recipient_name']
+        if 'phone_number' in data:
+            address_obj.phone_number = data['phone_number']
+        if 'postal_code' in data:
+            address_obj.postal_code = data['postal_code']
+        if 'address' in data:
+            address_obj.address = data['address']
+        if 'address_detail' in data:
+            address_obj.address_detail = data['address_detail']
+        if 'is_default' in data:
+            address_obj.is_default = data['is_default']
+
+        address_obj.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': '배송지가 수정되었습니다.',
+            'data': {
+                'id': address_obj.id,
+                'recipient_name': address_obj.recipient_name,
+                'phone_number': address_obj.phone_number,
+                'postal_code': address_obj.postal_code,
+                'address': address_obj.address,
+                'address_detail': address_obj.address_detail,
+                'full_address': address_obj.full_address,
+                'is_default': address_obj.is_default
+            }
+        })
+
+    except ShippingAddress.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '배송지를 찾을 수 없습니다.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'배송지 수정 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def api_shipping_address_delete(request, address_id):
+    """배송지 주소 삭제 API"""
+    try:
+        address_obj = ShippingAddress.objects.get(id=address_id)
+        customer_code = address_obj.customer_code
+        was_default = address_obj.is_default
+
+        address_obj.delete()
+
+        # 삭제된 주소가 기본 배송지였다면, 다른 주소 중 하나를 기본 배송지로 설정
+        if was_default:
+            remaining_addresses = ShippingAddress.objects.filter(customer_code=customer_code).order_by('-created_at')
+            if remaining_addresses.exists():
+                first_address = remaining_addresses.first()
+                first_address.is_default = True
+                first_address.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': '배송지가 삭제되었습니다.'
+        })
+
+    except ShippingAddress.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '배송지를 찾을 수 없습니다.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'배송지 삭제 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_shipping_address_set_default(request, address_id):
+    """기본 배송지 설정 API"""
+    try:
+        address_obj = ShippingAddress.objects.get(id=address_id)
+
+        # 이미 기본 배송지인 경우
+        if address_obj.is_default:
+            return JsonResponse({
+                'success': True,
+                'message': '이미 기본 배송지입니다.'
+            })
+
+        # 기본 배송지로 설정 (save() 메서드가 자동으로 다른 주소의 기본 설정 해제)
+        address_obj.is_default = True
+        address_obj.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': '기본 배송지로 설정되었습니다.'
+        })
+
+    except ShippingAddress.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '배송지를 찾을 수 없습니다.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'기본 배송지 설정 중 오류가 발생했습니다: {str(e)}'}, status=500)

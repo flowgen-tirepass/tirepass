@@ -1,0 +1,292 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}배송지 관리 - TirePASS{% endblock %}
+{% block header_title %}배송지 관리{% endblock %}
+
+{% block content %}
+<div id="addressList"></div>
+
+<!-- 배송지 추가 버튼 -->
+<div style="padding: 20px 0;">
+    <button onclick="showAddAddressModal()" class="btn btn-primary btn-block">
+        새 배송지 추가
+    </button>
+</div>
+
+<!-- 배송지 추가/수정 모달 -->
+<div id="addressModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+    <div style="background: white; margin: 50px 20px; border-radius: 8px; padding: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 20px;" id="modalTitle">새 배송지 추가</h3>
+
+        <form id="addressForm" onsubmit="return false;">
+            <input type="hidden" id="addressId" value="">
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">수령인 *</label>
+                <input type="text" id="recipientName" class="form-input" required placeholder="받는 분 이름">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">전화번호 *</label>
+                <input type="tel" id="phoneNumber" class="form-input" required placeholder="010-1234-5678">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">우편번호</label>
+                <input type="text" id="postalCode" class="form-input" placeholder="12345">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">주소 *</label>
+                <input type="text" id="address" class="form-input" required placeholder="서울시 강남구">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500;">상세주소</label>
+                <input type="text" id="addressDetail" class="form-input" placeholder="동, 호수 등">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="isDefault" style="width: 18px; height: 18px;">
+                    <span style="font-size: 14px;">기본 배송지로 설정</span>
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="hideAddressModal()" class="btn btn-secondary" style="flex: 1;">취소</button>
+                <button type="button" onclick="saveAddress()" class="btn btn-primary" style="flex: 1;">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let addresses = [];
+
+async function loadAddresses() {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/shipping-addresses/?customer_code=${customerCode}`);
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            addresses = data.data.addresses;
+            renderAddresses(addresses);
+        } else {
+            showAlert(data.message || '배송지 목록을 불러올 수 없습니다', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('배송지 목록 오류:', error);
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+function renderAddresses(addressList) {
+    const container = document.getElementById('addressList');
+
+    if (addressList.length === 0) {
+        container.innerHTML = '<div class="card"><p style="text-align: center; color: #6b7280;">등록된 배송지가 없습니다</p></div>';
+        return;
+    }
+
+    container.innerHTML = addressList.map(addr => `
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <h3 style="font-size: 16px; font-weight: 600;">${addr.recipient_name}</h3>
+                        ${addr.is_default ? '<span class="badge badge-blue">기본 배송지</span>' : ''}
+                    </div>
+                    <p style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${addr.phone_number}</p>
+                    <p style="font-size: 14px; color: #333;">${addr.full_address}</p>
+                    ${addr.postal_code ? `<p style="font-size: 13px; color: #6b7280; margin-top: 4px;">우편번호: ${addr.postal_code}</p>` : ''}
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+                ${!addr.is_default ? `
+                    <button onclick="setDefaultAddress(${addr.id})" class="btn btn-secondary" style="flex: 1; font-size: 13px;">
+                        기본 배송지 설정
+                    </button>
+                ` : ''}
+                <button onclick="editAddress(${addr.id})" class="btn btn-secondary" style="flex: 1; font-size: 13px;">
+                    수정
+                </button>
+                <button onclick="deleteAddress(${addr.id})" class="btn btn-danger" style="flex: 1; font-size: 13px;">
+                    삭제
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showAddAddressModal() {
+    document.getElementById('modalTitle').textContent = '새 배송지 추가';
+    document.getElementById('addressForm').reset();
+    document.getElementById('addressId').value = '';
+    document.getElementById('addressModal').style.display = 'block';
+}
+
+function hideAddressModal() {
+    document.getElementById('addressModal').style.display = 'none';
+}
+
+function editAddress(addressId) {
+    const addr = addresses.find(a => a.id === addressId);
+    if (!addr) return;
+
+    document.getElementById('modalTitle').textContent = '배송지 수정';
+    document.getElementById('addressId').value = addr.id;
+    document.getElementById('recipientName').value = addr.recipient_name;
+    document.getElementById('phoneNumber').value = addr.phone_number;
+    document.getElementById('postalCode').value = addr.postal_code || '';
+    document.getElementById('address').value = addr.address;
+    document.getElementById('addressDetail').value = addr.address_detail || '';
+    document.getElementById('isDefault').checked = addr.is_default;
+    document.getElementById('addressModal').style.display = 'block';
+}
+
+async function saveAddress() {
+    const addressId = document.getElementById('addressId').value;
+    const customerCode = getCustomerCode();
+
+    if (!customerCode) {
+        showAlert('로그인이 필요합니다.', 'error');
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    const data = {
+        customer_code: customerCode,
+        recipient_name: document.getElementById('recipientName').value.trim(),
+        phone_number: document.getElementById('phoneNumber').value.trim(),
+        postal_code: document.getElementById('postalCode').value.trim(),
+        address: document.getElementById('address').value.trim(),
+        address_detail: document.getElementById('addressDetail').value.trim(),
+        is_default: document.getElementById('isDefault').checked
+    };
+
+    if (!data.recipient_name || !data.phone_number || !data.address) {
+        showAlert('필수 항목을 입력해주세요.', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const url = addressId
+            ? `/api/mobile/shipping-addresses/${addressId}/update/`
+            : `/api/mobile/shipping-addresses/add/`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        hideLoading();
+
+        if (result.success) {
+            showAlert(result.message, 'success');
+            hideAddressModal();
+            loadAddresses();
+        } else {
+            showAlert(result.message || '저장에 실패했습니다', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('배송지 저장 오류:', error);
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+async function deleteAddress(addressId) {
+    if (!confirm('이 배송지를 삭제하시겠습니까?')) return;
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/shipping-addresses/${addressId}/delete/`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('배송지가 삭제되었습니다', 'success');
+            loadAddresses();
+        } else {
+            showAlert(data.message || '삭제에 실패했습니다', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('배송지 삭제 오류:', error);
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+async function setDefaultAddress(addressId) {
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/shipping-addresses/${addressId}/set-default/`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('기본 배송지로 설정되었습니다', 'success');
+            loadAddresses();
+        } else {
+            showAlert(data.message || '설정에 실패했습니다', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('기본 배송지 설정 오류:', error);
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
+loadAddresses();
+</script>
+
+<style>
+.form-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+}
+</style>
+{% endblock %}

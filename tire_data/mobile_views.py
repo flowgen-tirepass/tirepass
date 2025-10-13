@@ -62,3 +62,7 @@ def mobile_profile(request):
 def mobile_quote(request):
     """견적서 작성 페이지"""
     return render(request, 'mobile/quote.html')
+
+def mobile_addresses(request):
+    """배송지 관리 페이지"""
+    return render(request, 'mobile/addresses.html')

@@ -139,6 +139,32 @@ async function removeFromCart(cartId) {
     }
 }
 
+let shippingAddresses = [];
+let selectedAddressId = null;
+
+async function loadShippingAddresses() {
+    const customerCode = getCustomerCode();
+    if (!customerCode) return;
+
+    try {
+        const response = await fetch(`/api/mobile/shipping-addresses/?customer_code=${customerCode}`);
+        const data = await response.json();
+
+        if (data.success) {
+            shippingAddresses = data.data.addresses;
+            // 기본 배송지를 자동 선택
+            const defaultAddress = shippingAddresses.find(addr => addr.is_default);
+            if (defaultAddress) {
+                selectedAddressId = defaultAddress.id;
+            } else if (shippingAddresses.length > 0) {
+                selectedAddressId = shippingAddresses[0].id;
+            }
+        }
+    } catch (error) {
+        console.error('배송지 목록 로드 오류:', error);
+    }
+}
+
 async function checkout() {
     if (cartItems.length === 0) {
         showAlert('장바구니가 비어있습니다.', 'error');
@@ -152,15 +178,102 @@ async function checkout() {
         return;
     }
 
-    // 주문 확인
-    const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
-    const confirmMessage = `총 ${cartItems.length}개 상품, ${totalAmount.toLocaleString()}원을 주문하시겠습니까?`;
+    // 배송지 선택 모달 표시
+    await loadShippingAddresses();
+    showAddressSelectModal();
+}
 
-    if (!confirm(confirmMessage)) {
+function showAddressSelectModal() {
+    const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
+
+    let addressOptions = '';
+    if (shippingAddresses.length === 0) {
+        addressOptions = '<p style="color: #6b7280; text-align: center; padding: 20px;">등록된 배송지가 없습니다</p>';
+    } else {
+        addressOptions = shippingAddresses.map(addr => `
+            <label style="display: block; padding: 15px; border: 2px solid ${selectedAddressId === addr.id ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer;">
+                <input type="radio" name="address" value="${addr.id}" ${selectedAddressId === addr.id ? 'checked' : ''} onchange="selectedAddressId = ${addr.id}; updateAddressSelection();" style="margin-right: 10px;">
+                <div style="display: inline-block; vertical-align: top;">
+                    <div style="font-weight: 600; margin-bottom: 5px;">
+                        ${addr.recipient_name} ${addr.is_default ? '<span class="badge badge-blue">기본</span>' : ''}
+                    </div>
+                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 3px;">${addr.phone_number}</div>
+                    <div style="font-size: 13px; color: #333;">${addr.full_address}</div>
+                </div>
+            </label>
+        `).join('');
+    }
+
+    const modalHtml = `
+        <div id="checkoutModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+            <div style="background: white; margin: 50px 20px; border-radius: 8px; padding: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">배송지 선택</h3>
+
+                <div id="addressList" style="margin-bottom: 20px;">
+                    ${addressOptions}
+                </div>
+
+                ${shippingAddresses.length === 0 ? `
+                    <button onclick="location.href='/mobile/addresses/'" class="btn btn-secondary btn-block" style="margin-bottom: 15px;">
+                        새 배송지 추가
+                    </button>
+                ` : ''}
+
+                <div style="padding: 15px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: #6b7280;">총 상품 수</span>
+                        <span style="font-weight: 600;">${cartItems.length}개</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e5e7eb;">
+                        <span style="font-size: 16px; font-weight: 600;">결제 금액</span>
+                        <span style="font-size: 20px; font-weight: 700; color: #2563eb;">${totalAmount.toLocaleString()}원</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="closeCheckoutModal()" class="btn btn-secondary" style="flex: 1;">취소</button>
+                    <button onclick="confirmCheckout()" class="btn btn-primary" style="flex: 1;" ${shippingAddresses.length === 0 ? 'disabled' : ''}>
+                        주문하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function updateAddressSelection() {
+    // 선택된 주소의 border 색상 업데이트
+    const labels = document.querySelectorAll('#checkoutModal label');
+    labels.forEach(label => {
+        const radio = label.querySelector('input[type="radio"]');
+        if (radio && radio.checked) {
+            label.style.borderColor = '#2563eb';
+        } else {
+            label.style.borderColor = '#e5e7eb';
+        }
+    });
+}
+
+function closeCheckoutModal() {
+    const modal = document.getElementById('checkoutModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+async function confirmCheckout() {
+    if (!selectedAddressId && shippingAddresses.length > 0) {
+        showAlert('배송지를 선택해주세요.', 'error');
         return;
     }
 
+    const customerCode = getCustomerCode();
+    const selectedAddress = shippingAddresses.find(addr => addr.id === selectedAddressId);
+
     showLoading();
+    closeCheckoutModal();
 
     try {
         const cartIds = cartItems.map(item => item.id);
@@ -174,7 +287,7 @@ async function checkout() {
             body: JSON.stringify({
                 customer_code: customerCode,
                 cart_ids: cartIds,
-                shipping_address: '',
+                shipping_address: selectedAddress ? selectedAddress.full_address : '',
                 shipping_memo: '',
                 payment_method: 'transfer'
             })

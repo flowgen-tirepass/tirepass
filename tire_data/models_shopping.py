@@ -178,3 +178,53 @@ class Payment(models.Model):
         """결제상태 한글 표시"""
         status_dict = dict(self.PAYMENT_STATUS_CHOICES)
         return status_dict.get(self.payment_status, self.payment_status)
+
+
+class ShippingAddress(models.Model):
+    """배송지 주소 모델"""
+    customer_code = models.CharField(max_length=10, verbose_name='고객 코드')
+    recipient_name = models.CharField(max_length=50, verbose_name='수령인')
+    phone_number = models.CharField(max_length=20, verbose_name='전화번호')
+    postal_code = models.CharField(max_length=10, null=True, blank=True, verbose_name='우편번호')
+    address = models.CharField(max_length=200, verbose_name='주소')
+    address_detail = models.CharField(max_length=200, null=True, blank=True, verbose_name='상세주소')
+    is_default = models.BooleanField(default=False, verbose_name='기본배송지')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'shipping_addresses'
+        managed = True
+        verbose_name = '배송지 주소'
+        verbose_name_plural = '배송지 주소 목록'
+        ordering = ['-is_default', '-created_at']
+
+    def __str__(self):
+        return f"{self.customer_code} - {self.recipient_name} ({self.address})"
+
+    @property
+    def customer_name(self):
+        """고객명 조회"""
+        from .models import Customers
+        try:
+            customer = Customers.objects.get(code=self.customer_code)
+            return customer.name
+        except Customers.DoesNotExist:
+            return '-'
+
+    @property
+    def full_address(self):
+        """전체 주소 반환"""
+        if self.address_detail:
+            return f"{self.address} {self.address_detail}"
+        return self.address
+
+    def save(self, *args, **kwargs):
+        """저장 시 기본배송지 설정 처리"""
+        if self.is_default:
+            # 같은 고객의 다른 주소들의 기본배송지 해제
+            ShippingAddress.objects.filter(
+                customer_code=self.customer_code,
+                is_default=True
+            ).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
