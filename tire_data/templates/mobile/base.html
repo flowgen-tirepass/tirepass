@@ -170,21 +170,43 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        /* Alert */
+        /* Alert (Toast 스타일) */
         .alert {
-            padding: 15px;
+            position: fixed;
+            bottom: 80px; /* Bottom Nav 위에 표시 */
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 20px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            z-index: 200; /* Bottom Nav(100) 위에 표시 */
+            min-width: 280px;
+            max-width: 90%;
+            text-align: center;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideUp 0.3s ease-out;
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
         }
 
         .alert-success {
-            background-color: #d1fae5;
-            color: #065f46;
+            background-color: #10b981;
+            color: white;
         }
 
         .alert-error {
-            background-color: #fee2e2;
-            color: #991b1b;
+            background-color: #ef4444;
+            color: white;
         }
 
         /* Loading */
@@ -402,11 +424,24 @@
         }
 
         function showAlert(message, type = 'success') {
+            // 기존 알림이 있으면 제거
+            const existingAlert = document.querySelector('.alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+
+            // 새 알림 생성
             const alert = document.createElement('div');
             alert.className = `alert alert-${type}`;
             alert.textContent = message;
-            document.querySelector('.main-content').prepend(alert);
-            setTimeout(() => alert.remove(), 3000);
+            document.body.appendChild(alert);
+
+            // 3초 후 자동 제거
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateX(-50%) translateY(20px)';
+                setTimeout(() => alert.remove(), 300);
+            }, 3000);
         }
 
         // 로컬 스토리지에서 고객 정보 가져오기
