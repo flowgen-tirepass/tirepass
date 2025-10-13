@@ -232,8 +232,8 @@ function showAddressSelectModal() {
 
                 <div style="display: flex; gap: 10px;">
                     <button onclick="closeCheckoutModal()" class="btn btn-secondary" style="flex: 1;">취소</button>
-                    <button onclick="confirmCheckout()" class="btn btn-primary" style="flex: 1;" ${shippingAddresses.length === 0 ? 'disabled' : ''}>
-                        주문하기
+                    <button onclick="showPaymentMethodModal()" class="btn btn-primary" style="flex: 1;" ${shippingAddresses.length === 0 ? 'disabled' : ''}>
+                        다음
                     </button>
                 </div>
             </div>
@@ -263,16 +263,120 @@ function closeCheckoutModal() {
     }
 }
 
-async function confirmCheckout() {
+function showPaymentMethodModal() {
     if (!selectedAddressId && shippingAddresses.length > 0) {
         showAlert('배송지를 선택해주세요.', 'error');
         return;
     }
 
+    const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
+    const selectedAddress = shippingAddresses.find(addr => addr.id === selectedAddressId);
+
+    const modalHtml = `
+        <div id="paymentModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 1001; overflow-y: auto;">
+            <div style="background: white; margin: 50px 20px; border-radius: 8px; padding: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">결제 수단 선택</h3>
+
+                <!-- 배송지 요약 -->
+                <div style="padding: 15px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">배송지</div>
+                    <div style="font-weight: 600; margin-bottom: 3px;">${selectedAddress.recipient_name}</div>
+                    <div style="font-size: 13px; color: #6b7280;">${selectedAddress.full_address}</div>
+                </div>
+
+                <!-- 결제 수단 선택 -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentCard">
+                        <input type="radio" name="payment_method" value="card" checked onchange="updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">💳 카드결제</div>
+                            <div style="font-size: 13px; color: #6b7280;">토스페이먼츠로 안전하게 결제</div>
+                        </div>
+                    </label>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer;" id="paymentTransfer">
+                        <input type="radio" name="payment_method" value="transfer" onchange="updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">🏦 계좌이체</div>
+                            <div style="font-size: 13px; color: #6b7280;">주문 후 계좌번호 안내</div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- 결제 금액 -->
+                <div style="padding: 15px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: #6b7280;">총 상품 수</span>
+                        <span style="font-weight: 600;">${cartItems.length}개</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e5e7eb;">
+                        <span style="font-size: 16px; font-weight: 600;">결제 금액</span>
+                        <span style="font-size: 20px; font-weight: 700; color: #2563eb;">${totalAmount.toLocaleString()}원</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="closePaymentModal()" class="btn btn-secondary" style="flex: 1;">이전</button>
+                    <button onclick="processPayment()" class="btn btn-primary" style="flex: 1;">결제하기</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    updatePaymentMethodSelection();
+}
+
+function updatePaymentMethodSelection() {
+    const cardLabel = document.getElementById('paymentCard');
+    const transferLabel = document.getElementById('paymentTransfer');
+    const radios = document.querySelectorAll('input[name="payment_method"]');
+
+    radios.forEach(radio => {
+        const label = radio.closest('label');
+        if (radio.checked) {
+            label.style.borderColor = '#2563eb';
+            label.style.backgroundColor = '#eff6ff';
+        } else {
+            label.style.borderColor = '#e5e7eb';
+            label.style.backgroundColor = 'white';
+        }
+    });
+}
+
+function closePaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+async function processPayment() {
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+
+    if (paymentMethod === 'card') {
+        // 토스페이먼츠 결제창 호출
+        await processCardPayment();
+    } else {
+        // 계좌이체 - 바로 주문 생성
+        await processTransferPayment();
+    }
+}
+
+async function processCardPayment() {
+    // TODO: 토스페이먼츠 SDK 연동
+    showAlert('카드결제 기능은 준비중입니다.', 'info');
+
+    // 임시로 계좌이체로 처리
+    await processTransferPayment();
+}
+
+async function processTransferPayment() {
     const customerCode = getCustomerCode();
     const selectedAddress = shippingAddresses.find(addr => addr.id === selectedAddressId);
 
     showLoading();
+    closePaymentModal();
     closeCheckoutModal();
 
     try {
