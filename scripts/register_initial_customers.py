@@ -10,7 +10,8 @@ ERP Firebird 서버에서 고객 데이터를 가져와 초기 비밀번호로 �
     pip install fdb mysql-connector-python django
 
 실행:
-    python scripts/register_initial_customers.py
+    로컬 DB에 등록: python scripts/register_initial_customers.py
+    PythonAnywhere DB에 등록: python scripts/register_initial_customers.py --target pythonanywhere
 """
 
 import fdb
@@ -18,6 +19,7 @@ import mysql.connector
 import sys
 import os
 import socket
+import argparse
 from datetime import datetime
 
 # Django 설정 로드
@@ -29,11 +31,13 @@ django.setup()
 
 from django.contrib.auth.hashers import make_password
 
-# 환경 감지 (PythonAnywhere vs 로컬)
-hostname = socket.gethostname()
-is_pythonanywhere = 'pythonanywhere' in hostname.lower() or os.path.exists('/home/tirepass')
+# 명령줄 인수 파싱
+parser = argparse.ArgumentParser(description='ERP 고객 데이터 일괄 등록')
+parser.add_argument('--target', choices=['local', 'pythonanywhere'], default='local',
+                    help='MySQL 타겟 환경 (기본: local)')
+args = parser.parse_args()
 
-# ERP Firebird 연결 정보
+# ERP Firebird 연결 정보 (로컬에서만 접속 가능)
 FIREBIRD_CONFIG = {
     'host': 'ITIRE2.iptime.org',
     'database': r'C:\Program Files\PsimCarS\Data\ITIRE.GDB',
@@ -42,8 +46,8 @@ FIREBIRD_CONFIG = {
     'charset': 'UTF8'
 }
 
-# MySQL 연결 정보 (환경에 따라 자동 선택)
-if is_pythonanywhere:
+# MySQL 연결 정보 (타겟에 따라 선택)
+if args.target == 'pythonanywhere':
     MYSQL_CONFIG = {
         'host': 'tirepass.mysql.pythonanywhere-services.com',
         'database': 'tirepass$itire_db',
@@ -51,7 +55,7 @@ if is_pythonanywhere:
         'password': '#flowgen9569yjm*',
         'charset': 'utf8mb4'
     }
-    print("🌐 환경: PythonAnywhere")
+    print("🌐 MySQL 타겟: PythonAnywhere")
 else:
     MYSQL_CONFIG = {
         'host': 'localhost',
@@ -60,7 +64,7 @@ else:
         'password': 'tirepass',
         'charset': 'utf8mb4'
     }
-    print("💻 환경: 로컬")
+    print("💻 MySQL 타겟: 로컬")
 
 
 def fetch_erp_customers():
