@@ -1,0 +1,185 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}주문 상세 - TirePASS{% endblock %}
+{% block header_title %}주문 상세{% endblock %}
+
+{% block content %}
+<div id="orderDetail"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const orderId = {{ order_id }};
+
+async function loadOrderDetail() {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/orders/${orderId}/?customer_code=${customerCode}`);
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            renderOrderDetail(data.data);
+        } else {
+            showAlert(data.message || '주문 정보를 불러올 수 없습니다', 'error');
+            setTimeout(() => location.href = '/mobile/orders/', 2000);
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('주문 상세 오류:', error);
+        showAlert('오류가 발생했습니다', 'error');
+        setTimeout(() => location.href = '/mobile/orders/', 2000);
+    }
+}
+
+function renderOrderDetail(order) {
+    const container = document.getElementById('orderDetail');
+
+    const statusText = {
+        'pending': '주문대기',
+        'confirmed': '주문확인',
+        'preparing': '출고준비',
+        'shipped': '배송중',
+        'delivered': '배송완료',
+        'cancelled': '주문취소'
+    };
+
+    const paymentText = {
+        'unpaid': '미결제',
+        'paid': '결제완료',
+        'refunded': '환불완료'
+    };
+
+    const paymentMethodText = {
+        'card': '카드결제',
+        'transfer': '계좌이체',
+        'cash': '현금결제'
+    };
+
+    container.innerHTML = `
+        <!-- 주문 정보 -->
+        <div class="card">
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">주문 정보</h3>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #6b7280;">주문번호</span>
+                <span style="font-weight: 600;">${order.order_number}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #6b7280;">주문일시</span>
+                <span>${order.order_date}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #6b7280;">주문상태</span>
+                <span class="badge badge-blue">${statusText[order.order_status] || order.order_status}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #6b7280;">결제상태</span>
+                <span class="badge badge-${order.payment_status === 'paid' ? 'green' : 'yellow'}">${paymentText[order.payment_status]}</span>
+            </div>
+        </div>
+
+        <!-- 주문 상품 -->
+        <div class="card">
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">주문 상품</h3>
+
+            ${order.items.map(item => `
+                <div style="border-bottom: 1px solid #e5e7eb; padding: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">
+                                ${item.product_name}
+                            </div>
+                            <div style="font-size: 13px; color: #6b7280;">
+                                ${item.brand} ${item.selected_year ? `• ${item.selected_year}` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 13px; color: #6b7280;">
+                            ${item.unit_price.toLocaleString()}원 × ${item.quantity}개
+                            ${item.total_discount_rate > 0 ? ` (${item.total_discount_rate}% 할인)` : ''}
+                        </div>
+                        <div style="font-size: 16px; font-weight: 600; color: #2563eb;">
+                            ${item.final_price.toLocaleString()}원
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        <!-- 결제 정보 -->
+        <div class="card">
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">결제 정보</h3>
+
+            ${order.payment_method ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #6b7280;">결제수단</span>
+                <span>${paymentMethodText[order.payment_method] || order.payment_method}</span>
+            </div>
+            ` : ''}
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-top: 10px; border-top: 1px solid #e5e7eb;">
+                <span style="color: #6b7280;">총 주문금액</span>
+                <span>${order.total_amount.toLocaleString()}원</span>
+            </div>
+
+            ${order.total_discount > 0 ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color: #6b7280;">할인금액</span>
+                <span style="color: #ef4444;">-${order.total_discount.toLocaleString()}원</span>
+            </div>
+            ` : ''}
+
+            <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e5e7eb;">
+                <span style="font-size: 18px; font-weight: 600;">최종 결제금액</span>
+                <span style="font-size: 24px; font-weight: 700; color: #2563eb;">
+                    ${order.final_amount.toLocaleString()}원
+                </span>
+            </div>
+        </div>
+
+        ${order.shipping_address || order.shipping_memo ? `
+        <!-- 배송 정보 -->
+        <div class="card">
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">배송 정보</h3>
+
+            ${order.shipping_address ? `
+            <div style="margin-bottom: 10px;">
+                <div style="color: #6b7280; margin-bottom: 5px;">배송지 주소</div>
+                <div>${order.shipping_address}</div>
+            </div>
+            ` : ''}
+
+            ${order.shipping_memo ? `
+            <div>
+                <div style="color: #6b7280; margin-bottom: 5px;">배송 메모</div>
+                <div>${order.shipping_memo}</div>
+            </div>
+            ` : ''}
+        </div>
+        ` : ''}
+
+        <!-- 버튼 -->
+        <div style="padding: 20px 0;">
+            <button onclick="location.href='/mobile/orders/'" class="btn btn-secondary btn-block">
+                목록으로
+            </button>
+        </div>
+    `;
+}
+
+loadOrderDetail();
+</script>
+{% endblock %}
