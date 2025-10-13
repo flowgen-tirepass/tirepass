@@ -173,11 +173,55 @@ function renderOrderDetail(order) {
 
         <!-- 버튼 -->
         <div style="padding: 20px 0;">
+            ${order.order_status !== 'cancelled' && order.payment_status !== 'refunded' ? `
+                <button onclick="cancelOrder()" class="btn btn-danger btn-block" style="margin-bottom: 10px;">
+                    주문 취소
+                </button>
+            ` : ''}
             <button onclick="location.href='/mobile/orders/'" class="btn btn-secondary btn-block">
                 목록으로
             </button>
         </div>
     `;
+}
+
+async function cancelOrder() {
+    if (!confirm('정말 주문을 취소하시겠습니까?')) return;
+
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/orders/${orderId}/cancel/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                customer_code: customerCode,
+                cancel_reason: '고객 요청'
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('주문이 취소되었습니다', 'success');
+            setTimeout(() => {
+                loadOrderDetail(); // 새로고침
+            }, 1000);
+        } else {
+            showAlert(data.message || '주문 취소 실패', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('주문 취소 오류:', error);
+        showAlert('주문 취소 중 오류가 발생했습니다', 'error');
+    }
 }
 
 loadOrderDetail();

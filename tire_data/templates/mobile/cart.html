@@ -141,6 +141,7 @@ async function removeFromCart(cartId) {
 
 let shippingAddresses = [];
 let selectedAddressId = null;
+let shippingMemo = '';
 
 async function loadShippingAddresses() {
     const customerCode = getCustomerCode();
@@ -218,6 +219,16 @@ function showAddressSelectModal() {
                         새 배송지 추가
                     </button>
                 ` : ''}
+
+                <!-- 배송 메모 입력 -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">
+                        배송 메모 (선택)
+                    </label>
+                    <textarea id="shippingMemoInput" placeholder="예: 문 앞에 놔주세요, 배송 전 연락주세요 등"
+                        style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 80px; font-family: inherit;"
+                        oninput="shippingMemo = this.value;"></textarea>
+                </div>
 
                 <div style="padding: 15px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 20px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
@@ -364,11 +375,66 @@ async function processPayment() {
 }
 
 async function processCardPayment() {
-    // TODO: 토스페이먼츠 SDK 연동
-    showAlert('카드결제 기능은 준비중입니다.', 'info');
+    const customerCode = getCustomerCode();
+    const selectedAddress = shippingAddresses.find(addr => addr.id === selectedAddressId);
+    const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
 
-    // 임시로 계좌이체로 처리
-    await processTransferPayment();
+    showLoading();
+    closePaymentModal();
+    closeCheckoutModal();
+
+    try {
+        const cartIds = cartItems.map(item => item.id);
+
+        // 1. 주문 생성 (결제 준비)
+        const response = await fetch('/api/mobile/payment/prepare/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_code: customerCode,
+                cart_ids: cartIds,
+                shipping_address: selectedAddress ? selectedAddress.full_address : '',
+                shipping_memo: shippingMemo || '',
+                payment_method: 'card',
+                amount: totalAmount
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (!data.success) {
+            showAlert(data.message || '결제 준비 실패', 'error');
+            return;
+        }
+
+        // 2. 토스페이먼츠 결제창 호출
+        const clientKey = '{{ TOSS_PAYMENTS_CLIENT_KEY|default:"test_ck_EP59LybZ8BlBZd2LBbAQV6GYo7pR" }}';
+        const paymentWidget = PaymentWidget(clientKey, PaymentWidget.ANONYMOUS);
+
+        await paymentWidget.renderPaymentMethods(
+            '#payment-method',
+            { value: totalAmount },
+            { variantKey: 'DEFAULT' }
+        );
+
+        // 결제 요청
+        await paymentWidget.requestPayment({
+            orderId: data.data.order_number,
+            orderName: `타이어 ${cartItems.length}개`,
+            successUrl: window.location.origin + '/api/mobile/payment/confirm/',
+            failUrl: window.location.origin + '/mobile/cart/?payment=failed',
+            customerEmail: '',
+            customerName: selectedAddress ? selectedAddress.recipient_name : ''
+        });
+
+    } catch (error) {
+        hideLoading();
+        console.error('카드결제 오류:', error);
+        showAlert('결제 처리 중 오류가 발생했습니다.', 'error');
+    }
 }
 
 async function processTransferPayment() {
@@ -392,7 +458,7 @@ async function processTransferPayment() {
                 customer_code: customerCode,
                 cart_ids: cartIds,
                 shipping_address: selectedAddress ? selectedAddress.full_address : '',
-                shipping_memo: '',
+                shipping_memo: shippingMemo || '',
                 payment_method: 'transfer'
             })
         });

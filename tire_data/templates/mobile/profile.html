@@ -28,8 +28,63 @@
     </form>
 </div>
 
+<!-- 테스트 결제 수단 안내 -->
+<div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <h3 style="margin-bottom: 15px; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+        💳 테스트 결제 수단 안내
+        <span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 12px; font-size: 12px;">TEST</span>
+    </h3>
+    <p style="font-size: 13px; margin-bottom: 15px; opacity: 0.9;">
+        현재 테스트 환경입니다. 아래 정보로 결제 테스트를 진행하세요.
+    </p>
+
+    <button onclick="toggleTestInfo()" class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
+        <span id="testInfoBtnText">테스트 정보 보기 ▼</span>
+    </button>
+
+    <div id="testInfoContent" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.3);">
+        <!-- 테스트 카드 -->
+        <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-weight: 600; margin-bottom: 10px; font-size: 15px;">✅ 정상 승인 카드</div>
+            <div style="font-size: 13px; opacity: 0.9; line-height: 1.6;">
+                <div><strong>카드번호:</strong> 5514-1234-5678-9012</div>
+                <div><strong>유효기간:</strong> 12/25</div>
+                <div><strong>CVC:</strong> 123</div>
+                <div><strong>비밀번호:</strong> 12 (앞 2자리)</div>
+            </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-weight: 600; margin-bottom: 10px; font-size: 15px;">❌ 승인 거부 카드</div>
+            <div style="font-size: 13px; opacity: 0.9; line-height: 1.6;">
+                <div><strong>카드번호:</strong> 5514-0000-0000-0001</div>
+                <div><strong>유효기간:</strong> 12/30</div>
+                <div><strong>CVC:</strong> 123</div>
+                <div style="margin-top: 5px; font-size: 12px;">→ 잔액 부족 오류 발생</div>
+            </div>
+        </div>
+
+        <!-- 계좌이체 -->
+        <div style="background: rgba(255,255,255,0.15); padding: 15px; border-radius: 8px;">
+            <div style="font-weight: 600; margin-bottom: 10px; font-size: 15px;">🏦 테스트 계좌이체</div>
+            <div style="font-size: 13px; opacity: 0.9; line-height: 1.6;">
+                <div><strong>은행:</strong> 신한은행</div>
+                <div><strong>계좌번호:</strong> 110-123-456789</div>
+                <div><strong>예금주:</strong> 홍길동</div>
+                <div style="margin-top: 5px; font-size: 12px;">→ 모든 금액 결제 승인</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; font-size: 12px; line-height: 1.5;">
+            ⚠️ <strong>주의:</strong> 테스트 모드에서는 실제 결제가 발생하지 않습니다.<br>
+            자세한 정보는 <a href="https://docs.tosspayments.com/reference/test-card" target="_blank" style="color: white; text-decoration: underline;">토스페이먼츠 문서</a>를 참고하세요.
+        </div>
+    </div>
+</div>
+
 <div class="card">
     <a href="/mobile/home/" class="btn btn-primary btn-block">홈으로 가기</a>
+    <a href="/mobile/addresses/" class="btn btn-secondary btn-block" style="margin-top: 10px;">배송지 관리</a>
     <button onclick="showChangePassword()" class="btn btn-secondary btn-block" style="margin-top: 10px;">비밀번호 변경</button>
     <button onclick="logout()" class="btn btn-danger btn-block" style="margin-top: 10px;">로그아웃</button>
 </div>
@@ -37,6 +92,19 @@
 
 {% block extra_js %}
 <script>
+function toggleTestInfo() {
+    const content = document.getElementById('testInfoContent');
+    const btnText = document.getElementById('testInfoBtnText');
+
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        btnText.textContent = '테스트 정보 닫기 ▲';
+    } else {
+        content.style.display = 'none';
+        btnText.textContent = '테스트 정보 보기 ▼';
+    }
+}
+
 async function loadProfile() {
     const customerCode = getCustomerCode();
     if (!customerCode) {

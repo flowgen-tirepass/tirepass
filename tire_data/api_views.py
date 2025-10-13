@@ -757,6 +757,100 @@ def api_order_detail(request, order_id):
     return JsonResponse(result)
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_order_cancel(request, order_id):
+    """주문 취소 API"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=400)
+
+    customer_code = data.get('customer_code')
+    cancel_reason = data.get('cancel_reason', '고객 요청')
+
+    if not customer_code:
+        return JsonResponse({'success': False, 'message': '고객 코드가 필요합니다.'}, status=400)
+
+    try:
+        order = Order.objects.get(id=order_id, customer_code=customer_code)
+
+        # 이미 취소된 주문
+        if order.order_status == 'cancelled':
+            return JsonResponse({'success': False, 'message': '이미 취소된 주문입니다.'}, status=400)
+
+        # 배송 완료된 주문은 취소 불가
+        if order.order_status == 'delivered':
+            return JsonResponse({'success': False, 'message': '배송 완료된 주문은 취소할 수 없습니다.'}, status=400)
+
+        # 주문 취소 처리
+        order.order_status = 'cancelled'
+        order.save()
+
+        # 결제 취소 처리 (카드 결제인 경우)
+        if order.payment_method == 'card':
+            payments = Payment.objects.filter(order=order, payment_status='completed')
+            for payment in payments:
+                if payment.payment_key:
+                    # 토스페이먼츠 결제 취소 API 호출
+                    try:
+                        import requests
+                        import base64
+                        from django.conf import settings
+
+                        url = f"{settings.TOSS_PAYMENTS_API_URL}/payments/{payment.payment_key}/cancel"
+                        secret_key = settings.TOSS_PAYMENTS_SECRET_KEY + ':'
+                        encoded_key = base64.b64encode(secret_key.encode()).decode()
+
+                        headers = {
+                            'Authorization': f'Basic {encoded_key}',
+                            'Content-Type': 'application/json'
+                        }
+
+                        payload = {'cancelReason': cancel_reason}
+                        response = requests.post(url, json=payload, headers=headers)
+
+                        if response.status_code == 200:
+                            payment.payment_status = 'cancelled'
+                            payment.cancelled_date = timezone.now()
+                            payment.memo = f'취소 사유: {cancel_reason}'
+                            payment.save()
+
+                            order.payment_status = 'refunded'
+                            order.save()
+                    except Exception as e:
+                        print(f"결제 취소 API 오류: {e}")
+
+        # 재고 복구
+        for item in order.items.all():
+            if item.selected_year:
+                try:
+                    selected_year_int = int(item.selected_year.split('/')[0]) if '/' in item.selected_year else int(item.selected_year)
+                    update_stock(
+                        product_code=item.product_code,
+                        selected_year=selected_year_int,
+                        quantity=item.quantity,
+                        operation='add'
+                    )
+                except:
+                    pass
+
+        return JsonResponse({
+            'success': True,
+            'message': '주문이 취소되었습니다.',
+            'data': {
+                'order_number': order.order_number,
+                'order_status': order.order_status,
+                'payment_status': order.payment_status
+            }
+        })
+
+    except Order.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '주문을 찾을 수 없습니다.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'주문 취소 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
 # ============================================
 # 가격 계산 API
 # ============================================
