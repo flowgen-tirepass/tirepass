@@ -139,12 +139,64 @@ async function removeFromCart(cartId) {
     }
 }
 
-function checkout() {
-    if (cartItems.length === 0) return;
+async function checkout() {
+    if (cartItems.length === 0) {
+        showAlert('장바구니가 비어있습니다.', 'error');
+        return;
+    }
 
-    const cartIds = cartItems.map(item => item.id);
-    localStorage.setItem('checkout_cart_ids', JSON.stringify(cartIds));
-    location.href = '/mobile/checkout/';
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        showAlert('로그인이 필요합니다.', 'error');
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    // 주문 확인
+    const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
+    const confirmMessage = `총 ${cartItems.length}개 상품, ${totalAmount.toLocaleString()}원을 주문하시겠습니까?`;
+
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const cartIds = cartItems.map(item => item.id);
+
+        // 주문 생성 API 호출
+        const response = await fetch('/api/mobile/orders/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_code: customerCode,
+                cart_ids: cartIds,
+                shipping_address: '',
+                shipping_memo: '',
+                payment_method: 'transfer'
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('주문이 완료되었습니다!', 'success');
+            // 주문 목록 페이지로 이동
+            setTimeout(() => {
+                location.href = '/mobile/orders/';
+            }, 1000);
+        } else {
+            showAlert(data.message || '주문 생성 실패', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('주문 오류:', error);
+        showAlert('주문 처리 중 오류가 발생했습니다.', 'error');
+    }
 }
 
 loadCart();
