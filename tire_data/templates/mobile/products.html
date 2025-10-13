@@ -247,6 +247,99 @@
         margin-right: auto;
     }
 }
+
+/* 브랜드 선택 그리드 */
+.brand-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(2, auto);
+    gap: 6px;
+    width: 100%;
+    margin-top: 15px;
+}
+
+.brand-item {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1.5 / 1;
+    width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.brand-item.selected {
+    border-color: #2563eb;
+    background: #eff6ff;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.brand-item img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+/* 작은 모바일 (320px ~ 374px) */
+@media (max-width: 374px) {
+    .brand-grid {
+        gap: 4px;
+    }
+
+    .brand-item {
+        border-radius: 4px;
+        padding: 4px;
+        border-width: 1.5px;
+    }
+}
+
+/* 중간 모바일 (375px ~ 414px) */
+@media (min-width: 375px) and (max-width: 414px) {
+    .brand-grid {
+        gap: 6px;
+    }
+
+    .brand-item {
+        border-radius: 6px;
+        padding: 6px;
+    }
+}
+
+/* 큰 모바일 (415px ~ 767px) */
+@media (min-width: 415px) and (max-width: 767px) {
+    .brand-grid {
+        gap: 8px;
+    }
+
+    .brand-item {
+        border-radius: 8px;
+        padding: 8px;
+    }
+}
+
+/* 태블릿 이상 (768px+) */
+@media (min-width: 768px) {
+    .brand-grid {
+        gap: 10px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .brand-item {
+        border-radius: 10px;
+        padding: 10px;
+    }
+}
 </style>
 {% endblock %}
 
@@ -261,6 +354,43 @@
     </div>
     <div style="font-size: clamp(11px, 2.8vw, 12px); color: #6b7280; margin-top: 8px;">
         💡 팁: 타이어 사이즈를 숫자로만 입력해도 검색됩니다 (예: 2055516 → 205/55R16)
+    </div>
+</div>
+
+<!-- 브랜드 선택 -->
+<div class="card">
+    <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 10px;">브랜드 선택</h3>
+    <div class="brand-grid" id="brandGrid">
+        <div class="brand-item" data-brand="GOODYEAR" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/goodyear.png" alt="GOODYEAR">
+        </div>
+        <div class="brand-item" data-brand="KUMHO" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/kumho.png" alt="KUMHO">
+        </div>
+        <div class="brand-item" data-brand="NEXEN" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/nexen.png" alt="NEXEN">
+        </div>
+        <div class="brand-item" data-brand="DUNLOP" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/dunlop.png" alt="DUNLOP">
+        </div>
+        <div class="brand-item" data-brand="MICHELIN" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/michelin.png" alt="MICHELIN">
+        </div>
+        <div class="brand-item" data-brand="BRIDGESTONE" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/bridgestone.png" alt="BRIDGESTONE">
+        </div>
+        <div class="brand-item" data-brand="YOKOHAMA" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/yokohama.png" alt="YOKOHAMA">
+        </div>
+        <div class="brand-item" data-brand="CONTINENTAL" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/continental.png" alt="CONTINENTAL">
+        </div>
+        <div class="brand-item" data-brand="PIRELLI" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/pirelli.png" alt="PIRELLI">
+        </div>
+        <div class="brand-item" data-brand="HANKOOK" onclick="toggleBrand(this)">
+            <img src="/static/mobile/img/brands/hankook.png" alt="HANKOOK">
+        </div>
     </div>
 </div>
 
@@ -288,6 +418,28 @@ let currentPage = 1;
 let totalPages = 1;
 let searchQuery = '';
 let selectedBrands = '';
+let selectedBrandsArray = []; // 선택된 브랜드 배열
+
+// 브랜드 토글
+function toggleBrand(element) {
+    const brand = element.getAttribute('data-brand');
+
+    if (element.classList.contains('selected')) {
+        // 선택 해제
+        element.classList.remove('selected');
+        selectedBrandsArray = selectedBrandsArray.filter(b => b !== brand);
+    } else {
+        // 선택 추가
+        element.classList.add('selected');
+        selectedBrandsArray.push(brand);
+    }
+
+    // 선택된 브랜드를 문자열로 변환
+    selectedBrands = selectedBrandsArray.join(',');
+
+    // 브랜드 변경 시 자동 검색
+    loadProducts(1);
+}
 
 async function loadProducts(page = 1) {
     const customerCode = getCustomerCode();
@@ -699,6 +851,15 @@ function initFromURL() {
     const brandsParam = urlParams.get('brands');
     if (brandsParam) {
         selectedBrands = brandsParam;
+        selectedBrandsArray = brandsParam.split(',');
+
+        // Mark brand items as selected in UI
+        selectedBrandsArray.forEach(brand => {
+            const brandElement = document.querySelector(`[data-brand="${brand}"]`);
+            if (brandElement) {
+                brandElement.classList.add('selected');
+            }
+        });
     }
 
     // 타이어만 보기 필터
