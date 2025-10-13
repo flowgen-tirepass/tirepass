@@ -108,10 +108,10 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
     # 5. 최종 가격 계산
     # 공식: 단가 × (1 - 기본할인/100) × (1 - 고객할인/100) × (1 - 추가할인/100) × (1 - DOT할인/100)
     unit_price = Decimal(str(result['unit_price']))
-    basic_rate = result['basic_discount_rate'] / Decimal('100')
-    customer_rate = result['customer_discount_rate'] / Decimal('100')
-    additional_rate = result['additional_discount_rate'] / Decimal('100')
-    dot_rate = result['dot_discount_rate'] / Decimal('100')
+    basic_rate = Decimal(str(result['basic_discount_rate'])) / Decimal('100')
+    customer_rate = Decimal(str(result['customer_discount_rate'])) / Decimal('100')
+    additional_rate = Decimal(str(result['additional_discount_rate'])) / Decimal('100')
+    dot_rate = Decimal(str(result['dot_discount_rate'])) / Decimal('100')
 
     # 단계별 할인 적용
     price_after_basic = unit_price * (Decimal('1') - basic_rate)
