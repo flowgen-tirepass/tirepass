@@ -420,9 +420,14 @@ def api_cart_list(request):
 @require_http_methods(["POST"])
 def api_cart_add(request):
     """장바구니 담기 API"""
+    import logging
+    logger = logging.getLogger(__name__)
+
     try:
         data = json.loads(request.body)
-    except json.JSONDecodeError:
+        logger.info(f"장바구니 추가 요청: {data}")
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON 파싱 오류: {e}")
         return JsonResponse({
             'success': False,
             'message': '잘못된 JSON 형식입니다.'
@@ -434,40 +439,52 @@ def api_cart_add(request):
     selected_year = data.get('selected_year')
 
     if not customer_code or not product_code:
+        logger.warning(f"필수 파라미터 누락 - customer_code: {customer_code}, product_code: {product_code}")
         return JsonResponse({
             'success': False,
             'message': '고객 코드와 상품 코드가 필요합니다.'
         }, status=400)
 
-    # 가격 계산
-    price_info = calculate_discount_price(
-        product_code=product_code,
-        customer_code=customer_code,
-        selected_year=selected_year,
-        quantity=quantity
-    )
+    try:
+        # 가격 계산
+        logger.info(f"가격 계산 시작 - product: {product_code}, customer: {customer_code}, year: {selected_year}")
+        price_info = calculate_discount_price(
+            product_code=product_code,
+            customer_code=customer_code,
+            selected_year=selected_year,
+            quantity=quantity
+        )
+        logger.info(f"가격 계산 완료: {price_info}")
 
-    # 장바구니에 추가 또는 업데이트
-    cart, created = ShoppingCart.objects.update_or_create(
-        customer_code=customer_code,
-        product_code=product_code,
-        selected_year=selected_year,
-        defaults={
-            'quantity': quantity,
-            'unit_price': price_info['unit_price'],
-            'discount_rate': price_info['total_discount_rate'],
-            'final_price': price_info['final_price']
-        }
-    )
+        # 장바구니에 추가 또는 업데이트
+        cart, created = ShoppingCart.objects.update_or_create(
+            customer_code=customer_code,
+            product_code=product_code,
+            selected_year=selected_year,
+            defaults={
+                'quantity': quantity,
+                'unit_price': price_info['unit_price'],
+                'discount_rate': price_info['total_discount_rate'],
+                'final_price': price_info['final_price']
+            }
+        )
+        logger.info(f"장바구니 {'추가' if created else '업데이트'} 성공 - cart_id: {cart.id}")
 
-    return JsonResponse({
-        'success': True,
-        'message': '장바구니에 추가되었습니다.' if created else '장바구니가 업데이트되었습니다.',
-        'data': {
-            'cart_id': cart.id,
-            'quantity': cart.quantity
-        }
-    })
+        return JsonResponse({
+            'success': True,
+            'message': '장바구니에 추가되었습니다.' if created else '장바구니가 업데이트되었습니다.',
+            'data': {
+                'cart_id': cart.id,
+                'quantity': cart.quantity
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"장바구니 추가 실패: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': f'장바구니 추가 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
 
 
 @csrf_exempt

@@ -522,6 +522,8 @@ async function addToCartWithYear(code, year) {
     showLoading();
 
     try {
+        console.log('장바구니 추가 요청:', { customerCode, code, year });
+
         const response = await fetch('/api/mobile/cart/add/', {
             method: 'POST',
             headers: {
@@ -535,18 +537,23 @@ async function addToCartWithYear(code, year) {
             })
         });
 
+        console.log('응답 상태:', response.status, response.statusText);
+
         const data = await response.json();
+        console.log('응답 데이터:', data);
+
         hideLoading();
 
         if (data.success) {
             showAlert(year ? `${year} 상품을 장바구니에 담았습니다.` : '장바구니에 담았습니다.', 'success');
         } else {
+            console.error('장바구니 추가 실패:', data.message);
             showAlert(data.message || '장바구니 추가 실패', 'error');
         }
     } catch (error) {
         hideLoading();
-        console.error('Error:', error);
-        showAlert('오류가 발생했습니다.', 'error');
+        console.error('장바구니 추가 에러:', error);
+        showAlert(`오류가 발생했습니다: ${error.message}`, 'error');
     }
 }
 
