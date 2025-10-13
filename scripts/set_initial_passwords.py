@@ -131,8 +131,7 @@ def set_initial_passwords():
                     UPDATE customers_simple
                     SET password = %s,
                         must_change_password = 1,
-                        is_registered = 1,
-                        signup_source = COALESCE(signup_source, 'erp_initial')
+                        is_registered = 1
                     WHERE code = %s
                 """
 
