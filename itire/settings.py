@@ -102,22 +102,45 @@ WSGI_APPLICATION = 'itire.wsgi.application'
 # ============================================
 # Database
 # ============================================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DB_NAME', 'itire_db'),
-        'USER': os.environ.get('DB_USER', 'root'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'tirepass'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'connect_timeout': 28800,  # 8시간 타임아웃
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
-        'CONN_MAX_AGE': 600,  # 연결 풀링 (10분) - 연결 재사용
+# PythonAnywhere 환경 자동 감지
+IS_PYTHONANYWHERE = 'PYTHONANYWHERE_SITE' in os.environ or '/home/tirepass' in str(BASE_DIR)
+
+if IS_PYTHONANYWHERE:
+    # PythonAnywhere 환경: 원격 MySQL 서버 사용
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'tirepass$itire_db',
+            'USER': 'tirepass',
+            'PASSWORD': os.environ.get('DB_PASSWORD', '#flowgen9569yjm*'),
+            'HOST': 'tirepass.mysql.pythonanywhere-services.com',
+            'PORT': '3306',
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'connect_timeout': 28800,  # 8시간 타임아웃
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+            'CONN_MAX_AGE': 600,  # 연결 풀링 (10분)
+        }
     }
-}
+else:
+    # 로컬 개발 환경: localhost MySQL 사용
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ.get('DB_NAME', 'itire_db'),
+            'USER': os.environ.get('DB_USER', 'root'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'tirepass'),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'connect_timeout': 28800,
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+            'CONN_MAX_AGE': 600,
+        }
+    }
 
 
 # Password validation
