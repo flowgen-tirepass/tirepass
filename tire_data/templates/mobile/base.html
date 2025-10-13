@@ -98,6 +98,28 @@
 
         .nav-icon {
             font-size: 24px;
+            position: relative;
+        }
+
+        /* 장바구니 배지 */
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            min-width: 18px;
+            text-align: center;
+            line-height: 1.2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header-btn {
+            position: relative;
         }
 
         /* Buttons */
@@ -323,7 +345,10 @@
             <div class="header-actions">
                 {% block header_actions %}
                 <button class="header-btn" onclick="location.href='/mobile/cart/'">
-                    <span class="nav-icon">🛒</span>
+                    <span class="nav-icon">
+                        🛒
+                        <span class="cart-badge" id="headerCartBadge" style="display: none;">0</span>
+                    </span>
                 </button>
                 {% endblock %}
             </div>
@@ -395,7 +420,10 @@
             <span>상품검색</span>
         </a>
         <a href="/mobile/cart/" class="nav-item {% block nav_cart %}{% endblock %}">
-            <span class="nav-icon">🛒</span>
+            <span class="nav-icon">
+                🛒
+                <span class="cart-badge" id="bottomCartBadge" style="display: none;">0</span>
+            </span>
             <span>장바구니</span>
         </a>
         <a href="/mobile/orders/" class="nav-item {% block nav_orders %}{% endblock %}">
@@ -456,6 +484,46 @@
         function clearCustomerCode() {
             localStorage.removeItem('customer_code');
         }
+
+        // 장바구니 개수 조회 및 배지 업데이트
+        async function updateCartBadge() {
+            const customerCode = getCustomerCode();
+            if (!customerCode) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/mobile/cart/?customer_code=${customerCode}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    const count = data.data.items ? data.data.items.length : 0;
+                    const headerBadge = document.getElementById('headerCartBadge');
+                    const bottomBadge = document.getElementById('bottomCartBadge');
+
+                    if (count > 0) {
+                        if (headerBadge) {
+                            headerBadge.textContent = count;
+                            headerBadge.style.display = 'block';
+                        }
+                        if (bottomBadge) {
+                            bottomBadge.textContent = count;
+                            bottomBadge.style.display = 'block';
+                        }
+                    } else {
+                        if (headerBadge) headerBadge.style.display = 'none';
+                        if (bottomBadge) bottomBadge.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('장바구니 개수 조회 실패:', error);
+            }
+        }
+
+        // 페이지 로드 시 장바구니 개수 업데이트
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCartBadge();
+        });
     </script>
 
     {% block extra_js %}{% endblock %}
