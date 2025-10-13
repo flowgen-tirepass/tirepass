@@ -589,4 +589,4 @@ class GoodsPerformanceTag(models.Model):
 # ============================================
 # 쇼핑/주문 관련 모델
 # ============================================
-from .models_shopping import ShoppingCart, Order, OrderItem, Payment
+from .models_shopping import ShoppingCart, Order, OrderItem, Payment, ShippingAddress
