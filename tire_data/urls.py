@@ -28,6 +28,8 @@ urlpatterns = [
     path('mobile/profile/', mobile_views.mobile_profile, name='mobile_profile'),
     path('mobile/addresses/', mobile_views.mobile_addresses, name='mobile_addresses'),
     path('mobile/quote/', mobile_views.mobile_quote, name='mobile_quote'),
+    path('mobile/terms/', mobile_views.mobile_terms, name='mobile_terms'),
+    path('mobile/privacy/', mobile_views.mobile_privacy, name='mobile_privacy'),
 
     # Dashboard URLs
     path('', views.index, name='index'),

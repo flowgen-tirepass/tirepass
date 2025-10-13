@@ -22,6 +22,10 @@
             padding-bottom: 60px;
         }
 
+        body.with-footer {
+            padding-bottom: 400px; /* 푸터 공간 확보 */
+        }
+
         /* Header */
         .header {
             background-color: #2563eb;
@@ -232,6 +236,61 @@
             background-color: #fee2e2;
             color: #991b1b;
         }
+
+        /* Footer */
+        .footer {
+            background-color: #1f2937;
+            color: #d1d5db;
+            padding: 30px 20px 80px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .footer-section {
+            margin-bottom: 25px;
+        }
+
+        .footer-section h3 {
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .footer-section p {
+            margin: 5px 0;
+            color: #9ca3af;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #d1d5db;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer-links a:hover {
+            color: #ffffff;
+        }
+
+        .footer-divider {
+            border: none;
+            border-top: 1px solid #374151;
+            margin: 20px 0;
+        }
+
+        .footer-copyright {
+            text-align: center;
+            color: #6b7280;
+            font-size: 12px;
+            margin-top: 20px;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -253,6 +312,52 @@
     <!-- Main Content -->
     <div class="main-content">
         {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <!-- 이용약관 및 개인정보처리방침 -->
+        <div class="footer-links">
+            <a href="/mobile/terms/">이용약관</a>
+            <a href="/mobile/privacy/">개인정보처리방침</a>
+        </div>
+
+        <hr class="footer-divider">
+
+        <!-- 회사 정보 -->
+        <div class="footer-section">
+            <h3>㈜아이타이어</h3>
+            <p>등록번호: 410-86-80374</p>
+            <p>대표: 김공선</p>
+            <p>사업장: 광주광역시 광산구 하남대로 391(신가동)</p>
+        </div>
+
+        <!-- 고객센터 정보 -->
+        <div class="footer-section">
+            <h3>고객센터</h3>
+            <p>📞 상담전화: 1588-5508</p>
+            <p>📧 E-mail: itire8586@naver.com</p>
+            <p style="margin-top: 10px; font-weight: 500;">CS 운영시간</p>
+            <p>평일: 오전 9시 ~ 오후 6시</p>
+            <p>토요일: 오전 9시 ~ 오후 4시</p>
+            <p>일요일: 휴무 (공휴일 정상근무)</p>
+        </div>
+
+        <!-- 무통장 입금 안내 -->
+        <div class="footer-section">
+            <h3>무통장 입금 안내</h3>
+            <p>예금주: ㈜아이타이어</p>
+            <p>국민은행: 9-2580-7788-46</p>
+            <p>농협: 351-0939-2758</p>
+        </div>
+
+        <hr class="footer-divider">
+
+        <!-- 저작권 -->
+        <div class="footer-copyright">
+            <p>© 2025 ㈜아이타이어. All rights reserved.</p>
+            <p style="margin-top: 5px;">TirePASS B2B Platform</p>
+        </div>
     </div>
 
     <!-- Bottom Navigation -->

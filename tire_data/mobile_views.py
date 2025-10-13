@@ -66,3 +66,11 @@ def mobile_quote(request):
 def mobile_addresses(request):
     """배송지 관리 페이지"""
     return render(request, 'mobile/addresses.html')
+
+def mobile_terms(request):
+    """이용약관 페이지"""
+    return render(request, 'mobile/terms.html')
+
+def mobile_privacy(request):
+    """개인정보처리방침 페이지"""
+    return render(request, 'mobile/privacy.html')
