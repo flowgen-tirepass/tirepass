@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 def sync_goods():
-    """ERP API에서 상품 데이터를 가져와 MySQL DB에 동기화"""
+    """ERP API에서 상품 데이터를 가져와 MySQL DB에 동기화 (배치 처리)"""
     start_time = datetime.now()
     logger.info("=" * 60)
     logger.info(f"동기화 시작: {start_time}")
@@ -57,33 +57,49 @@ def sync_goods():
         goods_list = ERPAPIClient.get_goods_list(offset=0, limit=total_count)
         logger.info(f"다운로드 완료: {len(goods_list):,}개")
 
-        # MySQL DB 동기화
+        # MySQL DB 동기화 (배치 처리)
         created_count = 0
         updated_count = 0
+        batch_size = 500  # 500개씩 배치 처리
+        total_batches = (len(goods_list) + batch_size - 1) // batch_size
 
-        with transaction.atomic():
-            for goods_data in goods_list:
-                code = goods_data.get('code')
-                name = goods_data.get('name', '')
-                bun1 = goods_data.get('bun1', '')
-                jaego = goods_data.get('jaego', 0)
-                fixp = goods_data.get('fixp', 0)
+        logger.info(f"배치 처리 시작: {batch_size}개씩 {total_batches}개 배치")
 
-                # Goods 모델에 저장 또는 업데이트
-                obj, created = Goods.objects.update_or_create(
-                    code=code,
-                    defaults={
-                        'name': name,
-                        'bun1': bun1,
-                        'jaego': jaego,
-                        'fixp': fixp,
-                    }
-                )
+        for batch_idx in range(0, len(goods_list), batch_size):
+            batch_num = (batch_idx // batch_size) + 1
+            batch = goods_list[batch_idx:batch_idx + batch_size]
 
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
+            try:
+                with transaction.atomic():
+                    for goods_data in batch:
+                        code = goods_data.get('code')
+                        name = goods_data.get('name', '')
+                        bun1 = goods_data.get('bun1', '')
+                        jaego = goods_data.get('jaego', 0)
+                        fixp = goods_data.get('fixp', 0)
+
+                        # Goods 모델에 저장 또는 업데이트
+                        obj, created = Goods.objects.update_or_create(
+                            code=code,
+                            defaults={
+                                'name': name,
+                                'bun1': bun1,
+                                'jaego': jaego,
+                                'fixp': fixp,
+                            }
+                        )
+
+                        if created:
+                            created_count += 1
+                        else:
+                            updated_count += 1
+
+                logger.info(f"  배치 {batch_num}/{total_batches} 완료 ({len(batch)}개)")
+
+            except Exception as e:
+                logger.error(f"  배치 {batch_num} 실패: {e}")
+                # 배치 하나가 실패해도 계속 진행
+                continue
 
         # 결과 출력
         end_time = datetime.now()

@@ -112,8 +112,10 @@ DATABASES = {
         'PORT': os.environ.get('DB_PORT', '3306'),
         'OPTIONS': {
             'charset': 'utf8mb4',
+            'connect_timeout': 28800,  # 8시간 타임아웃
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
+        },
+        'CONN_MAX_AGE': 600,  # 연결 풀링 (10분) - 연결 재사용
     }
 }
 
