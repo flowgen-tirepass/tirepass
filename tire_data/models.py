@@ -14,7 +14,7 @@ class GoodsDisplayName(models.Model):
         db_table = 'goods_display_names'
         managed = True
         verbose_name = '상품 표시명'
-        verbose_name_plural = '⚙️ 설정 | 04. 상품 표시명'
+        verbose_name_plural = 'C. ⚙️ 설정 | 04. 상품 표시명'
 
     def __str__(self):
         return f"{self.goods_code} - {self.korean_name}"
@@ -31,7 +31,7 @@ class Goods(models.Model):
         db_table = 'goods'
         managed = False  # 기존 테이블 사용
         verbose_name = '상품'
-        verbose_name_plural = '📊 판매 | 01. 상품'
+        verbose_name_plural = 'A. 📊 판매 | 01. 상품'
         ordering = ['code']
 
     def __str__(self):
@@ -198,7 +198,7 @@ class Customers(models.Model):
         db_table = 'customers_simple'
         managed = True  # pythonanywhere가 관리
         verbose_name = '고객'
-        verbose_name_plural = '📊 판매 | 02. 고객'
+        verbose_name_plural = 'A. 📊 판매 | 02. 고객'
         ordering = ['code']
 
     def __str__(self):
@@ -279,7 +279,7 @@ class YearAllocation(models.Model):
         db_table = 'year_allocations'
         managed = True  # Django가 관리하는 테이블
         verbose_name = '연식 할인율'
-        verbose_name_plural = '⚙️ 설정 | 05. 연식 할인율'
+        verbose_name_plural = 'C. ⚙️ 설정 | 05. 연식 할인율'
         unique_together = ['goods_code']  # 상품코드별로 유일
 
     def __str__(self):
@@ -329,7 +329,7 @@ class BrandGroup(models.Model):
         db_table = 'brand_groups'
         managed = True
         verbose_name = '브랜드 그룹'
-        verbose_name_plural = '💰 할인 | 01. 브랜드 그룹'
+        verbose_name_plural = 'B. 💰 할인 | 01. 브랜드 그룹'
         ordering = ['brand', 'group_order', 'group_name']
         unique_together = ['brand', 'group_name']
 
@@ -348,7 +348,7 @@ class BrandGroupPattern(models.Model):
         db_table = 'brand_group_patterns'
         managed = True
         verbose_name = '그룹 패턴'
-        verbose_name_plural = '💰 할인 | 02. 그룹 패턴'
+        verbose_name_plural = 'B. 💰 할인 | 02. 그룹 패턴'
         ordering = ['group', 'pattern']
         unique_together = ['group', 'pattern']
 
@@ -384,7 +384,7 @@ class CustomerDiscount(models.Model):
         db_table = 'customer_discounts'
         managed = True
         verbose_name = '고객 할인'
-        verbose_name_plural = '💰 할인 | 03. 고객별 할인'
+        verbose_name_plural = 'B. 💰 할인 | 03. 고객별 할인'
         ordering = ['customer_code', 'brand', '-priority']
         unique_together = ['customer_code', 'brand', 'group']
 
@@ -445,7 +445,7 @@ class DiscountHistory(models.Model):
         db_table = 'discount_history'
         managed = True
         verbose_name = '할인 이력'
-        verbose_name_plural = '💰 할인 | 05. 할인 이력'
+        verbose_name_plural = 'B. 💰 할인 | 05. 할인 이력'
         ordering = ['-transaction_date']
 
     def __str__(self):
@@ -478,7 +478,7 @@ class CustomerProductDiscount(models.Model):
         db_table = 'customer_product_discounts'
         managed = True
         verbose_name = '고객별 상품 할인'
-        verbose_name_plural = '💰 할인 | 04. 상품별 할인'
+        verbose_name_plural = 'B. 💰 할인 | 04. 상품별 할인'
         ordering = ['customer_code', 'product_code', '-priority']
         unique_together = ['customer_code', 'product_code']
 
@@ -547,7 +547,7 @@ class PerformanceCategory(models.Model):
         db_table = 'performance_categories'
         managed = True
         verbose_name = '성능표기 카테고리'
-        verbose_name_plural = '⚙️ 설정 | 02. 성능표기 카테고리'
+        verbose_name_plural = 'C. ⚙️ 설정 | 02. 성능표기 카테고리'
         ordering = ['order', 'name']
 
     def __str__(self):
@@ -571,7 +571,7 @@ class PerformanceTag(models.Model):
         db_table = 'performance_tags'
         managed = True
         verbose_name = '성능표기 태그'
-        verbose_name_plural = '⚙️ 설정 | 03. 성능표기 태그'
+        verbose_name_plural = 'C. ⚙️ 설정 | 03. 성능표기 태그'
         ordering = ['category__order', 'category', 'order', 'name']
         unique_together = ['category', 'name']
 
@@ -594,7 +594,7 @@ class GoodsPerformanceTag(models.Model):
         db_table = 'goods_performance_tags'
         managed = True
         verbose_name = '상품 성능표기'
-        verbose_name_plural = '⚙️ 설정 | 01. 상품 성능표기'
+        verbose_name_plural = 'C. ⚙️ 설정 | 01. 상품 성능표기'
         unique_together = ['goods_code', 'tag']
         ordering = ['goods_code', 'tag__category__order', 'tag__order']
 
@@ -666,7 +666,7 @@ class ERPSnapshot(models.Model):
         db_table = 'erp_snapshots'
         managed = True
         verbose_name = 'ERP 스냅샷'
-        verbose_name_plural = '⚙️ 설정 | 06. ERP 스냅샷'
+        verbose_name_plural = 'C. ⚙️ 설정 | 06. ERP 스냅샷'
         ordering = ['-timestamp']
         indexes = [
             models.Index(fields=['-timestamp']),
