@@ -251,59 +251,69 @@ def api_products_list(request):
     for p in products_page:
         ya = year_allocations.get(p.code)
 
+        # 할인율 결정: YearAllocation의 base_discount 우선, 없으면 Goods의 discount_rate 사용
+        base_discount = 0.00
+        if ya and hasattr(ya, 'base_discount') and ya.base_discount:
+            base_discount = float(ya.base_discount)
+        elif p.discount_rate:
+            base_discount = float(p.discount_rate)
+
         # DOT 재고 정보 (제조년도별)
+        # 계산 순서: 공장도가 -> 상품 기본할인 적용 -> DOT 할인 추가 적용
         dot_inventory = []
         if ya:
             base_price = p.fixp
+            # 상품 기본할인 적용 가격
+            base_discounted_price = base_price * (1 - base_discount / 100)
 
-            # 2025년
+            # 2025년 (DOT 할인 없음, 상품 기본할인만 적용)
             if ya.year_2025 > 0:
                 dot_inventory.append({
                     'year': '2025/01',
                     'stock': ya.year_2025,
-                    'discount': 0.00,  # 2025년은 할인 없음
-                    'price': base_price
+                    'discount': base_discount,  # 상품 기본할인율만 표시
+                    'price': int(base_discounted_price)
                 })
 
-            # 2024년
+            # 2024년 (상품 기본할인 + DOT 할인)
             if ya.year_2024 > 0:
-                discount_2024 = float(ya.year_2024_discount)
-                price_2024 = int(base_price * (1 - discount_2024 / 100))
+                dot_discount_2024 = float(ya.year_2024_discount)
+                # 상품 기본할인 적용 후 DOT 할인 추가 적용
+                price_2024 = int(base_discounted_price * (1 - dot_discount_2024 / 100))
+                total_discount_2024 = base_discount + dot_discount_2024
                 dot_inventory.append({
                     'year': '2024/06',
                     'stock': ya.year_2024,
-                    'discount': discount_2024,
+                    'discount': total_discount_2024,  # 총 할인율 표시
                     'price': price_2024
                 })
 
-            # 2023년
+            # 2023년 (상품 기본할인 + DOT 할인)
             if ya.year_2023 > 0:
-                discount_2023 = float(ya.year_2023_discount)
-                price_2023 = int(base_price * (1 - discount_2023 / 100))
+                dot_discount_2023 = float(ya.year_2023_discount)
+                price_2023 = int(base_discounted_price * (1 - dot_discount_2023 / 100))
+                total_discount_2023 = base_discount + dot_discount_2023
                 dot_inventory.append({
                     'year': '2023/06',
                     'stock': ya.year_2023,
-                    'discount': discount_2023,
+                    'discount': total_discount_2023,
                     'price': price_2023
                 })
 
-            # 2022년
+            # 2022년 (상품 기본할인 + DOT 할인)
             if ya.year_2022 > 0:
-                discount_2022 = float(ya.year_2022_discount)
-                price_2022 = int(base_price * (1 - discount_2022 / 100))
+                dot_discount_2022 = float(ya.year_2022_discount)
+                price_2022 = int(base_discounted_price * (1 - dot_discount_2022 / 100))
+                total_discount_2022 = base_discount + dot_discount_2022
                 dot_inventory.append({
                     'year': '2022/06',
                     'stock': ya.year_2022,
-                    'discount': discount_2022,
+                    'discount': total_discount_2022,
                     'price': price_2022
                 })
 
-        # 할인율 결정: YearAllocation의 base_discount 우선, 없으면 Goods의 discount_rate 사용
-        discount_rate = 0.00
-        if ya and hasattr(ya, 'base_discount') and ya.base_discount:
-            discount_rate = float(ya.base_discount)
-        elif p.discount_rate:
-            discount_rate = float(p.discount_rate)
+        # 상품 목록에 표시할 할인율
+        discount_rate = base_discount
 
         # 한글명/영문명 가져오기
         dn = display_names.get(p.code)
