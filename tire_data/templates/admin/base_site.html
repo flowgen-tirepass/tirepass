@@ -14,14 +14,36 @@
     #erp-status-widget {
         position: fixed;
         top: 10px;
-        right: 20px;
+        left: 20px;  /* 좌측으로 이동 */
         z-index: 9999;
         background: white;
         border-radius: 8px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         padding: 12px 16px;
         min-width: 280px;
+        max-width: 320px;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        cursor: move;  /* 드래그 가능 표시 */
+        transition: opacity 0.2s, box-shadow 0.2s;
+    }
+
+    #erp-status-widget:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    #erp-status-widget.dragging {
+        cursor: grabbing;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+    }
+
+    #erp-status-widget.minimized {
+        min-width: auto;
+        width: auto;
+        padding: 8px 12px;
+    }
+
+    #erp-status-widget.minimized .widget-content {
+        display: none;
     }
 
     #erp-status-widget .widget-header {
@@ -31,12 +53,41 @@
         margin-bottom: 10px;
         padding-bottom: 8px;
         border-bottom: 1px solid #e5e7eb;
+        cursor: move;
     }
 
     #erp-status-widget .widget-title {
         font-size: 14px;
         font-weight: 600;
         color: #374151;
+        flex: 1;
+    }
+
+    #erp-status-widget .widget-controls {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+
+    #erp-status-widget .widget-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px 6px;
+        border-radius: 4px;
+        font-size: 16px;
+        line-height: 1;
+        transition: background-color 0.2s;
+    }
+
+    #erp-status-widget .widget-btn:hover {
+        background-color: #f3f4f6;
+    }
+
+    #erp-status-widget .opacity-slider {
+        width: 80px;
+        height: 4px;
+        cursor: pointer;
     }
 
     #erp-status-widget .status-indicator {
@@ -126,25 +177,60 @@ document.addEventListener('DOMContentLoaded', function() {
     const widget = document.createElement('div');
     widget.id = 'erp-status-widget';
     widget.innerHTML = `
-        <div class="widget-header">
+        <div class="widget-header" id="widget-header">
             <span class="widget-title">🔗 ERP 연동 상태</span>
+            <div class="widget-controls">
+                <input type="range" min="30" max="100" value="100" class="opacity-slider" id="opacity-slider" title="투명도 조절">
+                <button class="widget-btn" id="minimize-btn" title="최소화/최대화">−</button>
+            </div>
         </div>
-        <div class="status-indicator">
-            <span class="status-dot checking" id="status-dot"></span>
-            <span id="status-text">확인 중...</span>
+        <div class="widget-content">
+            <div class="status-indicator">
+                <span class="status-dot checking" id="status-dot"></span>
+                <span id="status-text">확인 중...</span>
+            </div>
+            <div class="status-info" id="status-info">
+                연결 확인 중입니다.
+            </div>
+            <div id="error-container"></div>
+            <button class="reconnect-btn" id="reconnect-btn" onclick="reconnectERP()">
+                수동 재연결
+            </button>
         </div>
-        <div class="status-info" id="status-info">
-            연결 확인 중입니다.
-        </div>
-        <div id="error-container"></div>
-        <button class="reconnect-btn" id="reconnect-btn" onclick="reconnectERP()">
-            수동 재연결
-        </button>
     `;
     document.body.appendChild(widget);
 
     // 위젯 추가 후 상태 확인 시작
     initERPWidget();
+
+    // 드래그 기능 초기화
+    initDragAndDrop();
+
+    // 투명도 조절
+    const opacitySlider = document.getElementById('opacity-slider');
+    opacitySlider.addEventListener('input', function(e) {
+        widget.style.opacity = e.target.value / 100;
+        localStorage.setItem('erp-widget-opacity', e.target.value);
+    });
+
+    // 저장된 투명도 복원
+    const savedOpacity = localStorage.getItem('erp-widget-opacity');
+    if (savedOpacity) {
+        widget.style.opacity = savedOpacity / 100;
+        opacitySlider.value = savedOpacity;
+    }
+
+    // 최소화/최대화
+    const minimizeBtn = document.getElementById('minimize-btn');
+    minimizeBtn.addEventListener('click', function() {
+        widget.classList.toggle('minimized');
+        minimizeBtn.textContent = widget.classList.contains('minimized') ? '+' : '−';
+    });
+
+    // 저장된 위치 복원
+    const savedPos = JSON.parse(localStorage.getItem('erp-widget-position') || '{}');
+    if (savedPos.left) widget.style.left = savedPos.left;
+    if (savedPos.top) widget.style.top = savedPos.top;
 });
 
 // 전역 변수
@@ -158,6 +244,75 @@ function initERPWidget() {
 
     // 30초마다 상태 확인
     statusCheckInterval = setInterval(checkERPStatus, 30000);
+}
+
+// 드래그 앤 드롭 기능
+function initDragAndDrop() {
+    const widget = document.getElementById('erp-status-widget');
+    const header = document.getElementById('widget-header');
+
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+
+    header.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+
+    function dragStart(e) {
+        // 슬라이더나 버튼 클릭 시 드래그 방지
+        if (e.target.classList.contains('opacity-slider') ||
+            e.target.classList.contains('widget-btn')) {
+            return;
+        }
+
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+
+        if (e.target === header || e.target.classList.contains('widget-title')) {
+            isDragging = true;
+            widget.classList.add('dragging');
+        }
+    }
+
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault();
+
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+
+            xOffset = currentX;
+            yOffset = currentY;
+
+            setTranslate(currentX, currentY, widget);
+        }
+    }
+
+    function dragEnd(e) {
+        if (isDragging) {
+            initialX = currentX;
+            initialY = currentY;
+
+            isDragging = false;
+            widget.classList.remove('dragging');
+
+            // 위치 저장
+            const rect = widget.getBoundingClientRect();
+            localStorage.setItem('erp-widget-position', JSON.stringify({
+                left: rect.left + 'px',
+                top: rect.top + 'px'
+            }));
+        }
+    }
+
+    function setTranslate(xPos, yPos, el) {
+        el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+    }
 }
 
 // ERP 상태 확인
