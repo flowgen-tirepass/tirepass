@@ -985,8 +985,13 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('confirmed_date', 'shipped_date', 'delivered_date'),
             'classes': ('collapse',)
         }),
+        ('취소/반품 정보', {
+            'fields': ('cancelled_date', 'cancelled_reason', 'returned_date', 'returned_reason'),
+            'classes': ('collapse',)
+        }),
     )
     readonly_fields = ['order_date']
+    actions = ['cancel_order', 'process_return']
 
     def save_model(self, request, obj, form, change):
         """주문 상태 변경 시 일시 자동 기록"""
@@ -999,8 +1004,57 @@ class OrderAdmin(admin.ModelAdmin):
                 obj.shipped_date = timezone.now()
             elif obj.order_status == 'delivered' and not obj.delivered_date:
                 obj.delivered_date = timezone.now()
+            elif obj.order_status == 'cancelled' and not obj.cancelled_date:
+                obj.cancelled_date = timezone.now()
+            elif obj.order_status == 'returned' and not obj.returned_date:
+                obj.returned_date = timezone.now()
 
         super().save_model(request, obj, form, change)
+
+    def cancel_order(self, request, queryset):
+        """주문 취소 처리"""
+        from django.utils import timezone
+        from django.contrib import messages
+
+        updated_count = 0
+        for order in queryset:
+            if order.order_status in ['pending', 'confirmed']:
+                order.order_status = 'cancelled'
+                order.cancelled_date = timezone.now()
+                if not order.cancelled_reason:
+                    order.cancelled_reason = '관리자에 의한 주문 취소'
+                order.save()
+                updated_count += 1
+
+        if updated_count > 0:
+            self.message_user(request, f'{updated_count}개 주문이 취소되었습니다.', messages.SUCCESS)
+        else:
+            self.message_user(request, '취소 가능한 주문이 없습니다. (주문대기 또는 주문확인 상태만 취소 가능)', messages.WARNING)
+
+    cancel_order.short_description = '선택된 주문 취소'
+
+    def process_return(self, request, queryset):
+        """반품 처리"""
+        from django.utils import timezone
+        from django.contrib import messages
+
+        updated_count = 0
+        for order in queryset:
+            if order.order_status == 'delivered':
+                order.order_status = 'returned'
+                order.returned_date = timezone.now()
+                order.payment_status = 'refunded'
+                if not order.returned_reason:
+                    order.returned_reason = '관리자에 의한 반품 처리'
+                order.save()
+                updated_count += 1
+
+        if updated_count > 0:
+            self.message_user(request, f'{updated_count}개 주문이 반품 처리되었습니다.', messages.SUCCESS)
+        else:
+            self.message_user(request, '반품 가능한 주문이 없습니다. (배송완료 상태만 반품 가능)', messages.WARNING)
+
+    process_return.short_description = '선택된 주문 반품 처리'
 
 
 @admin.register(OrderItem)

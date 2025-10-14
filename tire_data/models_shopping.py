@@ -21,7 +21,7 @@ class ShoppingCart(models.Model):
         db_table = 'shopping_cart'
         managed = True
         verbose_name = '장바구니'
-        verbose_name_plural = '장바구니 목록'
+        verbose_name_plural = '📊 판매 | 04. 장바구니'
         ordering = ['-created_at']
         unique_together = ['customer_code', 'product_code', 'selected_year']
 
@@ -58,6 +58,7 @@ class Order(models.Model):
         ('shipped', '배송중'),
         ('delivered', '배송완료'),
         ('cancelled', '주문취소'),
+        ('returned', '반품완료'),
     ]
 
     PAYMENT_STATUS_CHOICES = [
@@ -81,6 +82,10 @@ class Order(models.Model):
     confirmed_date = models.DateTimeField(null=True, blank=True, verbose_name='주문확인일시')
     shipped_date = models.DateTimeField(null=True, blank=True, verbose_name='출고일시')
     delivered_date = models.DateTimeField(null=True, blank=True, verbose_name='배송완료일시')
+    cancelled_date = models.DateTimeField(null=True, blank=True, verbose_name='취소일시')
+    cancelled_reason = models.TextField(null=True, blank=True, verbose_name='취소사유')
+    returned_date = models.DateTimeField(null=True, blank=True, verbose_name='반품일시')
+    returned_reason = models.TextField(null=True, blank=True, verbose_name='반품사유')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
 
@@ -88,7 +93,7 @@ class Order(models.Model):
         db_table = 'orders'
         managed = True
         verbose_name = '주문'
-        verbose_name_plural = '주문 목록'
+        verbose_name_plural = '📊 판매 | 03. 주문'
         ordering = ['-order_date']
 
     def __str__(self):
@@ -127,7 +132,7 @@ class OrderItem(models.Model):
         db_table = 'order_items'
         managed = True
         verbose_name = '주문 상세'
-        verbose_name_plural = '주문 상세 목록'
+        verbose_name_plural = '📊 판매 | 03-1. 주문 상세'
         ordering = ['order', 'id']
 
     def __str__(self):
@@ -168,7 +173,7 @@ class Payment(models.Model):
         db_table = 'payments'
         managed = True
         verbose_name = '결제'
-        verbose_name_plural = '결제 목록'
+        verbose_name_plural = '📊 판매 | 05. 결제'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -196,7 +201,7 @@ class ShippingAddress(models.Model):
         db_table = 'shipping_addresses'
         managed = True
         verbose_name = '배송지 주소'
-        verbose_name_plural = '배송지 주소 목록'
+        verbose_name_plural = '📊 판매 | 06. 배송지'
         ordering = ['-is_default', '-created_at']
 
     def __str__(self):
