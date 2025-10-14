@@ -50,15 +50,16 @@ os.environ['PYTHONIOENCODING'] = 'utf-8'
 
 # Application definition
 INSTALLED_APPS = [
+    # 프로젝트 앱 (템플릿 오버라이드를 위해 먼저 등록)
+    'tire_data',
+
+    # Django 기본 앱
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # 프로젝트 앱 (실제 존재하는 앱만)
-    'tire_data',
 ]
 
 MIDDLEWARE = [
