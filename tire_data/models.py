@@ -612,6 +612,122 @@ class GoodsPerformanceTag(models.Model):
 
 
 # ============================================
+# ERP 상태 스냅샷 모델
+# ============================================
+
+class ERPSnapshot(models.Model):
+    """
+    ERP 시스템 상태 스냅샷 (매시간 기록)
+
+    사용 사례:
+    - 특정 시점의 상품 수 조회
+    - ERP 성능 추이 분석
+    - 연결 안정성 모니터링
+    - 장애 발생 시점 추적
+    """
+    timestamp = models.DateTimeField(verbose_name='기록 시간', db_index=True)
+    status = models.CharField(
+        max_length=20,
+        verbose_name='상태',
+        choices=[
+            ('connected', '연결됨'),
+            ('disconnected', '연결 끊김'),
+            ('timeout', '타임아웃'),
+            ('connection_error', '연결 오류'),
+        ],
+        db_index=True
+    )
+    response_time_ms = models.FloatField(
+        null=True,
+        blank=True,
+        verbose_name='응답 시간(ms)'
+    )
+    erp_goods_count = models.IntegerField(
+        default=0,
+        verbose_name='ERP 상품 수'
+    )
+    database_status = models.CharField(
+        max_length=20,
+        verbose_name='DB 상태',
+        default='unknown'
+    )
+    api_url = models.CharField(
+        max_length=200,
+        verbose_name='API URL'
+    )
+    error_message = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name='오류 메시지'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='레코드 생성일시')
+
+    class Meta:
+        db_table = 'erp_snapshots'
+        managed = True
+        verbose_name = 'ERP 스냅샷'
+        verbose_name_plural = 'ERP 스냅샷 기록'
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['-timestamp']),
+            models.Index(fields=['status', '-timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.timestamp.strftime('%Y-%m-%d %H:%M')} | {self.status} | {self.erp_goods_count:,}개"
+
+    @classmethod
+    def get_count_at_time(cls, target_datetime):
+        """
+        특정 시점의 상품 수 조회
+
+        Args:
+            target_datetime: 조회할 시간 (datetime)
+
+        Returns:
+            int: 상품 수 (없으면 None)
+        """
+        snapshot = cls.objects.filter(
+            timestamp__lte=target_datetime,
+            status='connected'
+        ).order_by('-timestamp').first()
+
+        if snapshot:
+            return snapshot.erp_goods_count
+        return None
+
+    @classmethod
+    def get_today_9am_count(cls):
+        """오늘 09시 상품 수 조회"""
+        from django.utils import timezone
+        today = timezone.now().date()
+        target_time = timezone.datetime.combine(
+            today,
+            timezone.datetime.min.time().replace(hour=9)
+        )
+        target_time = timezone.make_aware(target_time)
+        return cls.get_count_at_time(target_time)
+
+    @classmethod
+    def get_hourly_stats(cls, hours=24):
+        """최근 N시간 통계"""
+        from django.utils import timezone
+        from django.db.models import Avg, Max, Min, Count
+
+        start_time = timezone.now() - timezone.timedelta(hours=hours)
+
+        return cls.objects.filter(
+            timestamp__gte=start_time
+        ).aggregate(
+            avg_response_time=Avg('response_time_ms'),
+            max_response_time=Max('response_time_ms'),
+            min_response_time=Min('response_time_ms'),
+            total_checks=Count('id'),
+            connected_count=Count('id', filter=models.Q(status='connected'))
+        )
+
+
+# ============================================
 # 쇼핑/주문 관련 모델
 # ============================================
 from .models_shopping import ShoppingCart, Order, OrderItem, Payment, ShippingAddress

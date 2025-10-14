@@ -9,7 +9,8 @@ from .models import (
     Goods, GoodsDisplayName, CustomersFull, Customers, YearAllocation, BrandGroup,
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
-    ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag
+    ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag,
+    ERPSnapshot
 )
 from .erp_api_client import ERPAPIClient
 
@@ -1118,3 +1119,120 @@ from .admin_performance import (
     PerformanceTagAdmin,
     GoodsPerformanceTagAdmin
 )
+
+
+# ============================================
+# ERP 스냅샷 관리
+# ============================================
+
+@admin.register(ERPSnapshot)
+class ERPSnapshotAdmin(admin.ModelAdmin):
+    """ERP 상태 스냅샷 관리"""
+
+    list_display = [
+        'timestamp',
+        'status_badge',
+        'erp_goods_count_display',
+        'response_time_display',
+        'database_status',
+    ]
+
+    list_filter = [
+        'status',
+        'database_status',
+        ('timestamp', admin.DateFieldListFilter),
+    ]
+
+    search_fields = [
+        'api_url',
+        'error_message',
+    ]
+
+    readonly_fields = [
+        'timestamp',
+        'status',
+        'response_time_ms',
+        'erp_goods_count',
+        'database_status',
+        'api_url',
+        'error_message',
+        'created_at',
+    ]
+
+    date_hierarchy = 'timestamp'
+
+    list_per_page = 50
+
+    def has_add_permission(self, request):
+        """추가 권한 없음 (명령어로만 생성)"""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """수정 권한 없음 (읽기 전용)"""
+        return False
+
+    def status_badge(self, obj):
+        """상태 배지"""
+        colors = {
+            'connected': '#10b981',  # 녹색
+            'disconnected': '#ef4444',  # 빨강
+            'timeout': '#f59e0b',  # 주황
+            'connection_error': '#ef4444',  # 빨강
+        }
+        color = colors.get(obj.status, '#6b7280')
+
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 4px 8px; '
+            'border-radius: 4px; font-weight: bold; font-size: 11px;">{}</span>',
+            color,
+            obj.get_status_display()
+        )
+    status_badge.short_description = '상태'
+
+    def erp_goods_count_display(self, obj):
+        """상품 수 표시"""
+        if obj.erp_goods_count > 0:
+            return format_html(
+                '<strong style="color: #2563eb;">{:,}개</strong>',
+                obj.erp_goods_count
+            )
+        return '-'
+    erp_goods_count_display.short_description = 'ERP 상품 수'
+
+    def response_time_display(self, obj):
+        """응답 시간 표시"""
+        if obj.response_time_ms:
+            # 응답 시간에 따라 색상 변경
+            if obj.response_time_ms < 200:
+                color = '#10b981'  # 빠름 (녹색)
+            elif obj.response_time_ms < 500:
+                color = '#f59e0b'  # 보통 (주황)
+            else:
+                color = '#ef4444'  # 느림 (빨강)
+
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{:.2f}ms</span>',
+                color,
+                obj.response_time_ms
+            )
+        return '-'
+    response_time_display.short_description = '응답 시간'
+
+    fieldsets = (
+        ('스냅샷 정보', {
+            'fields': ('timestamp', 'created_at')
+        }),
+        ('연결 상태', {
+            'fields': ('status', 'response_time_ms', 'database_status')
+        }),
+        ('데이터', {
+            'fields': ('erp_goods_count',)
+        }),
+        ('API 정보', {
+            'fields': ('api_url',)
+        }),
+        ('오류 정보', {
+            'fields': ('error_message',),
+            'classes': ('collapse',)
+        }),
+    )
