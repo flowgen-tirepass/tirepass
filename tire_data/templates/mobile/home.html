@@ -65,16 +65,16 @@
         display: grid;
         grid-template-columns: repeat(5, 1fr);
         grid-template-rows: repeat(2, auto);
-        gap: 6px;
+        gap: 2px;
         width: 100%;
         margin-top: 12px;
     }
 
     .brand-item {
         background: white;
-        border: 2px solid #e5e7eb;
-        border-radius: 6px;
-        padding: 6px;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 2px;
         cursor: pointer;
         transition: all 0.2s;
         display: flex;
@@ -89,13 +89,13 @@
     .brand-item.selected {
         border-color: #2563eb;
         background: #eff6ff;
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
     }
 
     .brand-item img {
-        max-width: 100%;
-        max-height: 100%;
-        width: auto;
+        max-width: 90%;
+        max-height: 90%;
+        width: 90%;
         height: auto;
         object-fit: contain;
         display: block;
@@ -104,52 +104,52 @@
     /* 작은 모바일 (320px ~ 374px) */
     @media (max-width: 374px) {
         .brand-grid {
-            gap: 4px;
+            gap: 2px;
         }
 
         .brand-item {
-            border-radius: 4px;
-            padding: 4px;
-            border-width: 1.5px;
+            border-radius: 3px;
+            padding: 2px;
+            border-width: 1px;
         }
     }
 
     /* 중간 모바일 (375px ~ 414px) */
     @media (min-width: 375px) and (max-width: 414px) {
         .brand-grid {
-            gap: 6px;
+            gap: 2px;
         }
 
         .brand-item {
-            border-radius: 6px;
-            padding: 6px;
+            border-radius: 4px;
+            padding: 2px;
         }
     }
 
     /* 큰 모바일 (415px ~ 767px) */
     @media (min-width: 415px) and (max-width: 767px) {
         .brand-grid {
-            gap: 8px;
+            gap: 3px;
         }
 
         .brand-item {
-            border-radius: 8px;
-            padding: 8px;
+            border-radius: 5px;
+            padding: 3px;
         }
     }
 
     /* 태블릿 이상 (768px+) */
     @media (min-width: 768px) {
         .brand-grid {
-            gap: 10px;
+            gap: 4px;
             max-width: 600px;
             margin-left: auto;
             margin-right: auto;
         }
 
         .brand-item {
-            border-radius: 10px;
-            padding: 10px;
+            border-radius: 6px;
+            padding: 3px;
         }
     }
 
