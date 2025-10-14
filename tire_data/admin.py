@@ -1192,9 +1192,11 @@ class ERPSnapshotAdmin(admin.ModelAdmin):
     def erp_goods_count_display(self, obj):
         """상품 수 표시"""
         if obj.erp_goods_count > 0:
+            # 숫자를 먼저 포맷팅
+            formatted_count = f'{obj.erp_goods_count:,}'
             return format_html(
-                '<strong style="color: #2563eb;">{:,}개</strong>',
-                obj.erp_goods_count
+                '<strong style="color: #2563eb;">{}개</strong>',
+                formatted_count
             )
         return '-'
     erp_goods_count_display.short_description = 'ERP 상품 수'
@@ -1210,10 +1212,12 @@ class ERPSnapshotAdmin(admin.ModelAdmin):
             else:
                 color = '#ef4444'  # 느림 (빨강)
 
+            # 시간을 먼저 포맷팅
+            formatted_time = f'{obj.response_time_ms:.2f}'
             return format_html(
-                '<span style="color: {}; font-weight: bold;">{:.2f}ms</span>',
+                '<span style="color: {}; font-weight: bold;">{}ms</span>',
                 color,
-                obj.response_time_ms
+                formatted_time
             )
         return '-'
     response_time_display.short_description = '응답 시간'
