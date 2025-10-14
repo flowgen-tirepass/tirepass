@@ -12,7 +12,7 @@ import json
 import secrets
 import re
 
-from .models import Goods, Customers, ShoppingCart, Order, OrderItem, Payment, ShippingAddress
+from .models import Goods, GoodsDisplayName, Customers, ShoppingCart, Order, OrderItem, Payment, ShippingAddress
 from .utils import calculate_discount_price, generate_order_number, update_stock
 
 
@@ -228,6 +228,9 @@ def api_products_list(request):
     product_codes = [p.code for p in products_page]
     year_allocations = {ya.goods_code: ya for ya in YearAllocation.objects.filter(goods_code__in=product_codes)}
 
+    # GoodsDisplayName 정보 가져오기 (한글명/영문명)
+    display_names = {dn.goods_code: dn for dn in GoodsDisplayName.objects.filter(goods_code__in=product_codes)}
+
     # 성능 표기 정보 가져오기
     performance_tags_qs = GoodsPerformanceTag.objects.filter(
         goods_code__in=product_codes
@@ -295,12 +298,26 @@ def api_products_list(request):
                     'price': price_2022
                 })
 
+        # 할인율 결정: YearAllocation의 base_discount 우선, 없으면 Goods의 discount_rate 사용
+        discount_rate = 0.00
+        if ya and hasattr(ya, 'base_discount') and ya.base_discount:
+            discount_rate = float(ya.base_discount)
+        elif p.discount_rate:
+            discount_rate = float(p.discount_rate)
+
+        # 한글명/영문명 가져오기
+        dn = display_names.get(p.code)
+        korean_name = dn.korean_name if dn else None
+        english_name = dn.english_name if dn else None
+
         products_data.append({
             'code': p.code,
             'name': p.name,
+            'korean_name': korean_name,
+            'english_name': english_name,
             'brand': p.bun1 or '',
             'price': p.fixp,
-            'discount_rate': float(p.discount_rate),
+            'discount_rate': discount_rate,
             'stock': p.jaego,
             'is_tire': p.is_tire,
             'dot_inventory': dot_inventory,

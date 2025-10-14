@@ -533,12 +533,21 @@ function renderProducts(products) {
 
             <!-- 상품명 -->
             <div class="product-title-container">
-                <h3 class="tire-size">
-                    ${tireSize || ''}
-                </h3>
-                <div class="product-name">
-                    ${product.name}
-                </div>
+                ${product.korean_name && product.english_name ? `
+                    <h3 class="tire-size">
+                        ${product.korean_name}
+                    </h3>
+                    <div class="product-name">
+                        ${product.english_name}
+                    </div>
+                ` : `
+                    <h3 class="tire-size">
+                        ${tireSize || ''}
+                    </h3>
+                    <div class="product-name">
+                        ${product.name}
+                    </div>
+                `}
             </div>
 
             <!-- 재고 + DOT 재고 확인 버튼 -->

@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils.html import format_html
 import re
 from .models import (
-    Goods, CustomersFull, Customers, YearAllocation, BrandGroup,
+    Goods, GoodsDisplayName, CustomersFull, Customers, YearAllocation, BrandGroup,
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
     ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag
@@ -1076,6 +1076,40 @@ class ShippingAddressAdmin(admin.ModelAdmin):
 # ============================================
 # 성능 표기 Admin (별도 파일에서 import)
 # ============================================
+@admin.register(GoodsDisplayName)
+class GoodsDisplayNameAdmin(admin.ModelAdmin):
+    """상품 표시명 (한글/영문) 관리"""
+    list_display = ['goods_code', 'get_original_name', 'korean_name', 'english_name', 'updated_at']
+    search_fields = ['goods_code', 'korean_name', 'english_name']
+    ordering = ['goods_code']
+    list_per_page = 50
+
+    fieldsets = (
+        ('상품 정보', {
+            'fields': ('goods_code', 'get_original_name')
+        }),
+        ('표시명 설정', {
+            'fields': ('korean_name', 'english_name'),
+            'description': '모바일 화면에 표시될 한글명과 영문명을 입력합니다.'
+        }),
+        ('시스템 정보', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    readonly_fields = ['get_original_name', 'created_at', 'updated_at']
+
+    def get_original_name(self, obj):
+        """Goods 테이블의 원래 상품명 표시"""
+        try:
+            goods = Goods.objects.get(code=obj.goods_code)
+            return format_html('<span style="color: #666;">{}</span>', goods.name)
+        except Goods.DoesNotExist:
+            return '-'
+    get_original_name.short_description = '원래 상품명 (ERP)'
+
+
 from .admin_performance import (
     PerformanceCategoryAdmin,
     PerformanceTagAdmin,

@@ -1,6 +1,24 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 
+
+class GoodsDisplayName(models.Model):
+    """상품 표시명 (한글/영문) 모델"""
+    goods_code = models.CharField(max_length=20, primary_key=True, verbose_name='상품코드')
+    korean_name = models.CharField(max_length=200, verbose_name='한글 상품명')
+    english_name = models.CharField(max_length=200, verbose_name='영문 상품명')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'goods_display_names'
+        managed = True
+        verbose_name = '상품 표시명'
+        verbose_name_plural = '상품 표시명 목록'
+
+    def __str__(self):
+        return f"{self.goods_code} - {self.korean_name}"
+
 class Goods(models.Model):
     """상품(타이어) 정보 모델"""
     code = models.CharField(max_length=20, primary_key=True, verbose_name='상품코드', db_column='CODE')
@@ -348,7 +366,8 @@ class CustomerDiscount(models.Model):
                              related_name='customer_discounts',
                              verbose_name='그룹')
     discount_rate = models.DecimalField(max_digits=5, decimal_places=2,
-                                       default=0.00, verbose_name='할인율(%)')
+                                       default=0.00, verbose_name='할인율(%)',
+                                       validators=[MinValueValidator(0.00)])
     priority = models.IntegerField(default=0, verbose_name='우선순위')
     start_date = models.DateField(null=True, blank=True, verbose_name='시작일')
     end_date = models.DateField(null=True, blank=True, verbose_name='종료일')
@@ -401,19 +420,24 @@ class DiscountHistory(models.Model):
                              null=True, blank=True, verbose_name='그룹')
     basic_discount = models.DecimalField(max_digits=5, decimal_places=2,
                                         null=True, blank=True,
-                                        verbose_name='기본 할인율')
+                                        verbose_name='기본 할인율',
+                                        validators=[MinValueValidator(0.00)])
     customer_discount = models.DecimalField(max_digits=5, decimal_places=2,
                                            null=True, blank=True,
-                                           verbose_name='고객 할인율')
+                                           verbose_name='고객 할인율',
+                                           validators=[MinValueValidator(0.00)])
     applied_discount = models.DecimalField(max_digits=5, decimal_places=2,
                                           null=True, blank=True,
-                                          verbose_name='적용 할인율')
+                                          verbose_name='적용 할인율',
+                                          validators=[MinValueValidator(0.00)])
     original_price = models.DecimalField(max_digits=10, decimal_places=2,
                                         null=True, blank=True,
-                                        verbose_name='원가')
+                                        verbose_name='원가',
+                                        validators=[MinValueValidator(0.00)])
     final_price = models.DecimalField(max_digits=10, decimal_places=2,
                                      null=True, blank=True,
-                                     verbose_name='최종가격')
+                                     verbose_name='최종가격',
+                                     validators=[MinValueValidator(0.00)])
     transaction_date = models.DateTimeField(auto_now_add=True,
                                            verbose_name='거래일시')
 
@@ -435,7 +459,8 @@ class CustomerProductDiscount(models.Model):
     brand = models.CharField(max_length=100, null=True, blank=True, verbose_name='브랜드')
     additional_discount_rate = models.DecimalField(
         max_digits=5, decimal_places=2, default=0.00,
-        verbose_name='추가 할인율(%)'
+        verbose_name='추가 할인율(%)',
+        validators=[MinValueValidator(0.00)]
     )
     start_date = models.DateField(null=True, blank=True, verbose_name='시작일')
     end_date = models.DateField(null=True, blank=True, verbose_name='종료일')
