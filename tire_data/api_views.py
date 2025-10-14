@@ -1961,9 +1961,9 @@ def api_erp_status(request):
         try:
             start_time = time.time()
 
-            # ERP API 헬스체크 엔드포인트 호출
+            # ERP API 헬스체크 엔드포인트 호출 (/health - 더 상세한 정보 제공)
             response = requests.get(
-                f"{settings.ERP_SYNC_API_URL}/",
+                f"{settings.ERP_SYNC_API_URL}/health",
                 timeout=settings.ERP_SYNC_TIMEOUT
             )
 
@@ -1971,11 +1971,14 @@ def api_erp_status(request):
             response_time = round((end_time - start_time) * 1000, 2)  # ms
 
             if response.status_code == 200:
+                health_data = response.json()
                 status_info.update({
                     'success': True,
                     'status': 'connected',
                     'response_time': response_time,
-                    'retry_count': retry_count
+                    'retry_count': retry_count,
+                    'database_status': health_data.get('database', 'unknown'),
+                    'erp_goods_count': health_data.get('total_goods', 0)
                 })
                 break
             else:
@@ -2045,7 +2048,7 @@ def api_erp_reconnect(request):
             start_time = time.time()
 
             response = requests.get(
-                f"{settings.ERP_SYNC_API_URL}/",
+                f"{settings.ERP_SYNC_API_URL}/health",
                 timeout=settings.ERP_SYNC_TIMEOUT
             )
 
@@ -2055,11 +2058,14 @@ def api_erp_reconnect(request):
             attempt_info['response_time'] = response_time
 
             if response.status_code == 200:
+                health_data = response.json()
                 attempt_info['success'] = True
                 reconnect_info.update({
                     'success': True,
                     'status': 'connected',
-                    'total_attempts': attempt + 1
+                    'total_attempts': attempt + 1,
+                    'database_status': health_data.get('database', 'unknown'),
+                    'erp_goods_count': health_data.get('total_goods', 0)
                 })
                 reconnect_info['attempts'].append(attempt_info)
                 break

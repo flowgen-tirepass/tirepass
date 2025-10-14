@@ -177,12 +177,27 @@ async function checkERPStatus() {
             statusText.textContent = '연결됨';
 
             let infoHTML = `응답 시간: ${data.response_time}ms`;
+
+            // ERP 데이터베이스 연결 상태
+            if (data.database_status) {
+                const dbIcon = data.database_status === 'connected' ? '✅' : '❌';
+                infoHTML += `<br>${dbIcon} ERP DB: ${data.database_status}`;
+            }
+
+            // ERP 상품 수 (실시간)
+            if (data.erp_goods_count) {
+                infoHTML += `<br>📦 ERP 상품: ${data.erp_goods_count.toLocaleString()}개`;
+            }
+
+            // Django 동기화 상품 수
+            if (data.goods_count) {
+                infoHTML += `<br>💾 Django DB: ${data.goods_count.toLocaleString()}개`;
+            }
+
+            // 마지막 동기화 시간
             if (data.last_sync_time) {
                 const syncDate = new Date(data.last_sync_time);
-                infoHTML += `<br>마지막 동기화: ${syncDate.toLocaleString('ko-KR')}`;
-            }
-            if (data.goods_count) {
-                infoHTML += `<br>상품 수: ${data.goods_count.toLocaleString()}개`;
+                infoHTML += `<br>🔄 마지막 동기화: ${syncDate.toLocaleString('ko-KR')}`;
             }
 
             statusInfo.innerHTML = infoHTML;
@@ -251,7 +266,17 @@ async function reconnectERP() {
         if (data.success) {
             statusDot.className = 'status-dot connected';
             statusText.textContent = '연결됨';
-            statusInfo.textContent = `재연결 성공 (${data.total_attempts}회 시도)`;
+
+            let infoHTML = `재연결 성공 (${data.total_attempts}회 시도)`;
+            if (data.database_status) {
+                const dbIcon = data.database_status === 'connected' ? '✅' : '❌';
+                infoHTML += `<br>${dbIcon} ERP DB: ${data.database_status}`;
+            }
+            if (data.erp_goods_count) {
+                infoHTML += `<br>📦 ERP 상품: ${data.erp_goods_count.toLocaleString()}개`;
+            }
+
+            statusInfo.innerHTML = infoHTML;
             errorContainer.innerHTML = '<div style="background-color: #dcfce7; color: #166534; padding: 6px 8px; border-radius: 4px; font-size: 11px; margin-top: 6px;">재연결에 성공했습니다!</div>';
             autoReconnectAttempts = 0; // 성공 시 카운터 초기화
         } else {
