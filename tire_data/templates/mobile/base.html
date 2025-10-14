@@ -483,6 +483,34 @@
 
         function clearCustomerCode() {
             localStorage.removeItem('customer_code');
+            localStorage.removeItem('customer_name');
+        }
+
+        // API 호출 시 인증 에러 처리
+        async function handleApiResponse(response) {
+            if (response.status === 401 || response.status === 403) {
+                // 세션 만료 또는 인증 오류
+                clearCustomerCode();
+                showAlert('로그인이 필요합니다. 다시 로그인해주세요.', 'error');
+                setTimeout(() => {
+                    location.href = '/mobile/login/';
+                }, 1500);
+                return null;
+            }
+            return response;
+        }
+
+        // 안전한 fetch (인증 에러 자동 처리)
+        async function safeFetch(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                const handled = await handleApiResponse(response);
+                if (!handled) return null;
+                return response;
+            } catch (error) {
+                console.error('API 호출 오류:', error);
+                throw error;
+            }
         }
 
         // 장바구니 개수 조회 및 배지 업데이트

@@ -8,12 +8,61 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password, check_password
 from django.db.models import Q
 from django.utils import timezone
+from functools import wraps
 import json
 import secrets
 import re
 
 from .models import Goods, GoodsDisplayName, Customers, ShoppingCart, Order, OrderItem, Payment, ShippingAddress
 from .utils import calculate_discount_price, generate_order_number, update_stock
+
+
+# ============================================
+# 세션 인증 데코레이터
+# ============================================
+
+def require_session_auth(view_func):
+    """
+    세션 인증이 필요한 API에 사용하는 데코레이터
+
+    - 세션에 customer_code가 있는지 확인
+    - 요청의 customer_code와 세션의 customer_code가 일치하는지 확인
+    - 인증 실패 시 401 Unauthorized 응답
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        # 세션에서 customer_code 가져오기
+        session_customer_code = request.session.get('customer_code')
+
+        if not session_customer_code:
+            return JsonResponse({
+                'success': False,
+                'message': '로그인이 필요합니다.',
+                'error_code': 'AUTH_REQUIRED'
+            }, status=401)
+
+        # 요청에서 customer_code 가져오기 (GET 또는 POST)
+        if request.method == 'GET':
+            request_customer_code = request.GET.get('customer_code')
+        else:
+            try:
+                data = json.loads(request.body)
+                request_customer_code = data.get('customer_code')
+            except (json.JSONDecodeError, AttributeError):
+                request_customer_code = None
+
+        # customer_code가 요청에 있고, 세션과 일치하는지 확인
+        if request_customer_code and request_customer_code != session_customer_code:
+            return JsonResponse({
+                'success': False,
+                'message': '인증 오류: 권한이 없습니다.',
+                'error_code': 'AUTH_MISMATCH'
+            }, status=403)
+
+        # 인증 통과 - 원래 뷰 함수 실행
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
 
 
 # 브랜드명 영문-한글 매핑
@@ -413,7 +462,7 @@ def api_product_detail(request, code):
 # 장바구니 API
 # ============================================
 
-@csrf_exempt
+@require_session_auth
 @require_http_methods(["GET"])
 def api_cart_list(request):
     """장바구니 조회 API"""
@@ -450,6 +499,7 @@ def api_cart_list(request):
     return JsonResponse(result)
 
 
+@require_session_auth
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_cart_add(request):
@@ -521,6 +571,7 @@ def api_cart_add(request):
         }, status=500)
 
 
+@require_session_auth
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_cart_update(request, cart_id):
@@ -565,6 +616,7 @@ def api_cart_update(request, cart_id):
     })
 
 
+@require_session_auth
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def api_cart_remove(request, cart_id):
@@ -587,6 +639,7 @@ def api_cart_remove(request, cart_id):
 # 주문 API
 # ============================================
 
+@require_session_auth
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_order_create(request):
@@ -694,6 +747,7 @@ def api_order_create(request):
     })
 
 
+@require_session_auth
 @require_http_methods(["GET"])
 def api_order_list(request):
     """주문 목록 조회 API"""
@@ -729,6 +783,7 @@ def api_order_list(request):
     return JsonResponse(result)
 
 
+@require_session_auth
 @require_http_methods(["GET"])
 def api_order_detail(request, order_id):
     """주문 상세 조회 API"""
@@ -784,6 +839,7 @@ def api_order_detail(request, order_id):
     return JsonResponse(result)
 
 
+@require_session_auth
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_order_cancel(request, order_id):
@@ -1352,6 +1408,7 @@ def api_auth_change_password(request):
 # 토스페이먼츠 결제 API
 # ============================================
 
+@require_session_auth
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_payment_prepare(request):
@@ -1461,6 +1518,7 @@ def api_payment_prepare(request):
         return JsonResponse({'success': False, 'message': f'결제 준비 중 오류가 발생했습니다: {str(e)}'}, status=500)
 
 
+@require_session_auth
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_payment_confirm(request):
@@ -1562,6 +1620,7 @@ def api_payment_confirm(request):
         return JsonResponse({'success': False, 'message': f'결제 승인 중 오류가 발생했습니다: {str(e)}'}, status=500)
 
 
+@require_session_auth
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_payment_cancel(request):
@@ -1643,6 +1702,7 @@ def api_payment_cancel(request):
         return JsonResponse({'success': False, 'message': f'결제 취소 중 오류가 발생했습니다: {str(e)}'}, status=500)
 
 
+@require_session_auth
 @require_http_methods(["GET"])
 def api_payment_status(request, payment_key):
     """결제 상태 조회 API"""
