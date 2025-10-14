@@ -16,6 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from tire_data.admin_forms import CustomAdminAuthenticationForm
+
+# 커스텀 로그인 폼 적용
+admin.site.login_form = CustomAdminAuthenticationForm
+admin.site.login_template = 'admin/login.html'
 
 urlpatterns = [
     path('admin/', admin.site.urls),

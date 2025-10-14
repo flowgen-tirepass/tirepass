@@ -1,0 +1,105 @@
+{% extends "admin/login.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .business-number-error {
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        color: #856404;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="business-number-warning" class="business-number-error">
+    ⚠️ <strong>경고:</strong> 사업자등록번호로는 관리자 페이지에 접근할 수 없습니다.<br>
+    관리자 계정 아이디를 사용해주세요.
+</div>
+{{ block.super }}
+
+<script>
+(function() {
+    'use strict';
+
+    // 사업자등록번호 패턴 검증
+    function isBusinessNumber(value) {
+        // 공백과 하이픈 제거
+        var cleaned = value.replace(/[\s-]/g, '');
+
+        // 10자리 숫자인 경우 (사업자등록번호)
+        if (/^\d{10}$/.test(cleaned)) {
+            return true;
+        }
+
+        // 13자리 숫자인 경우 (주민등록번호 - 이것도 차단)
+        if (/^\d{13}$/.test(cleaned)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // 로그인 폼 찾기
+    var loginForm = document.querySelector('form[method="post"]');
+    var usernameInput = document.getElementById('id_username');
+    var warningDiv = document.getElementById('business-number-warning');
+
+    if (!loginForm || !usernameInput) {
+        return;
+    }
+
+    // 실시간 검증
+    usernameInput.addEventListener('input', function() {
+        var value = this.value.trim();
+
+        if (isBusinessNumber(value)) {
+            warningDiv.style.display = 'block';
+            this.style.borderColor = '#ffc107';
+            this.style.backgroundColor = '#fff3cd';
+        } else {
+            warningDiv.style.display = 'none';
+            this.style.borderColor = '';
+            this.style.backgroundColor = '';
+        }
+    });
+
+    // 폼 제출 전 검증
+    loginForm.addEventListener('submit', function(e) {
+        var value = usernameInput.value.trim();
+
+        if (isBusinessNumber(value)) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            warningDiv.style.display = 'block';
+            warningDiv.style.backgroundColor = '#f8d7da';
+            warningDiv.style.borderColor = '#dc3545';
+            warningDiv.style.color = '#721c24';
+            warningDiv.innerHTML = '🚫 <strong>접근 거부:</strong> 사업자등록번호로는 관리자 페이지에 로그인할 수 없습니다.<br>관리자 계정(ID)을 사용해주세요.';
+
+            usernameInput.style.borderColor = '#dc3545';
+            usernameInput.style.backgroundColor = '#f8d7da';
+            usernameInput.focus();
+            usernameInput.select();
+
+            return false;
+        }
+    });
+
+    // 페이지 로드 시 초기 검증
+    window.addEventListener('load', function() {
+        if (usernameInput.value.trim() && isBusinessNumber(usernameInput.value.trim())) {
+            warningDiv.style.display = 'block';
+            usernameInput.style.borderColor = '#ffc107';
+            usernameInput.style.backgroundColor = '#fff3cd';
+        }
+    });
+})();
+</script>
+{% endblock %}
