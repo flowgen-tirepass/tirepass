@@ -1,7 +1,7 @@
 {% extends "admin/base.html" %}
 {% load static %}
 
-{% block extrahead %}
+{% block extrastyle %}
 {{ block.super }}
 <style>
     /* ERP 상태 위젯 스타일 */
@@ -111,29 +111,48 @@
 </style>
 {% endblock %}
 
-{% block content %}
-<!-- ERP 연동 상태 위젯 -->
-<div id="erp-status-widget">
-    <div class="widget-header">
-        <span class="widget-title">🔗 ERP 연동 상태</span>
-    </div>
-    <div class="status-indicator">
-        <span class="status-dot checking" id="status-dot"></span>
-        <span id="status-text">확인 중...</span>
-    </div>
-    <div class="status-info" id="status-info">
-        연결 확인 중입니다.
-    </div>
-    <div id="error-container"></div>
-    <button class="reconnect-btn" id="reconnect-btn" onclick="reconnectERP()">
-        수동 재연결
-    </button>
-</div>
+{% block footer %}
+{{ block.super }}
 
 <script>
+// ERP 연동 상태 위젯을 body에 추가
+document.addEventListener('DOMContentLoaded', function() {
+    const widget = document.createElement('div');
+    widget.id = 'erp-status-widget';
+    widget.innerHTML = `
+        <div class="widget-header">
+            <span class="widget-title">🔗 ERP 연동 상태</span>
+        </div>
+        <div class="status-indicator">
+            <span class="status-dot checking" id="status-dot"></span>
+            <span id="status-text">확인 중...</span>
+        </div>
+        <div class="status-info" id="status-info">
+            연결 확인 중입니다.
+        </div>
+        <div id="error-container"></div>
+        <button class="reconnect-btn" id="reconnect-btn" onclick="reconnectERP()">
+            수동 재연결
+        </button>
+    `;
+    document.body.appendChild(widget);
+
+    // 위젯 추가 후 상태 확인 시작
+    initERPWidget();
+});
+
+// 전역 변수
 let statusCheckInterval;
 let autoReconnectAttempts = 0;
 const MAX_AUTO_RECONNECT_ATTEMPTS = 3;
+
+function initERPWidget() {
+    // 초기 상태 확인
+    checkERPStatus();
+
+    // 30초마다 상태 확인
+    statusCheckInterval = setInterval(checkERPStatus, 30000);
+}
 
 // ERP 상태 확인
 async function checkERPStatus() {
@@ -255,15 +274,6 @@ async function reconnectERP() {
     // 재연결 후 상태 다시 확인
     setTimeout(checkERPStatus, 2000);
 }
-
-// 페이지 로드 시 실행
-document.addEventListener('DOMContentLoaded', function() {
-    // 초기 상태 확인
-    checkERPStatus();
-
-    // 30초마다 상태 확인
-    statusCheckInterval = setInterval(checkERPStatus, 30000);
-});
 
 // 페이지 언로드 시 인터벌 정리
 window.addEventListener('beforeunload', function() {
