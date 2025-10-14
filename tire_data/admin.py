@@ -542,42 +542,45 @@ class GoodsAdmin(admin.ModelAdmin):
 
         return queryset, use_distinct
 
-@admin.register(CustomersFull)
-class CustomersFullAdmin(admin.ModelAdmin):
-    """ERP 전체 고객 목록 (읽기 전용)"""
-    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'tel4', 'enno', 'last_sync']
-    search_fields = ['code', 'name', 'rep', 'enno', 'address1']
-    ordering = ['code']
-    list_per_page = 50
-
-    fieldsets = (
-        ('기본 정보', {
-            'fields': ('code', 'name', 'rep')
-        }),
-        ('연락처', {
-            'fields': ('tel1', 'tel3', 'tel4')
-        }),
-        ('사업자 정보', {
-            'fields': ('enno', 'address1')
-        }),
-        ('시스템 정보', {
-            'fields': ('last_sync',),
-            'classes': ('collapse',)
-        }),
-    )
-    readonly_fields = ['code', 'name', 'rep', 'tel1', 'tel3', 'tel4', 'enno', 'address1', 'last_sync']
-
-    def has_add_permission(self, request):
-        """추가 불가 (ERP에서만)"""
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        """삭제 불가 (ERP에서만)"""
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        """수정 불가 (ERP에서만)"""
-        return False
+# CustomersFull은 ERP의 customers 테이블을 참조하는데,
+# 현재 데이터베이스에 해당 테이블이 없어서 임시로 비활성화
+# ERP 동기화가 완료되면 다시 활성화할 수 있습니다.
+# @admin.register(CustomersFull)
+# class CustomersFullAdmin(admin.ModelAdmin):
+#     """ERP 전체 고객 목록 (읽기 전용)"""
+#     list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'tel4', 'enno', 'last_sync']
+#     search_fields = ['code', 'name', 'rep', 'enno', 'address1']
+#     ordering = ['code']
+#     list_per_page = 50
+#
+#     fieldsets = (
+#         ('기본 정보', {
+#             'fields': ('code', 'name', 'rep')
+#         }),
+#         ('연락처', {
+#             'fields': ('tel1', 'tel3', 'tel4')
+#         }),
+#         ('사업자 정보', {
+#             'fields': ('enno', 'address1')
+#         }),
+#         ('시스템 정보', {
+#             'fields': ('last_sync',),
+#             'classes': ('collapse',)
+#         }),
+#     )
+#     readonly_fields = ['code', 'name', 'rep', 'tel1', 'tel3', 'tel4', 'enno', 'address1', 'last_sync']
+#
+#     def has_add_permission(self, request):
+#         """추가 불가 (ERP에서만)"""
+#         return False
+#
+#     def has_delete_permission(self, request, obj=None):
+#         """삭제 불가 (ERP에서만)"""
+#         return False
+#
+#     def has_change_permission(self, request, obj=None):
+#         """수정 불가 (ERP에서만)"""
+#         return False
 
 @admin.register(Customers)
 class CustomersAdmin(admin.ModelAdmin):
