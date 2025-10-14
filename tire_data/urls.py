@@ -87,4 +87,8 @@ urlpatterns = [
     path('api/sync/customer/', views_sync_api.sync_customer, name='sync_customer'),
     path('api/sync/goods/', views_sync_api.sync_goods, name='sync_goods'),
     path('api/sync/status/', views_sync_api.sync_status, name='sync_status'),
+
+    # ERP 연동 상태 관리 API
+    path('api/admin/erp/status/', api_views.api_erp_status, name='api_erp_status'),
+    path('api/admin/erp/reconnect/', api_views.api_erp_reconnect, name='api_erp_reconnect'),
 ]

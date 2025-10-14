@@ -28,7 +28,11 @@ TOSS_PAYMENTS_API_URL = 'https://api.tosspayments.com/v1'
 # ============================================
 # ERP 실시간 동기화 API 설정
 # ============================================
+ERP_SYNC_API_URL = os.environ.get('ERP_SYNC_API_URL', 'http://itire2.iptime.org:8002')
 ERP_SYNC_API_KEY = os.environ.get('ERP_SYNC_API_KEY', 'tirepass_erp_sync_key_2024_change_in_production')
+ERP_SYNC_TIMEOUT = 5  # 연결 타임아웃 (초)
+ERP_SYNC_RETRY_COUNT = 3  # 재시도 횟수
+ERP_SYNC_RETRY_DELAY = 2  # 재시도 대기 시간 (초)
 
 # ============================================
 # UTF-8 인코딩 강제 설정 (Windows 전용)

@@ -1926,3 +1926,160 @@ def api_shipping_address_set_default(request, address_id):
         return JsonResponse({'success': False, 'message': '배송지를 찾을 수 없습니다.'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'기본 배송지 설정 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
+# ============================================
+# ERP 연동 상태 관리 API
+# ============================================
+
+@require_http_methods(["GET"])
+def api_erp_status(request):
+    """
+    ERP 실시간 동기화 API 연결 상태 확인
+
+    PythonAnywhere -> TgenAI -> ERP Server -> TgenAI -> PythonAnywhere
+    """
+    from django.conf import settings
+    import requests
+    import time
+
+    status_info = {
+        'success': False,
+        'status': 'disconnected',
+        'erp_api_url': settings.ERP_SYNC_API_URL,
+        'response_time': None,
+        'last_check': timezone.now().isoformat(),
+        'error_message': None,
+        'retry_count': 0
+    }
+
+    # ERP API 상태 확인 (헬스체크)
+    retry_count = 0
+    max_retries = settings.ERP_SYNC_RETRY_COUNT
+
+    while retry_count < max_retries:
+        try:
+            start_time = time.time()
+
+            # ERP API 헬스체크 엔드포인트 호출
+            response = requests.get(
+                f"{settings.ERP_SYNC_API_URL}/",
+                timeout=settings.ERP_SYNC_TIMEOUT
+            )
+
+            end_time = time.time()
+            response_time = round((end_time - start_time) * 1000, 2)  # ms
+
+            if response.status_code == 200:
+                status_info.update({
+                    'success': True,
+                    'status': 'connected',
+                    'response_time': response_time,
+                    'retry_count': retry_count
+                })
+                break
+            else:
+                status_info['error_message'] = f'HTTP {response.status_code}'
+                retry_count += 1
+
+        except requests.exceptions.Timeout:
+            status_info['error_message'] = 'Connection timeout'
+            retry_count += 1
+
+        except requests.exceptions.ConnectionError:
+            status_info['error_message'] = 'Connection refused'
+            retry_count += 1
+
+        except Exception as e:
+            status_info['error_message'] = str(e)
+            retry_count += 1
+
+        if retry_count < max_retries:
+            time.sleep(settings.ERP_SYNC_RETRY_DELAY)
+
+    status_info['retry_count'] = retry_count
+
+    # 최근 상품 동기화 시간 조회
+    try:
+        latest_goods = Goods.objects.order_by('-updated_at').first()
+        if latest_goods:
+            status_info['last_sync_time'] = latest_goods.updated_at.isoformat()
+            status_info['goods_count'] = Goods.objects.count()
+    except Exception:
+        pass
+
+    return JsonResponse(status_info)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_erp_reconnect(request):
+    """
+    ERP 연결 수동 재시도
+
+    관리자가 수동으로 ERP 연결을 재시도할 수 있습니다.
+    """
+    from django.conf import settings
+    import requests
+    import time
+
+    reconnect_info = {
+        'success': False,
+        'status': 'failed',
+        'attempts': [],
+        'total_attempts': 0,
+        'reconnect_time': timezone.now().isoformat()
+    }
+
+    max_retries = settings.ERP_SYNC_RETRY_COUNT
+
+    for attempt in range(max_retries):
+        attempt_info = {
+            'attempt_number': attempt + 1,
+            'success': False,
+            'response_time': None,
+            'error': None
+        }
+
+        try:
+            start_time = time.time()
+
+            response = requests.get(
+                f"{settings.ERP_SYNC_API_URL}/",
+                timeout=settings.ERP_SYNC_TIMEOUT
+            )
+
+            end_time = time.time()
+            response_time = round((end_time - start_time) * 1000, 2)
+
+            attempt_info['response_time'] = response_time
+
+            if response.status_code == 200:
+                attempt_info['success'] = True
+                reconnect_info.update({
+                    'success': True,
+                    'status': 'connected',
+                    'total_attempts': attempt + 1
+                })
+                reconnect_info['attempts'].append(attempt_info)
+                break
+            else:
+                attempt_info['error'] = f'HTTP {response.status_code}'
+
+        except requests.exceptions.Timeout:
+            attempt_info['error'] = 'Connection timeout'
+
+        except requests.exceptions.ConnectionError:
+            attempt_info['error'] = 'Connection refused'
+
+        except Exception as e:
+            attempt_info['error'] = str(e)
+
+        reconnect_info['attempts'].append(attempt_info)
+
+        if attempt < max_retries - 1:
+            time.sleep(settings.ERP_SYNC_RETRY_DELAY)
+
+    reconnect_info['total_attempts'] = len(reconnect_info['attempts'])
+
+    return JsonResponse(reconnect_info)
