@@ -1384,9 +1384,10 @@ class GoodsRealtimeSnapshotAdmin(admin.ModelAdmin):
 
     def jaego_display(self, obj):
         """재고수량 표시"""
+        formatted_jaego = f'{obj.jaego:,}'
         return format_html(
-            '<strong style="color: #059669;">{:,}개</strong>',
-            obj.jaego
+            '<strong style="color: #059669;">{}개</strong>',
+            formatted_jaego
         )
     jaego_display.short_description = '재고수량'
     jaego_display.admin_order_field = 'jaego'
@@ -1395,15 +1396,17 @@ class GoodsRealtimeSnapshotAdmin(admin.ModelAdmin):
         """변화량 표시 (색상 + 아이콘)"""
         if obj.change_from_prev > 0:
             # 증가 (녹색)
+            formatted_change = f'+{obj.change_from_prev:,}'
             return format_html(
-                '<span style="color: #10b981; font-weight: bold; font-size: 14px;">🟢 +{:,}</span>',
-                obj.change_from_prev
+                '<span style="color: #10b981; font-weight: bold; font-size: 14px;">🟢 {}</span>',
+                formatted_change
             )
         elif obj.change_from_prev < 0:
             # 감소 (빨강)
+            formatted_change = f'{obj.change_from_prev:,}'
             return format_html(
-                '<span style="color: #ef4444; font-weight: bold; font-size: 14px;">🔴 {:,}</span>',
-                obj.change_from_prev
+                '<span style="color: #ef4444; font-weight: bold; font-size: 14px;">🔴 {}</span>',
+                formatted_change
             )
         else:
             # 변화 없음 (회색)
