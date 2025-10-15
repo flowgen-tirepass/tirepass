@@ -728,6 +728,91 @@ class ERPSnapshot(models.Model):
 
 
 # ============================================
+# 실시간 재고 변화 추적 모델
+# ============================================
+
+class GoodsRealtimeSnapshot(models.Model):
+    """
+    실시간 재고 변화 추적 (매시간 스냅샷)
+
+    용도:
+    - 시간별 재고 변화 추적
+    - 실시간성 증명 (관리자 위젯용)
+    - 인기 상품 분석
+    """
+    code = models.CharField(max_length=50, verbose_name='상품코드', db_index=True)
+    name = models.CharField(max_length=200, verbose_name='상품명')
+    bun1 = models.CharField(max_length=100, null=True, blank=True, verbose_name='브랜드')
+    jaego = models.IntegerField(verbose_name='재고수량')
+    snapshot_time = models.DateTimeField(verbose_name='스냅샷 시간', db_index=True)
+    change_from_prev = models.IntegerField(default=0, verbose_name='이전 대비 변화량')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'goods_realtime_snapshots'
+        managed = True
+        verbose_name = '실시간 재고 스냅샷'
+        verbose_name_plural = 'C. ⚙️ 설정 | 07. 실시간 재고 추적'
+        ordering = ['-snapshot_time', 'code']
+        indexes = [
+            models.Index(fields=['code', '-snapshot_time']),
+            models.Index(fields=['-snapshot_time']),
+        ]
+
+    def __str__(self):
+        change_indicator = '🔴' if self.change_from_prev < 0 else ('🟢' if self.change_from_prev > 0 else '⚪')
+        return f"{self.code} | {self.snapshot_time.strftime('%m-%d %H:%M')} | {self.jaego}개 ({self.change_from_prev:+d}) {change_indicator}"
+
+    @classmethod
+    def get_recent_changes(cls, hours=24, limit=5):
+        """
+        최근 N시간 동안 변화가 많은 상품 조회
+
+        Args:
+            hours: 조회 기간 (시간)
+            limit: 반환할 상품 수
+
+        Returns:
+            QuerySet: 변화량 기준 상위 상품
+        """
+        from django.utils import timezone
+        from django.db.models import Sum, Max
+
+        start_time = timezone.now() - timezone.timedelta(hours=hours)
+
+        # 상품별 총 변화량 계산
+        changes = cls.objects.filter(
+            snapshot_time__gte=start_time
+        ).values('code', 'name', 'bun1').annotate(
+            total_change=Sum('change_from_prev'),
+            last_snapshot=Max('snapshot_time')
+        ).order_by('-total_change')[:limit]
+
+        return changes
+
+    @classmethod
+    def get_hourly_data(cls, code, hours=24):
+        """
+        특정 상품의 시간별 재고 데이터
+
+        Args:
+            code: 상품 코드
+            hours: 조회 기간
+
+        Returns:
+            QuerySet: 시간별 재고 데이터
+        """
+        from django.utils import timezone
+
+        start_time = timezone.now() - timezone.timedelta(hours=hours)
+
+        return cls.objects.filter(
+            code=code,
+            snapshot_time__gte=start_time
+        ).order_by('snapshot_time')
+
+
+# ============================================
 # 쇼핑/주문 관련 모델
 # ============================================
 from .models_shopping import ShoppingCart, Order, OrderItem, Payment, ShippingAddress
