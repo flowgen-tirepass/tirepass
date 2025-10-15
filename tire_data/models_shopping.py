@@ -67,6 +67,12 @@ class Order(models.Model):
         ('refunded', '환불완료'),
     ]
 
+    ORDER_SOURCE_CHOICES = [
+        ('mobile', '모바일 주문'),
+        ('erp_phone', 'ERP 전화주문'),
+        ('erp_import', 'ERP 수동입력'),
+    ]
+
     order_number = models.CharField(max_length=50, unique=True, verbose_name='주문번호')
     customer_code = models.CharField(max_length=10, verbose_name='고객 코드')
     customer_name = models.CharField(max_length=50, null=True, blank=True, verbose_name='고객명')
@@ -86,6 +92,8 @@ class Order(models.Model):
     cancelled_reason = models.TextField(null=True, blank=True, verbose_name='취소사유')
     returned_date = models.DateTimeField(null=True, blank=True, verbose_name='반품일시')
     returned_reason = models.TextField(null=True, blank=True, verbose_name='반품사유')
+    order_source = models.CharField(max_length=20, choices=ORDER_SOURCE_CHOICES, default='mobile', verbose_name='주문 출처')
+    erp_order_number = models.CharField(max_length=50, null=True, blank=True, verbose_name='ERP 주문번호')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
 
