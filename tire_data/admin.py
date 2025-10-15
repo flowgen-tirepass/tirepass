@@ -10,7 +10,7 @@ from .models import (
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
     ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag,
-    ERPSnapshot
+    ERPSnapshot, GoodsRealtimeSnapshot
 )
 from .erp_api_client import ERPAPIClient
 
@@ -1304,5 +1304,123 @@ class ERPSnapshotAdmin(admin.ModelAdmin):
         ('오류 정보', {
             'fields': ('error_message',),
             'classes': ('collapse',)
+        }),
+    )
+
+
+# ============================================
+# 실시간 재고 변화 추적
+# ============================================
+
+@admin.register(GoodsRealtimeSnapshot)
+class GoodsRealtimeSnapshotAdmin(admin.ModelAdmin):
+    """실시간 재고 변화 추적 (관리자 실시간성 증명용)"""
+
+    list_display = [
+        'snapshot_time_display',
+        'code',
+        'name_short',
+        'bun1',
+        'jaego_display',
+        'change_display',
+    ]
+
+    list_filter = [
+        ('snapshot_time', admin.DateFieldListFilter),
+        'code',
+    ]
+
+    search_fields = [
+        'code',
+        'name',
+        'bun1',
+    ]
+
+    readonly_fields = [
+        'code',
+        'name',
+        'bun1',
+        'jaego',
+        'snapshot_time',
+        'change_from_prev',
+        'created_at',
+    ]
+
+    date_hierarchy = 'snapshot_time'
+
+    list_per_page = 50
+
+    ordering = ['-snapshot_time', 'code']
+
+    def has_add_permission(self, request):
+        """추가 권한 없음 (명령어로만 생성)"""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """수정 권한 없음 (읽기 전용)"""
+        return False
+
+    def snapshot_time_display(self, obj):
+        """스냅샷 시간 표시 (한국 시간)"""
+        from django.utils import timezone
+        local_time = timezone.localtime(obj.snapshot_time)
+        return format_html(
+            '<span style="font-weight: bold; color: #2563eb;">{}</span>',
+            local_time.strftime('%m-%d %H:%M')
+        )
+    snapshot_time_display.short_description = '스냅샷 시간'
+    snapshot_time_display.admin_order_field = 'snapshot_time'
+
+    def name_short(self, obj):
+        """상품명 짧게 표시 (40자 제한)"""
+        if len(obj.name) > 40:
+            return format_html(
+                '<span title="{}">{}</span>',
+                obj.name,
+                obj.name[:40] + '...'
+            )
+        return obj.name
+    name_short.short_description = '상품명'
+
+    def jaego_display(self, obj):
+        """재고수량 표시"""
+        return format_html(
+            '<strong style="color: #059669;">{:,}개</strong>',
+            obj.jaego
+        )
+    jaego_display.short_description = '재고수량'
+    jaego_display.admin_order_field = 'jaego'
+
+    def change_display(self, obj):
+        """변화량 표시 (색상 + 아이콘)"""
+        if obj.change_from_prev > 0:
+            # 증가 (녹색)
+            return format_html(
+                '<span style="color: #10b981; font-weight: bold; font-size: 14px;">🟢 +{:,}</span>',
+                obj.change_from_prev
+            )
+        elif obj.change_from_prev < 0:
+            # 감소 (빨강)
+            return format_html(
+                '<span style="color: #ef4444; font-weight: bold; font-size: 14px;">🔴 {:,}</span>',
+                obj.change_from_prev
+            )
+        else:
+            # 변화 없음 (회색)
+            return format_html(
+                '<span style="color: #9ca3af; font-size: 14px;">⚪ 0</span>'
+            )
+    change_display.short_description = '변화량'
+    change_display.admin_order_field = 'change_from_prev'
+
+    fieldsets = (
+        ('스냅샷 정보', {
+            'fields': ('snapshot_time', 'created_at')
+        }),
+        ('상품 정보', {
+            'fields': ('code', 'name', 'bun1')
+        }),
+        ('재고 정보', {
+            'fields': ('jaego', 'change_from_prev')
         }),
     )
