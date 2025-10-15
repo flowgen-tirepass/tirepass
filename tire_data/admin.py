@@ -960,17 +960,17 @@ class PaymentInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'customer_code', 'customer_name', 'total_amount',
+    list_display = ['order_number', 'order_source_display', 'customer_code', 'customer_name', 'total_amount',
                    'final_amount', 'order_status', 'payment_status', 'order_date']
-    list_filter = ['order_status', 'payment_status', 'order_date']
-    search_fields = ['order_number', 'customer_code', 'customer_name']
+    list_filter = ['order_source', 'order_status', 'payment_status', 'order_date']
+    search_fields = ['order_number', 'customer_code', 'customer_name', 'erp_order_number']
     ordering = ['-order_date']
     list_per_page = 50
     inlines = [OrderItemInline, PaymentInline]
 
     fieldsets = (
         ('주문 정보', {
-            'fields': ('order_number', 'customer_code', 'customer_name', 'order_date')
+            'fields': ('order_number', 'customer_code', 'customer_name', 'order_date', 'order_source', 'erp_order_number')
         }),
         ('금액 정보', {
             'fields': ('total_amount', 'total_discount', 'final_amount')
@@ -1055,6 +1055,18 @@ class OrderAdmin(admin.ModelAdmin):
             self.message_user(request, '반품 가능한 주문이 없습니다. (배송완료 상태만 반품 가능)', messages.WARNING)
 
     process_return.short_description = '선택된 주문 반품 처리'
+
+    def order_source_display(self, obj):
+        """주문 출처 표시"""
+        if obj.order_source == 'mobile':
+            return format_html('<span style="color: blue;">📱 모바일</span>')
+        elif obj.order_source == 'erp_phone':
+            return format_html('<span style="color: green;">☎️ 전화주문</span>')
+        elif obj.order_source == 'erp_import':
+            return format_html('<span style="color: gray;">✏️ 수동입력</span>')
+        return obj.get_order_source_display()
+    order_source_display.short_description = '주문출처'
+    order_source_display.admin_order_field = 'order_source'
 
 
 @admin.register(OrderItem)

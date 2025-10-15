@@ -759,7 +759,8 @@ def api_order_list(request):
             'message': '고객 코드가 필요합니다.'
         }, status=400)
 
-    orders = Order.objects.filter(customer_code=customer_code).order_by('-order_date')
+    # 모바일 주문만 조회 (ERP 전화주문 제외)
+    orders = Order.objects.filter(customer_code=customer_code, order_source='mobile').order_by('-order_date')
 
     result = {
         'success': True,
