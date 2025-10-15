@@ -759,8 +759,9 @@ def api_order_list(request):
             'message': '고객 코드가 필요합니다.'
         }, status=400)
 
-    # 모바일 주문만 조회 (ERP 전화주문 제외)
-    orders = Order.objects.filter(customer_code=customer_code, order_source='mobile').order_by('-order_date')
+    # 해당 고객의 모든 주문 조회 (모바일 + ERP 전화주문 모두)
+    # 고객이 모바일 로그인하면 자신의 모든 주문 내역을 볼 수 있음
+    orders = Order.objects.filter(customer_code=customer_code).order_by('-order_date')
 
     result = {
         'success': True,
@@ -774,6 +775,7 @@ def api_order_list(request):
                     'final_amount': order.final_amount,
                     'order_status': order.order_status,
                     'payment_status': order.payment_status,
+                    'order_source': order.order_source,  # 주문 출처 (mobile/erp_phone/erp_import)
                     'items_count': order.items.count()
                 }
                 for order in orders
