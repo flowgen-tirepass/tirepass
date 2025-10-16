@@ -958,115 +958,13 @@ class PaymentInline(admin.TabularInline):
     readonly_fields = ['payment_date']
 
 
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    list_display = ['order_number', 'order_source_display', 'customer_code', 'customer_name', 'total_amount',
-                   'final_amount', 'order_status', 'payment_status', 'order_date']
-    list_filter = ['order_source', 'order_status', 'payment_status', 'order_date']
-    search_fields = ['order_number', 'customer_code', 'customer_name', 'erp_order_number']
-    ordering = ['-order_date']
-    list_per_page = 50
-    inlines = [OrderItemInline, PaymentInline]
+# ============================================
+# 주문 관리 Admin (분리됨 - admin_orders.py 참조)
+# ============================================
 
-    fieldsets = (
-        ('주문 정보', {
-            'fields': ('order_number', 'customer_code', 'customer_name', 'order_date', 'order_source', 'erp_order_number')
-        }),
-        ('금액 정보', {
-            'fields': ('total_amount', 'total_discount', 'final_amount')
-        }),
-        ('상태 정보', {
-            'fields': ('order_status', 'payment_status', 'payment_method')
-        }),
-        ('배송 정보', {
-            'fields': ('shipping_address', 'shipping_memo')
-        }),
-        ('처리 일시', {
-            'fields': ('confirmed_date', 'shipped_date', 'delivered_date'),
-            'classes': ('collapse',)
-        }),
-        ('취소/반품 정보', {
-            'fields': ('cancelled_date', 'cancelled_reason', 'returned_date', 'returned_reason'),
-            'classes': ('collapse',)
-        }),
-    )
-    readonly_fields = ['order_date']
-    actions = ['cancel_order', 'process_return']
-
-    def save_model(self, request, obj, form, change):
-        """주문 상태 변경 시 일시 자동 기록"""
-        from django.utils import timezone
-
-        if 'order_status' in form.changed_data:
-            if obj.order_status == 'confirmed' and not obj.confirmed_date:
-                obj.confirmed_date = timezone.now()
-            elif obj.order_status == 'shipped' and not obj.shipped_date:
-                obj.shipped_date = timezone.now()
-            elif obj.order_status == 'delivered' and not obj.delivered_date:
-                obj.delivered_date = timezone.now()
-            elif obj.order_status == 'cancelled' and not obj.cancelled_date:
-                obj.cancelled_date = timezone.now()
-            elif obj.order_status == 'returned' and not obj.returned_date:
-                obj.returned_date = timezone.now()
-
-        super().save_model(request, obj, form, change)
-
-    def cancel_order(self, request, queryset):
-        """주문 취소 처리"""
-        from django.utils import timezone
-        from django.contrib import messages
-
-        updated_count = 0
-        for order in queryset:
-            if order.order_status in ['pending', 'confirmed']:
-                order.order_status = 'cancelled'
-                order.cancelled_date = timezone.now()
-                if not order.cancelled_reason:
-                    order.cancelled_reason = '관리자에 의한 주문 취소'
-                order.save()
-                updated_count += 1
-
-        if updated_count > 0:
-            self.message_user(request, f'{updated_count}개 주문이 취소되었습니다.', messages.SUCCESS)
-        else:
-            self.message_user(request, '취소 가능한 주문이 없습니다. (주문대기 또는 주문확인 상태만 취소 가능)', messages.WARNING)
-
-    cancel_order.short_description = '선택된 주문 취소'
-
-    def process_return(self, request, queryset):
-        """반품 처리"""
-        from django.utils import timezone
-        from django.contrib import messages
-
-        updated_count = 0
-        for order in queryset:
-            if order.order_status == 'delivered':
-                order.order_status = 'returned'
-                order.returned_date = timezone.now()
-                order.payment_status = 'refunded'
-                if not order.returned_reason:
-                    order.returned_reason = '관리자에 의한 반품 처리'
-                order.save()
-                updated_count += 1
-
-        if updated_count > 0:
-            self.message_user(request, f'{updated_count}개 주문이 반품 처리되었습니다.', messages.SUCCESS)
-        else:
-            self.message_user(request, '반품 가능한 주문이 없습니다. (배송완료 상태만 반품 가능)', messages.WARNING)
-
-    process_return.short_description = '선택된 주문 반품 처리'
-
-    def order_source_display(self, obj):
-        """주문 출처 표시"""
-        if obj.order_source == 'mobile':
-            return format_html('<span style="color: blue;">📱 모바일</span>')
-        elif obj.order_source == 'erp_phone':
-            return format_html('<span style="color: green;">☎️ 전화주문</span>')
-        elif obj.order_source == 'erp_import':
-            return format_html('<span style="color: gray;">✏️ 수동입력</span>')
-        return obj.get_order_source_display()
-    order_source_display.short_description = '주문출처'
-    order_source_display.admin_order_field = 'order_source'
+# 기존 Order Admin 대신 모바일/ERP 주문 분리 Admin 사용
+# admin_orders.py에서 MobileOrderAdmin, ERPPhoneOrderAdmin 임포트
+from .admin_orders import MobileOrderAdmin, ERPPhoneOrderAdmin
 
 
 @admin.register(OrderItem)
