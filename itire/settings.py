@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',  # 천단위 콤마 (intcomma) 필터
 ]
 
 MIDDLEWARE = [
