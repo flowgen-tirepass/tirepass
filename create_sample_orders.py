@@ -145,9 +145,10 @@ def create_sample_order(order_data):
         # 상품 정보 조회
         product_info = get_product_info(product_code)
 
-        unit_price = product_info['price']
+        unit_price = int(product_info['price'])
         discount_rate = Decimal('5.00')  # 기본 5% 할인
-        discounted_price = int(unit_price * (1 - discount_rate / 100))
+        discount_multiplier = float(1 - discount_rate / 100)
+        discounted_price = int(unit_price * discount_multiplier)
         final_price = discounted_price * quantity
 
         items_info.append({
