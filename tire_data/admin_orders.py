@@ -160,18 +160,20 @@ class BaseOrderAdmin(admin.ModelAdmin):
 
     def total_amount_display(self, obj):
         """총 주문금액 표시 (천단위 구분)"""
+        from django.contrib.humanize.templatetags.humanize import intcomma
         return format_html(
-            '<strong>{:,}원</strong>',
-            int(obj.total_amount)
+            '<strong>{}원</strong>',
+            intcomma(int(obj.total_amount))
         )
     total_amount_display.short_description = '총 주문금액'
     total_amount_display.admin_order_field = 'total_amount'
 
     def final_amount_display(self, obj):
         """최종 결제금액 표시 (천단위 구분)"""
+        from django.contrib.humanize.templatetags.humanize import intcomma
         return format_html(
-            '<strong style="color: #2563eb;">{:,}원</strong>',
-            int(obj.final_amount)
+            '<strong style="color: #2563eb;">{}원</strong>',
+            intcomma(int(obj.final_amount))
         )
     final_amount_display.short_description = '최종 결제금액'
     final_amount_display.admin_order_field = 'final_amount'
