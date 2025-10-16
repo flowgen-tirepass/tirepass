@@ -162,7 +162,7 @@ class BaseOrderAdmin(admin.ModelAdmin):
         """총 주문금액 표시 (천단위 구분)"""
         return format_html(
             '<strong>{:,}원</strong>',
-            obj.total_amount
+            int(obj.total_amount)
         )
     total_amount_display.short_description = '총 주문금액'
     total_amount_display.admin_order_field = 'total_amount'
@@ -171,7 +171,7 @@ class BaseOrderAdmin(admin.ModelAdmin):
         """최종 결제금액 표시 (천단위 구분)"""
         return format_html(
             '<strong style="color: #2563eb;">{:,}원</strong>',
-            obj.final_amount
+            int(obj.final_amount)
         )
     final_amount_display.short_description = '최종 결제금액'
     final_amount_display.admin_order_field = 'final_amount'
@@ -226,9 +226,10 @@ class BaseOrderAdmin(admin.ModelAdmin):
             final_amount_sum=Sum('final_amount'),
         )
 
+        # int()로 변환 (Decimal → int, intcomma 필터 호환)
         extra_context['total_count'] = aggregates['total_count'] or 0
-        extra_context['total_amount_sum'] = aggregates['total_amount_sum'] or 0
-        extra_context['final_amount_sum'] = aggregates['final_amount_sum'] or 0
+        extra_context['total_amount_sum'] = int(aggregates['total_amount_sum'] or 0)
+        extra_context['final_amount_sum'] = int(aggregates['final_amount_sum'] or 0)
 
         return super().changelist_view(request, extra_context=extra_context)
 
