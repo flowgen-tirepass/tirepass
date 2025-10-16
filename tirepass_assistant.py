@@ -24,7 +24,7 @@ from pathlib import Path
 try:
     import anthropic
 except ImportError:
-    print("❌ 오류: anthropic 패키지가 설치되지 않았습니다.")
+    print("[오류] anthropic 패키지가 설치되지 않았습니다.")
     print("다음 명령으로 설치하세요:")
     print("  pip install anthropic")
     sys.exit(1)
@@ -42,7 +42,7 @@ class TirePassAssistant:
         # Claude API 클라이언트
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
-            print("⚠️  경고: ANTHROPIC_API_KEY 환경변수가 설정되지 않았습니다.")
+            print("[경고] ANTHROPIC_API_KEY 환경변수가 설정되지 않았습니다.")
             print("Claude API를 사용하려면 API 키가 필요합니다.")
             print()
             api_key = input("API 키를 입력하세요 (Enter로 건너뛰기): ").strip()
@@ -142,7 +142,7 @@ class TirePassAssistant:
             return assistant_message
 
         except Exception as e:
-            return f"❌ 오류 발생: {str(e)}"
+            return f"[오류] 오류 발생: {str(e)}"
 
     def _demo_response(self, user_input):
         """데모 모드 응답 (API 없이)"""
@@ -184,7 +184,7 @@ class TirePassAssistant:
                 "conversation": self.conversation_history
             }, f, ensure_ascii=False, indent=2)
 
-        print(f"\n💾 대화 내역 저장: {history_file}")
+        print(f"\n[저장] 대화 내역 저장: {history_file}")
 
     def run_interactive(self):
         """대화형 모드 실행"""
@@ -201,26 +201,26 @@ class TirePassAssistant:
         print()
 
         if self.demo_mode:
-            print("⚠️  데모 모드로 실행 중 (API 키 없음)")
+            print("[경고] 데모 모드로 실행 중 (API 키 없음)")
             print()
 
         while True:
             try:
                 # 사용자 입력
-                user_input = input("\n🙂 사용자: ").strip()
+                user_input = input("\n[사용자] ").strip()
 
                 if not user_input:
                     continue
 
                 # 명령 처리
                 if user_input.lower() in ['quit', 'exit', '종료']:
-                    print("\n👋 종료합니다.")
+                    print("\n종료합니다.")
                     self.save_conversation()
                     break
 
                 if user_input.lower() == 'clear':
                     self.conversation_history = []
-                    print("✅ 대화 히스토리 초기화됨")
+                    print("[완료] 대화 히스토리 초기화됨")
                     continue
 
                 if user_input.lower() == 'save':
@@ -228,18 +228,18 @@ class TirePassAssistant:
                     continue
 
                 # 요청 분석
-                print("\n🤖 AI 어시스턴트:")
+                print("\n[AI 어시스턴트]")
                 print("-" * 70)
                 response = self.analyze_request(user_input)
                 print(response)
                 print("-" * 70)
 
             except KeyboardInterrupt:
-                print("\n\n👋 종료합니다.")
+                print("\n\n종료합니다.")
                 self.save_conversation()
                 break
             except Exception as e:
-                print(f"\n❌ 오류: {e}")
+                print(f"\n[오류] {e}")
 
     def run_single_request(self, request):
         """단일 요청 처리"""
@@ -247,9 +247,9 @@ class TirePassAssistant:
         print("  TirePASS AI Assistant")
         print("=" * 70)
         print()
-        print(f"🙂 사용자: {request}")
+        print(f"[사용자] {request}")
         print()
-        print("🤖 AI 어시스턴트:")
+        print("[AI 어시스턴트]")
         print("-" * 70)
         response = self.analyze_request(request)
         print(response)
