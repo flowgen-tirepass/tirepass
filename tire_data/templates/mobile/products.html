@@ -145,14 +145,16 @@
 }
 
 .supply-price-label {
-    font-size: clamp(12px, 3vw, 14px);
+    font-size: clamp(10px, 2.5vw, 11px);
     color: #6b7280;
+    white-space: nowrap;
 }
 
 .supply-price {
-    font-size: clamp(20px, 6vw, 28px);
+    font-size: clamp(14px, 4vw, 16px);
     font-weight: 800;
     color: #000;
+    white-space: nowrap;
 }
 
 .stock-dot-container {
@@ -587,11 +589,11 @@ function renderProducts(products) {
 
             <!-- 가격 정보 (한 줄 배치) -->
             <div class="price-section">
-                <div style="display: flex; align-items: center; gap: clamp(6px, 2vw, 10px); margin-bottom: 10px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: clamp(3px, 1vw, 5px); margin-bottom: 10px; flex-wrap: nowrap; overflow-x: auto;">
                     ${originalPrice > 0 && discount > 0 ? `
-                        <span style="font-size: clamp(12px, 3vw, 14px); color: #6b7280;">공장도가</span>
-                        <span style="font-size: clamp(14px, 4vw, 16px); color: #9ca3af; text-decoration: line-through;">₩${originalPrice.toLocaleString()}</span>
-                        <span style="background: #dc2626; color: white; padding: clamp(3px, 1vw, 4px) clamp(8px, 2.5vw, 12px); border-radius: 4px; font-size: clamp(12px, 3vw, 14px); font-weight: 700;">${discount}% OFF</span>
+                        <span style="font-size: clamp(9px, 2.3vw, 10px); color: #6b7280; white-space: nowrap;">공장도가</span>
+                        <span style="font-size: clamp(11px, 3vw, 13px); color: #9ca3af; text-decoration: line-through; white-space: nowrap;">₩${originalPrice.toLocaleString()}</span>
+                        <span style="background: #dc2626; color: white; padding: clamp(2px, 0.8vw, 3px) clamp(5px, 1.5vw, 7px); border-radius: 3px; font-size: clamp(9px, 2.3vw, 10px); font-weight: 700; white-space: nowrap;">${discount}% OFF</span>
                     ` : ''}
                     <span class="supply-price-label">공급가</span>
                     <span class="supply-price">₩${discountedPrice.toLocaleString()}</span>
