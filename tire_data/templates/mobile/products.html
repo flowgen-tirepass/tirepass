@@ -24,29 +24,29 @@
 }
 
 .performance-tags {
-    display: flex;
-    gap: clamp(3px, 1vw, 5px);
-    margin-bottom: clamp(8px, 2.5vw, 12px);
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-}
-
-.performance-tags::-webkit-scrollbar {
-    display: none; /* Chrome, Safari */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: clamp(4px, 1.2vw, 6px);
+    margin-bottom: clamp(10px, 3vw, 15px);
+    max-width: 100%;
 }
 
 .performance-tag {
-    padding: clamp(4px, 1vw, 5px) clamp(6px, 1.8vw, 10px);
-    border: 1.5px solid #000;
-    border-radius: clamp(3px, 0.8vw, 5px);
-    font-size: clamp(10px, 2.5vw, 11px);
+    padding: clamp(6px, 1.8vw, 8px) clamp(8px, 2.2vw, 10px);
+    border: 1.5px solid #1f2937;
+    border-radius: clamp(4px, 1vw, 6px);
+    font-size: clamp(11px, 3vw, 12px);
     font-weight: 600;
     background: white;
+    text-align: center;
     white-space: nowrap;
-    flex-shrink: 0;
-    min-width: fit-content;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(28px, 8vw, 32px);
 }
 
 .product-title-container {
@@ -523,13 +523,14 @@ function renderProducts(products) {
                 ${product.brand ? `<img src="${brandLogo}" alt="${product.brand}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.style.display='none'">` : ''}
             </div>
 
-            <!-- 상단 태그 버튼들 (성능 표기) -->
-            <div class="performance-tags">
-                ${product.brand ? `<span class="performance-tag">${product.brand}</span>` : ''}
-                ${product.performance_tags && product.performance_tags.length > 0
-                    ? product.performance_tags.map(tag => `<span class="performance-tag">${tag.tag}</span>`).join('')
-                    : ''}
-            </div>
+            <!-- 성능 표기 (2x2 그리드) -->
+            ${product.performance_tags && product.performance_tags.length > 0 ? `
+                <div class="performance-tags">
+                    ${product.performance_tags.slice(0, 4).map(tag => `
+                        <span class="performance-tag">${tag.category}: ${tag.tag}</span>
+                    `).join('')}
+                </div>
+            ` : ''}
 
             <!-- 상품명 -->
             <div class="product-title-container">
