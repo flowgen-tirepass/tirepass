@@ -571,20 +571,13 @@
             const userGreeting = document.getElementById('userGreeting');
             const userName = document.getElementById('userName');
 
-            console.log('[updateUserGreeting] customerCode:', customerCode);
-            console.log('[updateUserGreeting] customerName:', customerName);
-            console.log('[updateUserGreeting] userGreeting element:', userGreeting);
-            console.log('[updateUserGreeting] userName element:', userName);
-
             if (customerCode && customerName && userGreeting && userName) {
                 userName.textContent = customerName;
                 userGreeting.style.display = 'block';
-                console.log('[updateUserGreeting] 인사 문구 표시됨:', customerName);
             } else {
                 if (userGreeting) {
                     userGreeting.style.display = 'none';
                 }
-                console.log('[updateUserGreeting] 인사 문구 숨김 (로그인 안됨 또는 요소 없음)');
             }
         }
 
