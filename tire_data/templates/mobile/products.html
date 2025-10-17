@@ -24,19 +24,18 @@
 }
 
 .performance-tags {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
-    gap: clamp(4px, 1.2vw, 6px);
+    display: flex;
+    gap: clamp(3px, 0.8vw, 4px);
     margin-bottom: clamp(10px, 3vw, 15px);
     max-width: 100%;
 }
 
 .performance-tag {
-    padding: clamp(6px, 1.8vw, 8px) clamp(8px, 2.2vw, 10px);
+    flex: 1;
+    padding: clamp(5px, 1.5vw, 6px) clamp(4px, 1vw, 6px);
     border: 1.5px solid #1f2937;
     border-radius: clamp(4px, 1vw, 6px);
-    font-size: clamp(11px, 3vw, 12px);
+    font-size: clamp(9px, 2.5vw, 10px);
     font-weight: 600;
     background: white;
     text-align: center;
@@ -46,7 +45,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: clamp(28px, 8vw, 32px);
+    min-height: clamp(24px, 7vw, 28px);
 }
 
 .product-title-container {
@@ -228,8 +227,8 @@
         padding: 12px;
     }
     .performance-tag {
-        font-size: 11px;
-        padding: 4px 8px;
+        font-size: 9px;
+        padding: 4px 3px;
     }
     .tire-size {
         font-size: 18px;
