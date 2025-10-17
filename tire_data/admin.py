@@ -1311,3 +1311,115 @@ class GoodsRealtimeSnapshotAdmin(admin.ModelAdmin):
             'fields': ('jaego', 'change_from_prev')
         }),
     )
+
+
+# ============================================
+# Admin 활동 내역 관리
+# ============================================
+
+from django.contrib.admin.models import LogEntry
+
+@admin.register(LogEntry)
+class LogEntryAdmin(admin.ModelAdmin):
+    """Admin 활동 내역 관리 (읽기 전용)"""
+
+    list_display = [
+        'action_time_display',
+        'user_display',
+        'action_type_display',
+        'object_repr_short',
+        'change_message_short',
+    ]
+
+    list_filter = [
+        'action_flag',
+        'user',
+        ('action_time', admin.DateFieldListFilter),
+    ]
+
+    search_fields = [
+        'user__username',
+        'object_repr',
+        'change_message',
+    ]
+
+    ordering = ['-action_time']
+
+    list_per_page = 100
+
+    date_hierarchy = 'action_time'
+
+    # 읽기 전용
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser  # 슈퍼유저만 삭제 가능
+
+    def action_time_display(self, obj):
+        """활동 시간 표시"""
+        from django.utils import timezone
+        local_time = timezone.localtime(obj.action_time)
+        return format_html(
+            '<span style="color: #2563eb;">{}</span>',
+            local_time.strftime('%Y-%m-%d %H:%M:%S')
+        )
+    action_time_display.short_description = '활동 시간'
+    action_time_display.admin_order_field = 'action_time'
+
+    def user_display(self, obj):
+        """사용자 표시"""
+        return format_html(
+            '<strong>{}</strong>',
+            obj.user.username if obj.user else '-'
+        )
+    user_display.short_description = '사용자'
+    user_display.admin_order_field = 'user'
+
+    def action_type_display(self, obj):
+        """활동 유형 표시"""
+        colors = {
+            1: '#10b981',  # 추가 (녹색)
+            2: '#3b82f6',  # 수정 (파랑)
+            3: '#ef4444',  # 삭제 (빨강)
+        }
+        labels = {
+            1: '추가',
+            2: '수정',
+            3: '삭제',
+        }
+        color = colors.get(obj.action_flag, '#6b7280')
+        label = labels.get(obj.action_flag, '알 수 없음')
+
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            label
+        )
+    action_type_display.short_description = '활동 유형'
+    action_type_display.admin_order_field = 'action_flag'
+
+    def object_repr_short(self, obj):
+        """대상 객체 표시 (짧게)"""
+        if len(obj.object_repr) > 50:
+            return format_html(
+                '<span title="{}">{}</span>',
+                obj.object_repr,
+                obj.object_repr[:50] + '...'
+            )
+        return obj.object_repr
+    object_repr_short.short_description = '대상 객체'
+
+    def change_message_short(self, obj):
+        """변경 메시지 표시 (짧게)"""
+        if len(obj.change_message) > 80:
+            return format_html(
+                '<span title="{}">{}</span>',
+                obj.change_message,
+                obj.change_message[:80] + '...'
+            )
+        return obj.change_message or '-'
+    change_message_short.short_description = '변경 내용'
