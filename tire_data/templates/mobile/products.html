@@ -54,15 +54,17 @@
 }
 
 .tire-size {
-    font-size: clamp(18px, 5vw, 22px);
-    font-weight: 800;
-    margin-bottom: clamp(8px, 2vw, 10px);
+    font-size: clamp(11px, 3vw, 13px);
+    font-weight: 600;
+    margin-bottom: clamp(4px, 1vw, 6px);
     line-height: 1.3;
+    color: #6b7280;
 }
 
 .product-name {
-    font-size: clamp(13px, 3.5vw, 15px);
-    color: #374151;
+    font-size: clamp(16px, 4.5vw, 19px);
+    font-weight: 700;
+    color: #000;
     line-height: 1.4;
 }
 
@@ -580,12 +582,11 @@ function renderProducts(products) {
 
             <!-- 가격 정보 (한 줄 배치) -->
             <div class="price-section">
-                <div style="display: flex; align-items: center; gap: clamp(3px, 1vw, 5px); margin-bottom: 10px; flex-wrap: nowrap; overflow-x: auto;">
-                    <span style="font-size: clamp(9px, 2.3vw, 10px); color: #6b7280; white-space: nowrap;">공장도가</span>
-                    <span style="font-size: clamp(11px, 3vw, 13px); color: ${discount > 0 ? '#9ca3af' : '#000'}; text-decoration: ${discount > 0 ? 'line-through' : 'none'}; white-space: nowrap;">₩${originalPrice.toLocaleString()}</span>
-                    ${discount > 0 ? `
-                        <span style="background: #dc2626; color: white; padding: clamp(2px, 0.8vw, 3px) clamp(5px, 1.5vw, 7px); border-radius: 3px; font-size: clamp(9px, 2.3vw, 10px); font-weight: 700; white-space: nowrap;">${discount}% OFF</span>
-                    ` : ''}
+                <div style="display: flex; align-items: center; gap: clamp(4px, 1.2vw, 6px); margin-bottom: 10px; flex-wrap: nowrap; overflow-x: auto;">
+                    <span style="font-size: clamp(10px, 2.5vw, 11px); color: #6b7280; white-space: nowrap;">공장도가</span>
+                    <span style="font-size: clamp(12px, 3.2vw, 14px); color: ${discount > 0 ? '#9ca3af' : '#000'}; text-decoration: ${discount > 0 ? 'line-through' : 'none'}; white-space: nowrap;">₩${originalPrice.toLocaleString()}</span>
+                    <span style="font-size: clamp(10px, 2.5vw, 11px); color: #6b7280; white-space: nowrap;">할인율</span>
+                    <span style="background: ${discount > 0 ? '#dc2626' : '#9ca3af'}; color: white; padding: clamp(3px, 1vw, 4px) clamp(6px, 1.8vw, 8px); border-radius: 4px; font-size: clamp(10px, 2.5vw, 11px); font-weight: 700; white-space: nowrap;">${discount.toString().padStart(2, '0')}%</span>
                     <span class="supply-price-label">공급가</span>
                     <span class="supply-price">₩${discountedPrice.toLocaleString()}</span>
                 </div>
