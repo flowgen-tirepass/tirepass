@@ -45,8 +45,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '우수')
                OR (pc.name = 'noise' AND pt.name = '탁월')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand = '미쉐린'
+        WHERE g.brand = '미쉐린'
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -66,8 +65,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '우수')
                OR (pc.name = 'noise' AND pt.name = '탁월')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand = '피렐리'
+        WHERE g.brand = '피렐리'
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -87,8 +85,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '우수')
                OR (pc.name = 'noise' AND pt.name = '탁월')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand = '콘티넨탈'
+        WHERE g.brand = '콘티넨탈'
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -108,8 +105,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '우수')
                OR (pc.name = 'noise' AND pt.name = '우수')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand = '브리지스톤'
+        WHERE g.brand = '브리지스톤'
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -129,8 +125,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '우수')
                OR (pc.name = 'noise' AND pt.name = '우수')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand = '던롭'
+        WHERE g.brand = '던롭'
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -150,8 +145,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '우수')
                OR (pc.name = 'noise' AND pt.name = '우수')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand = '굳이어'
+        WHERE g.brand = '굳이어'
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -171,8 +165,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '탁월')
                OR (pc.name = 'noise' AND pt.name = '우수')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand = '금호'
+        WHERE g.brand = '금호'
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -192,8 +185,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '탁월')
                OR (pc.name = 'noise' AND pt.name = '우수')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand = '넥센'
+        WHERE g.brand = '넥센'
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -213,8 +205,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '탁월')
                OR (pc.name = 'noise' AND pt.name = '우수')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand = '한국'
+        WHERE g.brand = '한국'
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -234,8 +225,7 @@ try:
                OR (pc.name = 'fuel' AND pt.name = '우수')
                OR (pc.name = 'noise' AND pt.name = '양호')
         ) pt
-        WHERE g.is_tire = 1
-          AND g.brand IN ('하이로', 'BFG', '안나이트', '맥시스', '하이플라이', '파이어스톤')
+        WHERE g.brand IN ('하이로', 'BFG', '안나이트', '맥시스', '하이플라이', '파이어스톤')
     """)
     print(f"   ✅ {cursor.rowcount}개 등록 완료")
 
@@ -266,7 +256,7 @@ try:
             COUNT(DISTINCT gpt.goods_code) as tagged_products
         FROM goods g
         LEFT JOIN goods_performance_tags gpt ON g.CODE = gpt.goods_code
-        WHERE g.is_tire = 1 AND g.brand IN ('금호', '미쉐린', '넥센', '한국', '피렐리', '콘티넨탈', '브리지스톤', '굳이어', '던롭')
+        WHERE g.brand IN ('금호', '미쉐린', '넥센', '한국', '피렐리', '콘티넨탈', '브리지스톤', '굳이어', '던롭')
         GROUP BY g.brand
         ORDER BY COUNT(DISTINCT g.CODE) DESC
     """)
