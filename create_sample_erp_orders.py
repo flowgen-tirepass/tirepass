@@ -1,143 +1,242 @@
+#!/usr/bin/env python
 """
-5개 샘플 ERP 전화주문 생성 스크립트
-
-ERP 전화주문은 pythonanywhere 재고에 영향을 주지 않고,
-ERP 실시간 재고 수량을 받아서 유지합니다.
+ERP 전화주문 샘플 데이터 생성 스크립트
 """
 import os
 import django
-from datetime import timedelta
-from decimal import Decimal
+import sys
+from datetime import datetime, timedelta
 
 # Django 설정
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "itire.settings")
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'itire.settings')
 django.setup()
 
-from tire_data.models import Order, OrderItem, Customers, Goods
-from django.utils import timezone
+from tire_data.models_shopping import Order, OrderItem, Payment
+from tire_data.models import Customers
 
+def create_sample_orders():
+    """샘플 ERP 전화주문 3건 생성"""
 
-def create_sample_erp_orders():
-    """5개 샘플 ERP 전화주문 생성"""
+    # 기존 고객 코드 확인
+    customers = Customers.objects.all()[:3]
+    if not customers:
+        print("[오류] 고객 데이터가 없습니다. customers_simple 테이블에 고객을 먼저 추가하세요.")
+        return
 
-    # 테스트용 고객 목록
-    customers_data = [
-        {'code': '0-1-0001', 'name': '거라지21'},
-        {'code': '0-1-0002', 'name': '고려모터스'},
+    print(f"[정보] {len(customers)}명의 고객 데이터를 찾았습니다.")
+
+    # 샘플 주문 데이터
+    sample_orders = [
+        {
+            'order_number': 'ERP-2025-001',
+            'customer_code': customers[0].code if len(customers) > 0 else 'C001',
+            'customer_name': customers[0].name if len(customers) > 0 else '테스트고객1',
+            'order_status': 'confirmed',
+            'payment_status': 'paid',
+            'payment_method': 'transfer',
+            'shipping_address': '서울시 강남구 테헤란로 123',
+            'items': [
+                {
+                    'product_code': 'K-ENZA-01',
+                    'product_name': '금호 엔자라 235/55R19',
+                    'brand': '금호',
+                    'quantity': 4,
+                    'unit_price': 150000,
+                    'discounted_price': 145000,
+                },
+                {
+                    'product_code': 'H-VENT-02',
+                    'product_name': '한국 벤투스 S1 225/45R18',
+                    'brand': '한국',
+                    'quantity': 2,
+                    'unit_price': 130000,
+                    'discounted_price': 125000,
+                },
+            ]
+        },
+        {
+            'order_number': 'ERP-2025-002',
+            'customer_code': customers[1].code if len(customers) > 1 else 'C002',
+            'customer_name': customers[1].name if len(customers) > 1 else '테스트고객2',
+            'order_status': 'shipped',
+            'payment_status': 'paid',
+            'payment_method': 'card',
+            'shipping_address': '경기도 성남시 분당구 판교역로 235',
+            'items': [
+                {
+                    'product_code': 'P-SCOR-18',
+                    'product_name': '피렐리 스콜피온 255/45R20',
+                    'brand': '피렐리',
+                    'quantity': 4,
+                    'unit_price': 280000,
+                    'discounted_price': 270000,
+                },
+            ]
+        },
+        {
+            'order_number': 'ERP-2025-003',
+            'customer_code': customers[2].code if len(customers) > 2 else 'C003',
+            'customer_name': customers[2].name if len(customers) > 2 else '테스트고객3',
+            'order_status': 'pending',
+            'payment_status': 'unpaid',
+            'payment_method': 'cash',
+            'shipping_address': '부산시 해운대구 센텀중앙로 48',
+            'items': [
+                {
+                    'product_code': 'M-PRIM-04',
+                    'product_name': '미쉐린 프라이머시 4 205/55R16',
+                    'brand': '미쉐린',
+                    'quantity': 4,
+                    'unit_price': 160000,
+                    'discounted_price': 155000,
+                },
+                {
+                    'product_code': 'N-NFER-05',
+                    'product_name': '넥센 엔페라 215/60R17',
+                    'brand': '넥센',
+                    'quantity': 4,
+                    'unit_price': 120000,
+                    'discounted_price': 115000,
+                },
+            ]
+        },
     ]
 
-    # 샘플 상품 (실제 존재하는 타이어 코드)
-    sample_products = [
-        'K-HP51-04',  # 금호
-        'K-HP51-19',  # 금호
-        'K-HP71-09',  # 금호
-        'K-KL51-01',  # 금호
-        'K-KU50M-03',  # 금호
-    ]
+    created_count = 0
 
-    # ERP 주문 5개 생성
-    order_count = 0
-    for i in range(5):
-        customer_idx = i % len(customers_data)
-        customer_data = customers_data[customer_idx]
-
-        try:
-            # 고객 조회
-            customer = Customers.objects.get(code=customer_data['code'])
-        except Customers.DoesNotExist:
-            print(f"⚠️  고객 {customer_data['code']} 없음 - 건너뜀")
+    for order_data in sample_orders:
+        # 중복 체크
+        if Order.objects.filter(order_number=order_data['order_number']).exists():
+            print(f"[건너뜀] {order_data['order_number']} - 이미 존재합니다.")
             continue
 
-        # 주문번호 생성 (ERP-날짜-순번)
-        order_date = timezone.now() - timedelta(days=i*2)  # 2일 간격
-        order_number = f"ERP-{order_date.strftime('%Y%m%d')}-{i+1:03d}"
-
         # 주문 생성
+        items_data = order_data.pop('items')
+
+        # 금액 계산
+        total_amount = sum(item['unit_price'] * item['quantity'] for item in items_data)
+        total_discount = sum((item['unit_price'] - item['discounted_price']) * item['quantity'] for item in items_data)
+        final_amount = total_amount - total_discount
+
         order = Order.objects.create(
-            order_number=order_number,
-            customer_code=customer.code,
-            customer_name=customer.name,
-            total_amount=0,  # 아래에서 계산
-            total_discount=0,
-            final_amount=0,
-            order_status='confirmed',  # ERP 주문은 바로 확인됨
-            payment_status='paid',  # 전화주문은 대부분 나중결제
-            payment_method='transfer',  # 계좌이체
-            shipping_address=f'{customer.name} 본점',
-            shipping_memo='전화주문 - 빠른 배송 요청',
-            order_source='erp_phone',  # ⭐ ERP 전화주문
-            erp_order_number=f'TEL-{order_date.strftime("%Y%m%d")}-{i+1:03d}',
-            order_date=order_date,
-            confirmed_date=order_date + timedelta(hours=1),
+            **order_data,
+            order_source='erp_phone',
+            total_amount=total_amount,
+            total_discount=total_discount,
+            final_amount=final_amount,
         )
 
-        # 주문 상세 생성 (1-3개 상품)
-        num_items = (i % 3) + 1  # 1, 2, 3개
-        total_amount = 0
+        # 주문 상세 생성
+        for item_data in items_data:
+            unit_price = item_data['unit_price']
+            discounted_price = item_data['discounted_price']
+            quantity = item_data['quantity']
+            final_price = discounted_price * quantity
 
-        for item_idx in range(num_items):
-            product_code = sample_products[(i + item_idx) % len(sample_products)]
+            OrderItem.objects.create(
+                order=order,
+                product_code=item_data['product_code'],
+                product_name=item_data['product_name'],
+                brand=item_data['brand'],
+                quantity=quantity,
+                unit_price=unit_price,
+                discounted_price=discounted_price,
+                final_price=final_price,
+            )
 
-            try:
-                # 상품 조회
-                product = Goods.objects.get(code=product_code)
+        # 결제 정보 생성 (결제완료 주문만)
+        if order.payment_status == 'paid':
+            Payment.objects.create(
+                order=order,
+                payment_method=order.payment_method,
+                payment_amount=final_amount,
+                payment_status='completed',
+                payment_date=datetime.now(),
+            )
 
-                quantity = 4  # 기본 수량 4개 (타이어 1세트)
-                unit_price = product.fixp
+        created_count += 1
+        print(f"[생성] {order.order_number} - {order.customer_name} - {final_amount:,}원")
 
-                # 할인율 (ERP 전화주문도 할인 적용)
-                basic_discount_rate = Decimal('10.00')  # 기본 10%
-                customer_discount_rate = Decimal('5.00')  # 고객 5%
-                total_discount_rate = basic_discount_rate + customer_discount_rate
+    print(f"\n[완료] 총 {created_count}건의 ERP 전화주문을 생성했습니다.")
 
-                # 가격 계산
-                discounted_price = int(unit_price * (1 - total_discount_rate / 100))
-                final_price = discounted_price * quantity
+    # 생성된 주문 확인
+    print("\n=== 생성된 주문 목록 ===")
+    erp_orders = Order.objects.filter(order_source='erp_phone').order_by('-order_date')
+    for order in erp_orders:
+        items_count = order.items.count()
+        print(f"{order.order_number} | {order.customer_name} | {order.get_order_status_display()} | "
+              f"{order.get_payment_status_display()} | {order.final_amount:,}원 | 상품 {items_count}개")
 
-                # 주문 상세 생성 (selected_year는 NULL로 - ERP 주문은 제조년도 관리 안함)
-                OrderItem.objects.create(
-                    order=order,
-                    product_code=product.code,
-                    product_name=product.name,
-                    brand=product.bun1 or '',
-                    quantity=quantity,
-                    selected_year=None,  # ERP 주문은 제조년도 지정 안함
-                    unit_price=unit_price,
-                    basic_discount_rate=basic_discount_rate,
-                    customer_discount_rate=customer_discount_rate,
-                    additional_discount_rate=Decimal('0.00'),
-                    dot_discount_rate=Decimal('0.00'),
-                    total_discount_rate=total_discount_rate,
-                    discounted_price=discounted_price,
-                    final_price=final_price
-                )
-
-                total_amount += unit_price * quantity
-
-            except Goods.DoesNotExist:
-                print(f"⚠️  상품 {product_code} 없음 - 건너뜀")
-                continue
-
-        # 주문 총액 업데이트
-        if total_amount > 0:
-            order.total_amount = total_amount
-            order.total_discount = int(total_amount * total_discount_rate / 100)
-            order.final_amount = total_amount - order.total_discount
-            order.save()
-
-            order_count += 1
-            print(f"✅ ERP 주문 {order_count}: {order_number}")
-            print(f"   고객: {customer.name} ({customer.code})")
-            print(f"   금액: {order.final_amount:,}원")
-            print(f"   상품 {num_items}개, 출처: {order.get_order_source_display()}")
-            print()
-
-    print(f"\n🎉 총 {order_count}개 ERP 전화주문 생성 완료!")
-    print(f"\n📌 중요:")
-    print(f"   - ERP 주문은 pythonanywhere 재고를 차감하지 않습니다")
-    print(f"   - ERP 실시간 재고 수량을 받아서 유지합니다")
-    print(f"   - 고객이 모바일 로그인하면 자신의 모든 주문(모바일+ERP)을 볼 수 있습니다")
-
+def create_test_order_with_all_fields():
+    """모든 필드가 입력된 테스트 주문 생성"""
+    
+    customers = Customers.objects.all().first()
+    if not customers:
+        print("[오류] 고객 데이터가 없습니다.")
+        return
+    
+    # 테스트 주문 생성
+    order_number = 'ERP-TEST-001'
+    
+    # 중복 체크
+    if Order.objects.filter(order_number=order_number).exists():
+        print(f"[건너뜀] {order_number} - 이미 존재합니다. 삭제 후 재생성합니다.")
+        Order.objects.filter(order_number=order_number).delete()
+    
+    order = Order.objects.create(
+        order_number=order_number,
+        customer_code=customers.code,
+        customer_name=customers.name,
+        order_source='erp_phone',
+        order_status='confirmed',
+        payment_status='paid',
+        payment_method='transfer',
+        shipping_address='테스트 주소 서울시 강남구',
+        total_amount=600000,
+        total_discount=50000,
+        final_amount=550000,
+    )
+    
+    # 주문 상세 생성 (모든 필드 입력)
+    OrderItem.objects.create(
+        order=order,
+        product_code='TEST-CODE-01',
+        product_name='테스트 타이어 255/55R19',
+        brand='테스트브랜드',
+        quantity=4,
+        selected_year='2024',
+        unit_price=150000,
+        basic_discount_rate=5.00,
+        customer_discount_rate=3.00,
+        additional_discount_rate=0.00,
+        dot_discount_rate=0.00,
+        total_discount_rate=8.00,
+        discounted_price=138000,
+        final_price=552000,
+    )
+    
+    # 결제 정보 생성
+    Payment.objects.create(
+        order=order,
+        payment_method='transfer',
+        payment_amount=550000,
+        payment_status='completed',
+        payment_date=datetime.now(),
+        memo='테스트 결제',
+    )
+    
+    print(f"[생성] {order.order_number} - 모든 필드 입력 테스트 주문")
+    print(f"  - 상품코드: TEST-CODE-01")
+    print(f"  - 상품명: 테스트 타이어 255/55R19")
+    print(f"  - 브랜드: 테스트브랜드")
+    print(f"  - 수량: 4")
+    print(f"  - 선택년도: 2024")
+    print(f"  - 단가: 150,000원")
+    print(f"  - 총 할인율: 8.00%")
+    print(f"  - 할인가격: 138,000원")
+    print(f"  - 최종가격: 552,000원")
 
 if __name__ == '__main__':
-    create_sample_erp_orders()
+    # create_sample_orders()  # 이미 생성됨
+    print("\n=== 테스트 주문 생성 (모든 필드 입력) ===")
+    create_test_order_with_all_fields()

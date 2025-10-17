@@ -27,22 +27,109 @@ class ERPPhoneOrder(Order):
 
 # Inline 클래스들 (BaseOrderAdmin에서 사용)
 class OrderItemInline(admin.TabularInline):
-    """주문 상세 인라인"""
+    """주문 상세 인라인 (테스트용: 모든 필드 수동 입력 가능)"""
     model = OrderItem
-    extra = 0
+    extra = 1  # 새 항목 추가를 위해 1개 빈 폼 표시
+    can_delete = True  # 삭제 가능
+    show_change_link = False
+    # 테스트 기간 동안 모든 필드 수동 입력 가능
     fields = ['product_code', 'product_name', 'brand', 'quantity', 'selected_year',
              'unit_price', 'total_discount_rate', 'discounted_price', 'final_price']
-    readonly_fields = ['product_name', 'brand', 'unit_price', 'total_discount_rate',
-                      'discounted_price', 'final_price']
+    # 모든 필드 편집 가능 (readonly 없음)
+    readonly_fields = []
+
+    # 모든 필드 위젯 명시적 설정
+    def get_formset(self, request, obj=None, **kwargs):
+        from django import forms
+
+        formset = super().get_formset(request, obj, **kwargs)
+
+        # 각 필드에 대해 위젯 명시적 설정
+        if 'product_code' in formset.form.base_fields:
+            formset.form.base_fields['product_code'].widget = forms.TextInput(attrs={'style': 'width: 150px;'})
+            formset.form.base_fields['product_code'].required = False
+
+        if 'product_name' in formset.form.base_fields:
+            formset.form.base_fields['product_name'].widget = forms.TextInput(attrs={'style': 'width: 200px;'})
+            formset.form.base_fields['product_name'].required = False
+
+        if 'brand' in formset.form.base_fields:
+            formset.form.base_fields['brand'].widget = forms.TextInput(attrs={'style': 'width: 100px;'})
+            formset.form.base_fields['brand'].required = False
+
+        if 'quantity' in formset.form.base_fields:
+            formset.form.base_fields['quantity'].widget = forms.NumberInput(attrs={'style': 'width: 60px;'})
+            formset.form.base_fields['quantity'].required = False
+
+        if 'selected_year' in formset.form.base_fields:
+            formset.form.base_fields['selected_year'].widget = forms.TextInput(attrs={'style': 'width: 80px;', 'placeholder': '2024'})
+            formset.form.base_fields['selected_year'].required = False
+
+        if 'unit_price' in formset.form.base_fields:
+            formset.form.base_fields['unit_price'].widget = forms.NumberInput(attrs={'style': 'width: 100px;'})
+            formset.form.base_fields['unit_price'].required = False
+
+        if 'total_discount_rate' in formset.form.base_fields:
+            formset.form.base_fields['total_discount_rate'].widget = forms.NumberInput(attrs={'style': 'width: 80px;', 'step': '0.01'})
+            formset.form.base_fields['total_discount_rate'].required = False
+
+        if 'discounted_price' in formset.form.base_fields:
+            formset.form.base_fields['discounted_price'].widget = forms.NumberInput(attrs={'style': 'width: 100px;'})
+            formset.form.base_fields['discounted_price'].required = False
+
+        if 'final_price' in formset.form.base_fields:
+            formset.form.base_fields['final_price'].widget = forms.NumberInput(attrs={'style': 'width: 120px;'})
+            formset.form.base_fields['final_price'].required = False
+
+        return formset
 
 
 class PaymentInline(admin.TabularInline):
-    """결제 정보 인라인"""
+    """결제 정보 인라인 (테스트용: 모든 필드 편집 가능)"""
     model = Payment
-    extra = 0
+    extra = 1  # 새 결제 정보 추가를 위해 1개 빈 폼 표시
+    can_delete = True  # 삭제 가능
+    show_change_link = False
     fields = ['payment_method', 'payment_amount', 'payment_status', 'payment_date',
-             'transaction_id', 'pg_name']
-    readonly_fields = ['payment_date']
+             'transaction_id', 'pg_name', 'memo']
+    # 테스트 기간 동안 모든 필드 편집 가능 (readonly_fields 제거)
+    readonly_fields = []
+
+    # 모든 필드 위젯 명시적 설정
+    def get_formset(self, request, obj=None, **kwargs):
+        from django import forms
+
+        formset = super().get_formset(request, obj, **kwargs)
+
+        # 각 필드에 대해 위젯 명시적 설정
+        if 'payment_amount' in formset.form.base_fields:
+            formset.form.base_fields['payment_amount'].widget = forms.NumberInput(attrs={'style': 'width: 120px;'})
+            formset.form.base_fields['payment_amount'].required = False
+
+        if 'payment_date' in formset.form.base_fields:
+            formset.form.base_fields['payment_date'].widget = forms.DateTimeInput(attrs={'type': 'datetime-local', 'style': 'width: 180px;'})
+            formset.form.base_fields['payment_date'].required = False
+
+        if 'transaction_id' in formset.form.base_fields:
+            formset.form.base_fields['transaction_id'].widget = forms.TextInput(attrs={'style': 'width: 150px;'})
+            formset.form.base_fields['transaction_id'].required = False
+
+        if 'pg_name' in formset.form.base_fields:
+            formset.form.base_fields['pg_name'].widget = forms.TextInput(attrs={'style': 'width: 100px;'})
+            formset.form.base_fields['pg_name'].required = False
+
+        if 'memo' in formset.form.base_fields:
+            formset.form.base_fields['memo'].widget = forms.Textarea(attrs={'rows': 2, 'style': 'width: 200px;'})
+            formset.form.base_fields['memo'].required = False
+
+        # payment_method, payment_status는 ChoiceField이므로 자동으로 Select 위젯 사용
+        if 'payment_method' in formset.form.base_fields:
+            formset.form.base_fields['payment_method'].required = False
+
+        if 'payment_status' in formset.form.base_fields:
+            formset.form.base_fields['payment_status'].required = False
+
+        return formset
 
 
 class BaseOrderAdmin(admin.ModelAdmin):
@@ -80,7 +167,8 @@ class BaseOrderAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    readonly_fields = ['order_date']
+    # 테스트 기간 동안 모든 필드 편집 가능 (readonly_fields 제거)
+    readonly_fields = []
     actions = ['cancel_order', 'process_return']
 
     def save_model(self, request, obj, form, change):
@@ -254,3 +342,13 @@ class ERPPhoneOrderAdmin(BaseOrderAdmin):
         """ERP 전화주문만 표시"""
         qs = super().get_queryset(request)
         return qs.filter(order_source='erp_phone')
+
+    def save_model(self, request, obj, form, change):
+        """ERP 전화주문 저장 시 order_source 자동 설정"""
+        if not change:  # 새로 생성하는 경우
+            obj.order_source = 'erp_phone'
+        super().save_model(request, obj, form, change)
+
+    def has_add_permission(self, request):
+        """테스트 기간 동안 ERP 전화주문 추가 허용"""
+        return True

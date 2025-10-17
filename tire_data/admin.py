@@ -939,27 +939,13 @@ class ShoppingCartAdmin(admin.ModelAdmin):
     get_product_name.short_description = '상품명'
 
 
-class OrderItemInline(admin.TabularInline):
-    """주문 상세 인라인"""
-    model = OrderItem
-    extra = 0
-    fields = ['product_code', 'product_name', 'brand', 'quantity', 'selected_year',
-             'unit_price', 'total_discount_rate', 'discounted_price', 'final_price']
-    readonly_fields = ['product_name', 'brand', 'unit_price', 'total_discount_rate',
-                      'discounted_price', 'final_price']
-
-
-class PaymentInline(admin.TabularInline):
-    """결제 정보 인라인"""
-    model = Payment
-    extra = 0
-    fields = ['payment_method', 'payment_amount', 'payment_status', 'payment_date',
-             'transaction_id', 'pg_name']
-    readonly_fields = ['payment_date']
-
-
 # ============================================
 # 주문 관리 Admin (분리됨 - admin_orders.py 참조)
+# ============================================
+#
+# NOTE: OrderItemInline과 PaymentInline은 admin_orders.py에 정의되어 있습니다.
+# MobileOrderAdmin과 ERPPhoneOrderAdmin에서 사용하는 인라인 클래스는
+# admin_orders.py의 BaseOrderAdmin에 정의되어 있습니다.
 # ============================================
 
 # 기존 Order Admin 대신 모바일/ERP 주문 분리 Admin 사용
