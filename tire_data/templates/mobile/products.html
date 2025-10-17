@@ -66,6 +66,9 @@
     font-weight: 700;
     color: #000;
     line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dot-button {
@@ -525,11 +528,11 @@ function renderProducts(products) {
         const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
         const brandLogo = getBrandLogo(product.brand);
 
-        // 한글명: korean_name이 있으면 사용, 없으면 브랜드명(한글) 사용
-        const koreanName = product.korean_name || product.brand || '';
+        // 한글명: korean_name이 있으면 사용, 없으면 "브랜드명(한글) + NAME(전체)" 조합
+        const koreanName = product.korean_name || (product.brand ? `${product.brand} ${product.name}` : product.name);
 
-        // 영문명: english_name이 있으면 사용, 없으면 NAME에서 사이즈 제거
-        const englishName = product.english_name || extractProductNameWithoutSize(product.name);
+        // 영문명: english_name이 있으면 사용, 없으면 NAME(전체)
+        const englishName = product.english_name || product.name;
 
         // DOT 재고 카드 색상 매핑
         const dotColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];  // 파랑, 초록, 주황, 빨강
@@ -556,7 +559,6 @@ function renderProducts(products) {
 
             <!-- 상품명 -->
             <div class="product-title-container">
-                ${tireSize ? `<div class="tire-size">${tireSize}</div>` : ''}
                 <h3 class="product-name">
                     ${koreanName}
                 </h3>
