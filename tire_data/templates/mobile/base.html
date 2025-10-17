@@ -48,7 +48,20 @@
 
         .header-actions {
             display: flex;
-            gap: 15px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .user-greeting {
+            font-size: clamp(11px, 2.8vw, 13px);
+            color: white;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .user-greeting .user-name {
+            font-weight: 600;
+            color: #fef3c7;
         }
 
         .header-btn {
@@ -344,6 +357,9 @@
             <h1>{% block header_title %}TirePASS{% endblock %}</h1>
             <div class="header-actions">
                 {% block header_actions %}
+                <div class="user-greeting" id="userGreeting" style="display: none;">
+                    안녕하세요, <span class="user-name" id="userName"></span>님
+                </div>
                 <button class="header-btn" onclick="location.href='/mobile/cart/'">
                     <span class="nav-icon">
                         🛒
@@ -548,9 +564,27 @@
             }
         }
 
-        // 페이지 로드 시 장바구니 개수 업데이트
+        // 사용자 인사 문구 업데이트
+        function updateUserGreeting() {
+            const customerCode = getCustomerCode();
+            const customerName = localStorage.getItem('customer_name');
+            const userGreeting = document.getElementById('userGreeting');
+            const userName = document.getElementById('userName');
+
+            if (customerCode && customerName && userGreeting && userName) {
+                userName.textContent = customerName;
+                userGreeting.style.display = 'block';
+            } else {
+                if (userGreeting) {
+                    userGreeting.style.display = 'none';
+                }
+            }
+        }
+
+        // 페이지 로드 시 장바구니 개수 및 사용자 인사 업데이트
         document.addEventListener('DOMContentLoaded', () => {
             updateCartBadge();
+            updateUserGreeting();
         });
     </script>
 
