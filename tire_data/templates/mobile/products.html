@@ -28,11 +28,13 @@
     gap: clamp(3px, 0.8vw, 4px);
     margin-bottom: clamp(10px, 3vw, 15px);
     max-width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
 }
 
 .performance-tag {
-    flex: 1;
-    padding: clamp(5px, 1.5vw, 6px) clamp(4px, 1vw, 6px);
+    flex: 0 0 auto;
+    padding: clamp(5px, 1.5vw, 6px) clamp(8px, 2vw, 10px);
     border: 1.5px solid #1f2937;
     border-radius: clamp(4px, 1vw, 6px);
     font-size: clamp(9px, 2.5vw, 10px);
@@ -40,9 +42,7 @@
     background: white;
     text-align: center;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     min-height: clamp(24px, 7vw, 28px);
@@ -494,6 +494,15 @@ function extractTireSize(name) {
     return sizeMatch ? sizeMatch[1] : '';
 }
 
+// 타이어 사이즈를 제외한 상품명 추출
+function extractProductNameWithoutSize(name) {
+    // 타이어 사이즈 패턴 제거 (예: 225/60R17, 145R13)
+    let productName = name.replace(/\d{3}\/\d{2}R?\d{2}/gi, '').trim();
+    // 연속된 공백 제거
+    productName = productName.replace(/\s+/g, ' ');
+    return productName;
+}
+
 // 브랜드 로고 경로 생성
 function getBrandLogo(brand) {
     if (!brand) return '';
@@ -515,6 +524,12 @@ function renderProducts(products) {
         const originalPrice = product.price || 0;
         const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
         const brandLogo = getBrandLogo(product.brand);
+
+        // 한글명 결정: korean_name이 있으면 사용, 없으면 name에서 타이어 사이즈 제거
+        const koreanName = product.korean_name || extractProductNameWithoutSize(product.name);
+
+        // 영문명 (있으면 작게 표시)
+        const englishName = product.english_name || '';
 
         // DOT 재고 카드 색상 매핑
         const dotColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];  // 파랑, 초록, 주황, 빨강
@@ -541,12 +556,11 @@ function renderProducts(products) {
 
             <!-- 상품명 -->
             <div class="product-title-container">
-                <h3 class="tire-size">
-                    ${tireSize || product.name}
+                ${tireSize ? `<div class="tire-size">${tireSize}</div>` : ''}
+                <h3 class="product-name">
+                    ${koreanName}
                 </h3>
-                <div class="product-name">
-                    ${product.korean_name || product.english_name || product.name}
-                </div>
+                ${englishName ? `<div style="font-size: clamp(11px, 3vw, 12px); color: #6b7280; margin-top: 4px;">${englishName}</div>` : ''}
             </div>
 
             <!-- 재고 + DOT 재고 확인 버튼 -->
