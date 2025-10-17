@@ -471,7 +471,7 @@ def api_product_detail(request, code):
 @require_session_auth
 @require_http_methods(["GET"])
 def api_cart_list(request):
-    """장바구니 조회 API"""
+    """장바구니 조회 API (상세 할인율 정보 포함)"""
     customer_code = request.GET.get('customer_code')
 
     if not customer_code:
@@ -482,23 +482,37 @@ def api_cart_list(request):
 
     carts = ShoppingCart.objects.filter(customer_code=customer_code).order_by('-created_at')
 
+    items = []
+    for cart in carts:
+        # 실시간 가격 계산 (최신 할인율 반영)
+        price_info = calculate_discount_price(
+            product_code=cart.product_code,
+            customer_code=customer_code,
+            selected_year=cart.selected_year,
+            quantity=cart.quantity
+        )
+
+        items.append({
+            'id': cart.id,
+            'product_code': cart.product_code,
+            'product_name': cart.product_name,
+            'quantity': cart.quantity,
+            'selected_year': cart.selected_year,
+            'unit_price': price_info['unit_price'],
+            'basic_discount_rate': float(price_info['basic_discount_rate']),
+            'customer_discount_rate': float(price_info['customer_discount_rate']),
+            'additional_discount_rate': float(price_info['additional_discount_rate']),
+            'dot_discount_rate': float(price_info['dot_discount_rate']),
+            'total_discount_rate': float(price_info['total_discount_rate']),
+            'discounted_price': price_info['discounted_price'],
+            'final_price': price_info['final_price'],
+        })
+
     result = {
         'success': True,
         'data': {
-            'items': [
-                {
-                    'id': cart.id,
-                    'product_code': cart.product_code,
-                    'product_name': cart.product_name,
-                    'quantity': cart.quantity,
-                    'selected_year': cart.selected_year,
-                    'unit_price': cart.unit_price,
-                    'discount_rate': float(cart.discount_rate),
-                    'final_price': cart.final_price,
-                }
-                for cart in carts
-            ],
-            'total_price': sum(cart.final_price for cart in carts)
+            'items': items,
+            'total_price': sum(item['final_price'] for item in items)
         }
     }
 
