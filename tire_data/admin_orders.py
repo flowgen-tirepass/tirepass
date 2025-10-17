@@ -92,8 +92,8 @@ class PaymentInline(admin.TabularInline):
     show_change_link = False
     fields = ['payment_method', 'payment_amount', 'payment_status', 'payment_date',
              'transaction_id', 'pg_name', 'memo']
-    # 테스트 기간 동안 모든 필드 편집 가능 (readonly_fields 제거)
-    readonly_fields = []
+    # payment_date는 자동 생성 필드이므로 readonly 처리
+    readonly_fields = ['payment_date']
 
     # 모든 필드 위젯 명시적 설정
     def get_formset(self, request, obj=None, **kwargs):
@@ -101,14 +101,10 @@ class PaymentInline(admin.TabularInline):
 
         formset = super().get_formset(request, obj, **kwargs)
 
-        # 각 필드에 대해 위젯 명시적 설정
+        # 각 필드에 대해 위젯 명시적 설정 (payment_date는 readonly이므로 제외)
         if 'payment_amount' in formset.form.base_fields:
             formset.form.base_fields['payment_amount'].widget = forms.NumberInput(attrs={'style': 'width: 120px;'})
             formset.form.base_fields['payment_amount'].required = False
-
-        if 'payment_date' in formset.form.base_fields:
-            formset.form.base_fields['payment_date'].widget = forms.DateTimeInput(attrs={'type': 'datetime-local', 'style': 'width: 180px;'})
-            formset.form.base_fields['payment_date'].required = False
 
         if 'transaction_id' in formset.form.base_fields:
             formset.form.base_fields['transaction_id'].widget = forms.TextInput(attrs={'style': 'width: 150px;'})
