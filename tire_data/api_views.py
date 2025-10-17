@@ -186,6 +186,12 @@ def api_products_list(request):
         # 기본 검색 (코드, 상품명, 브랜드)
         q_filter = Q(code__icontains=search) | Q(name__icontains=search) | Q(bun1__icontains=search)
 
+        # 영문 브랜드명을 한글로 변환하여 검색 (예: "pirelli" -> "피렐리")
+        search_upper = search.strip().upper()
+        if search_upper in BRAND_NAME_MAP:
+            brand_korean = BRAND_NAME_MAP[search_upper]
+            q_filter |= Q(bun1__icontains=brand_korean)
+
         # 숫자만 추출하여 타이어 사이즈 패턴 검색
         numeric_only = re.sub(r'[^0-9]', '', search)
         if len(numeric_only) >= 6:
