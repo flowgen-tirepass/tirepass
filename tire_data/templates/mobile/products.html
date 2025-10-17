@@ -523,14 +523,18 @@ function renderProducts(products) {
                 ${product.brand ? `<img src="${brandLogo}" alt="${product.brand}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.style.display='none'">` : ''}
             </div>
 
-            <!-- 성능 표기 (2x2 그리드) -->
+            <!-- 성능 표기 (2x2 그리드) 또는 브랜드 태그 -->
             ${product.performance_tags && product.performance_tags.length > 0 ? `
                 <div class="performance-tags">
                     ${product.performance_tags.slice(0, 4).map(tag => `
                         <span class="performance-tag">${tag.category}: ${tag.tag}</span>
                     `).join('')}
                 </div>
-            ` : ''}
+            ` : (product.brand ? `
+                <div class="performance-tags" style="display: flex; gap: clamp(3px, 1vw, 5px);">
+                    <span class="performance-tag">${product.brand}</span>
+                </div>
+            ` : '')}
 
             <!-- 상품명 -->
             <div class="product-title-container">
