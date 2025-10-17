@@ -167,8 +167,9 @@ class BaseOrderAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    # 테스트 기간 동안 모든 필드 편집 가능 (readonly_fields 제거)
-    readonly_fields = []
+    # auto_now_add=True 필드는 반드시 readonly로 처리
+    readonly_fields = ['order_date', 'confirmed_date', 'shipped_date', 'delivered_date',
+                      'cancelled_date', 'returned_date']
     actions = ['cancel_order', 'process_return']
 
     def save_model(self, request, obj, form, change):
