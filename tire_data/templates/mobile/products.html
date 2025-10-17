@@ -525,11 +525,11 @@ function renderProducts(products) {
         const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
         const brandLogo = getBrandLogo(product.brand);
 
-        // 한글명 결정: korean_name이 있으면 사용, 없으면 name에서 타이어 사이즈 제거
-        const koreanName = product.korean_name || extractProductNameWithoutSize(product.name);
+        // 한글명: korean_name이 있으면 사용, 없으면 브랜드명(한글) 사용
+        const koreanName = product.korean_name || product.brand || '';
 
-        // 영문명 (있으면 작게 표시)
-        const englishName = product.english_name || '';
+        // 영문명: english_name이 있으면 사용, 없으면 NAME에서 사이즈 제거
+        const englishName = product.english_name || extractProductNameWithoutSize(product.name);
 
         // DOT 재고 카드 색상 매핑
         const dotColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];  // 파랑, 초록, 주황, 빨강
@@ -560,7 +560,7 @@ function renderProducts(products) {
                 <h3 class="product-name">
                     ${koreanName}
                 </h3>
-                ${englishName ? `<div style="font-size: clamp(11px, 3vw, 12px); color: #6b7280; margin-top: 4px;">${englishName}</div>` : ''}
+                ${englishName ? `<div style="font-size: clamp(13px, 3.5vw, 14px); font-weight: 400; color: #374151; margin-top: 4px; line-height: 1.4;">${englishName}</div>` : ''}
             </div>
 
             <!-- 재고 + DOT 재고 확인 버튼 -->
