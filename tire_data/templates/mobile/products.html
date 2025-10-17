@@ -71,6 +71,17 @@
     width: 100%;
 }
 
+.product-name-english {
+    font-size: clamp(11px, 3vw, 14px);
+    font-weight: 400;
+    color: #374151;
+    margin-top: 4px;
+    line-height: 1.4;
+    white-space: nowrap;
+    display: block;
+    width: 100%;
+}
+
 .dot-button {
     width: 100%;
     padding: clamp(10px, 2.5vw, 12px);
@@ -562,7 +573,7 @@ function renderProducts(products) {
                 <h3 class="product-name">
                     ${koreanName}
                 </h3>
-                ${englishName ? `<div style="font-size: clamp(13px, 3.5vw, 14px); font-weight: 400; color: #374151; margin-top: 4px; line-height: 1.4;">${englishName}</div>` : ''}
+                ${englishName ? `<div class="product-name-english">${englishName}</div>` : ''}
             </div>
 
             <!-- 재고 + DOT 재고 확인 버튼 -->
@@ -629,11 +640,11 @@ function renderProducts(products) {
     }, 10);
 }
 
-// 한글명 폰트 크기 자동 조절 (텍스트 길이에 맞게)
+// 한글명/영문명 폰트 크기 자동 조절 (텍스트 길이에 맞게)
 function adjustProductNameFontSize() {
-    const productNames = document.querySelectorAll('.product-name');
-
-    productNames.forEach(element => {
+    // 한글명 조절
+    const koreanNames = document.querySelectorAll('.product-name');
+    koreanNames.forEach(element => {
         const container = element.parentElement;
         const maxWidth = container.offsetWidth - 10; // 10px 여백
 
@@ -643,6 +654,23 @@ function adjustProductNameFontSize() {
 
         // 텍스트가 넘치면 폰트 크기를 줄임
         while (element.scrollWidth > maxWidth && fontSize > 11) {
+            fontSize -= 0.5;
+            element.style.fontSize = fontSize + 'px';
+        }
+    });
+
+    // 영문명 조절
+    const englishNames = document.querySelectorAll('.product-name-english');
+    englishNames.forEach(element => {
+        const container = element.parentElement;
+        const maxWidth = container.offsetWidth - 10; // 10px 여백
+
+        // 초기 폰트 크기 설정 (최대값)
+        let fontSize = 14;
+        element.style.fontSize = fontSize + 'px';
+
+        // 텍스트가 넘치면 폰트 크기를 줄임
+        while (element.scrollWidth > maxWidth && fontSize > 10) {
             fontSize -= 0.5;
             element.style.fontSize = fontSize + 'px';
         }
