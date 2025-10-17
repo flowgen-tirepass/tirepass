@@ -539,21 +539,12 @@ function renderProducts(products) {
 
             <!-- 상품명 -->
             <div class="product-title-container">
-                ${product.korean_name && product.english_name ? `
-                    <h3 class="tire-size">
-                        ${product.korean_name}
-                    </h3>
-                    <div class="product-name">
-                        ${product.english_name}
-                    </div>
-                ` : `
-                    <h3 class="tire-size">
-                        ${tireSize || ''}
-                    </h3>
-                    <div class="product-name">
-                        ${product.name}
-                    </div>
-                `}
+                <h3 class="tire-size">
+                    ${tireSize || product.name}
+                </h3>
+                <div class="product-name">
+                    ${product.korean_name || product.english_name || product.name}
+                </div>
             </div>
 
             <!-- 재고 + DOT 재고 확인 버튼 -->
@@ -590,9 +581,9 @@ function renderProducts(products) {
             <!-- 가격 정보 (한 줄 배치) -->
             <div class="price-section">
                 <div style="display: flex; align-items: center; gap: clamp(3px, 1vw, 5px); margin-bottom: 10px; flex-wrap: nowrap; overflow-x: auto;">
-                    ${originalPrice > 0 && discount > 0 ? `
-                        <span style="font-size: clamp(9px, 2.3vw, 10px); color: #6b7280; white-space: nowrap;">공장도가</span>
-                        <span style="font-size: clamp(11px, 3vw, 13px); color: #9ca3af; text-decoration: line-through; white-space: nowrap;">₩${originalPrice.toLocaleString()}</span>
+                    <span style="font-size: clamp(9px, 2.3vw, 10px); color: #6b7280; white-space: nowrap;">공장도가</span>
+                    <span style="font-size: clamp(11px, 3vw, 13px); color: ${discount > 0 ? '#9ca3af' : '#000'}; text-decoration: ${discount > 0 ? 'line-through' : 'none'}; white-space: nowrap;">₩${originalPrice.toLocaleString()}</span>
+                    ${discount > 0 ? `
                         <span style="background: #dc2626; color: white; padding: clamp(2px, 0.8vw, 3px) clamp(5px, 1.5vw, 7px); border-radius: 3px; font-size: clamp(9px, 2.3vw, 10px); font-weight: 700; white-space: nowrap;">${discount}% OFF</span>
                     ` : ''}
                     <span class="supply-price-label">공급가</span>
