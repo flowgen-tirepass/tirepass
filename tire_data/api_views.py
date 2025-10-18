@@ -1094,7 +1094,7 @@ def api_calculate_quote(request):
                     'unit_price': price_info['unit_price'],  # 정가
                     'purchase_price': purchase_price,  # 할인된 매입 단가
                     'purchase_total': purchase_total,  # 할인된 매입 총액
-                    'discount_rate': price_info['total_discount_rate'],  # 총 할인율
+                    'discount_rate': float(price_info['total_discount_rate']),  # 총 할인율
                 },
                 # 제안가 정보
                 'quote': {
