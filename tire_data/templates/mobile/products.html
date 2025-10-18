@@ -1140,18 +1140,13 @@ async function openQuoteModal(productCode) {
             }
 
             // 견적가 계산 정보 가져오기
-            const quoteResponse = await fetch('/api/mobile/quote/calculate/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    customer_code: customerCode,
-                    product_code: productCode,
-                    quantity: 1,
-                    margin_rate: 20  // 기본 마진율 20%
-                })
+            const quoteParams = new URLSearchParams({
+                customer_code: customerCode,
+                product_code: productCode,
+                quantity: 1,
+                margin_rate: 20  // 기본 마진율 20%
             });
+            const quoteResponse = await fetch(`/api/mobile/calculate-quote/?${quoteParams}`);
 
             const quoteData = await quoteResponse.json();
             hideLoading();
