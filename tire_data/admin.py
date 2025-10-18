@@ -873,17 +873,20 @@ class BrandGroupAdmin(admin.ModelAdmin):
             # changelist로 리다이렉트
             return redirect(reverse('admin:tire_data_brandgroup_changelist'))
 
-        # GET 요청인 경우: 중간 페이지 표시
+        # 첫 번째 POST 요청: 중간 페이지 표시
         active_customers = Customers.objects.filter(is_registered=True)
         customer_count = active_customers.count()
 
-        # 선택된 그룹 정보
+        # 선택된 그룹 정보 (queryset을 list로 변환)
         selected_groups = list(queryset.values('id', 'brand', 'group_name'))
+
+        # selected_action IDs 추출
+        selected_ids = [str(group['id']) for group in selected_groups]
 
         context = {
             'title': '전체 고객에게 할인율 일괄 적용',
-            'queryset': queryset,
             'selected_groups': selected_groups,
+            'selected_ids': selected_ids,  # ID 목록 추가
             'customer_count': customer_count,
             'opts': self.model._meta,
             'action_checkbox_name': admin_module.helpers.ACTION_CHECKBOX_NAME,
