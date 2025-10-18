@@ -548,18 +548,18 @@ class GoodsAdmin(admin.ModelAdmin):
 
     def set_discount_22(self, request, queryset):
         """선택한 상품의 기본 할인율을 22%로 설정"""
-        return self._set_discount_rate(request, 22.00, "22%")
-    set_discount_22.short_description = "선택한 상품의 할인율을 22%로 설정"
+        return self._set_discount_rate(request, 22.00, "22%%")
+    set_discount_22.short_description = "선택한 상품의 할인율을 22%%로 설정"
 
     def set_discount_25(self, request, queryset):
         """선택한 상품의 기본 할인율을 25%로 설정"""
-        return self._set_discount_rate(request, 25.00, "25%")
-    set_discount_25.short_description = "선택한 상품의 할인율을 25%로 설정"
+        return self._set_discount_rate(request, 25.00, "25%%")
+    set_discount_25.short_description = "선택한 상품의 할인율을 25%%로 설정"
 
     def set_discount_30(self, request, queryset):
         """선택한 상품의 기본 할인율을 30%로 설정"""
-        return self._set_discount_rate(request, 30.00, "30%")
-    set_discount_30.short_description = "선택한 상품의 할인율을 30%로 설정"
+        return self._set_discount_rate(request, 30.00, "30%%")
+    set_discount_30.short_description = "선택한 상품의 할인율을 30%%로 설정"
 
     def _set_discount_rate(self, request, discount_rate, label):
         """
