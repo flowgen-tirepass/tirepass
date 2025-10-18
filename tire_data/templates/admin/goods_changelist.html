@@ -13,20 +13,26 @@
 <!-- 액션 드롭다운 및 버튼 -->
 <form action="" method="post" id="changelist-form">
 {% csrf_token %}
-<div style="background: white; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 4px; display: flex; align-items: center; gap: 10px;">
-    <label for="action" style="font-weight: bold;">액션:</label>
-    <select name="action" id="action" style="padding: 5px; min-width: 200px;">
-        <option value="">---------</option>
-        <option value="set_discount_22">선택한 상품의 할인율을 22%로 설정</option>
-        <option value="set_discount_25">선택한 상품의 할인율을 25%로 설정</option>
-        <option value="set_discount_30">선택한 상품의 할인율을 30%로 설정</option>
-    </select>
-    <button type="submit" name="index" value="0" class="button" style="padding: 6px 15px; background: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-        실행
-    </button>
-    <span style="margin-left: 10px; color: #666; font-size: 13px;">
-        선택한 <span id="selected-count" style="font-weight: bold; color: #417690;">0</span>개 상품
-    </span>
+<div style="background: #e8f5e9; border: 2px solid #4caf50; padding: 15px; margin-bottom: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label for="action" style="font-weight: bold; font-size: 15px; color: #2e7d32;">✅ 일괄 할인율 적용</label>
+            <select name="action" id="action" style="padding: 8px 12px; min-width: 250px; border: 2px solid #4caf50; border-radius: 4px; font-size: 14px; font-weight: 600;">
+                <option value="">할인율 선택...</option>
+                <option value="set_discount_22">📊 22% 할인율로 설정</option>
+                <option value="set_discount_25">📊 25% 할인율로 설정</option>
+                <option value="set_discount_30">📊 30% 할인율로 설정</option>
+            </select>
+        </div>
+        <button type="submit" name="index" value="0" class="button" style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            ▶ 실행
+        </button>
+        <div style="margin-left: auto; padding: 8px 15px; background: white; border: 2px solid #4caf50; border-radius: 6px;">
+            <span style="color: #666; font-size: 14px;">선택된 상품: </span>
+            <span id="selected-count" style="font-weight: bold; color: #4caf50; font-size: 18px;">0</span>
+            <span style="color: #666; font-size: 14px;">개</span>
+        </div>
+    </div>
 </div>
 
 <!-- ERP 상태 및 필터 -->
