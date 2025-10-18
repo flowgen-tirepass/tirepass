@@ -1230,7 +1230,7 @@ async function openQuoteModal(productCode, selectedYear = null) {
                 customer_code: customerCode,
                 product_code: productCode,
                 quantity: 1,
-                margin_rate: 20  // 기본 마진율 20%
+                margin_rate: 20  // API 호환성 유지용 (실제 사용 안 함)
             });
 
             // DOT 년도가 선택되었으면 추가
@@ -1288,20 +1288,6 @@ async function openQuoteModalWithYear(productCode, year) {
 function closeQuoteModal() {
     document.getElementById('quoteModal').classList.remove('active');
     currentQuoteProduct = null;
-}
-
-function calculateQuotePrice() {
-    if (!currentQuoteProduct) return;
-
-    const marginRate = parseFloat(document.getElementById('quoteMarginRate').value) || 0;
-
-    // 제안가 = 공급가 × (1 + 마진율/100)
-    const finalPrice = Math.round(currentQuoteProduct.supplyPrice * (1 + marginRate / 100));
-    const marginAmount = finalPrice - currentQuoteProduct.supplyPrice;
-
-    // 결과 표시
-    document.getElementById('quoteFinalPrice').textContent = '₩' + finalPrice.toLocaleString();
-    document.getElementById('quoteMarginAmount').textContent = '₩' + marginAmount.toLocaleString();
 }
 
 // 손님용 견적서 보기
