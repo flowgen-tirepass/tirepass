@@ -71,13 +71,23 @@ function renderCart(data) {
             `;
         }
 
+        // 재고 부족 경고 (재고보다 많은 수량인 경우)
+        let stockWarning = '';
+        if (item.available_stock > 0 && item.quantity > item.available_stock) {
+            stockWarning = `
+                <div style="font-size: 12px; color: #dc2626; margin-top: 5px; padding: 5px; background-color: #fee2e2; border-radius: 4px;">
+                    ⚠️ 재고 부족: 현재 재고 ${item.available_stock}개
+                </div>
+            `;
+        }
+
         return `
             <div class="card">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
                     <div style="flex: 1;">
                         <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${item.product_name}</h3>
                         <p style="font-size: 13px; color: #6b7280;">코드: ${item.product_code}</p>
-                        ${item.selected_year ? `<p style="font-size: 13px; color: #6b7280;">제조년도: ${item.selected_year}년</p>` : ''}
+                        ${item.selected_year ? `<p style="font-size: 13px; color: #6b7280;">제조년도: ${item.selected_year}년 (재고: ${item.available_stock}개)</p>` : ''}
                     </div>
                     <button onclick="removeFromCart(${item.id})" style="background: none; border: none; font-size: 20px; cursor: pointer;">❌</button>
                 </div>
@@ -94,12 +104,13 @@ function renderCart(data) {
                             = ${item.final_price.toLocaleString()}원
                         </div>
                         ${discountDetail}
+                        ${stockWarning}
                     </div>
 
                     <div style="display: flex; gap: 5px; align-items: center;">
-                        <button onclick="updateQuantity(${item.id}, ${item.quantity - 1})" class="btn btn-secondary" style="padding: 5px 10px;">-</button>
+                        <button onclick="updateQuantity(${item.id}, ${item.quantity - 1}, ${item.available_stock})" class="btn btn-secondary" style="padding: 5px 10px;">-</button>
                         <span style="padding: 0 10px; font-weight: 600;">${item.quantity}</span>
-                        <button onclick="updateQuantity(${item.id}, ${item.quantity + 1})" class="btn btn-secondary" style="padding: 5px 10px;">+</button>
+                        <button onclick="updateQuantity(${item.id}, ${item.quantity + 1}, ${item.available_stock})" class="btn btn-secondary" style="padding: 5px 10px;">+</button>
                     </div>
                 </div>
             </div>
@@ -110,8 +121,14 @@ function renderCart(data) {
     document.getElementById('cartSummary').style.display = 'block';
 }
 
-async function updateQuantity(cartId, newQuantity) {
+async function updateQuantity(cartId, newQuantity, availableStock) {
     if (newQuantity < 1) return;
+
+    // 재고 확인 (수량 증가 시)
+    if (availableStock > 0 && newQuantity > availableStock) {
+        showAlert(`재고가 부족합니다.\n현재 재고: ${availableStock}개\n요청 수량: ${newQuantity}개`, 'error');
+        return;
+    }
 
     showLoading();
 

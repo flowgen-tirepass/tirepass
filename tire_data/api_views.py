@@ -492,12 +492,21 @@ def api_cart_list(request):
             quantity=cart.quantity
         )
 
+        # 선택된 제조년도의 재고 수량 조회
+        available_stock = 0
+        if cart.selected_year and price_info.get('available_years'):
+            for year_info in price_info['available_years']:
+                if year_info['year'] == cart.selected_year:
+                    available_stock = year_info['quantity']
+                    break
+
         items.append({
             'id': cart.id,
             'product_code': cart.product_code,
             'product_name': cart.product_name,
             'quantity': cart.quantity,
             'selected_year': cart.selected_year,
+            'available_stock': available_stock,  # 재고 정보 추가
             'unit_price': price_info['unit_price'],
             'basic_discount_rate': float(price_info['basic_discount_rate']),
             'customer_discount_rate': float(price_info['customer_discount_rate']),
