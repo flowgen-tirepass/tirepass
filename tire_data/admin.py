@@ -774,12 +774,8 @@ class BrandGroupAdmin(admin.ModelAdmin):
         from django.shortcuts import render, redirect
         from django.contrib import messages, admin as admin_module
         from django.urls import reverse
+        from django.http import HttpResponseRedirect
         from decimal import Decimal
-
-        # queryset 검증
-        if not queryset.exists():
-            self.message_user(request, '그룹을 먼저 선택해주세요.', messages.WARNING)
-            return None
 
         # POST 요청인 경우: 폼 제출 처리
         if 'apply' in request.POST:
