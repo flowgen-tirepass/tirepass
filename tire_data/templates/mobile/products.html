@@ -589,6 +589,56 @@
                 마진: <span id="quoteMarginAmount">-</span>
             </div>
         </div>
+
+        <!-- 손님 제시 할인율 입력 -->
+        <div class="quote-input-group" style="margin-top: 15px;">
+            <label class="quote-input-label">손님 제시 할인율 (%)</label>
+            <input type="number" class="quote-input" id="customerDiscountRate"
+                   placeholder="예: 20" value="20" min="0" max="100">
+            <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">
+                손님에게 보여줄 할인율을 입력하세요
+            </div>
+        </div>
+
+        <!-- 손님용 견적서 보기 버튼 -->
+        <button onclick="showCustomerQuote()"
+                style="width: 100%; padding: 15px; background: #f59e0b; color: white;
+                       border: none; border-radius: 8px; font-size: 16px; font-weight: 700;
+                       cursor: pointer; margin-top: 15px;">
+            손님용 견적서 보기
+        </button>
+    </div>
+</div>
+
+<!-- 손님용 견적서 모달 -->
+<div id="customerQuoteModal" class="quote-modal-overlay" onclick="if(event.target === this) closeCustomerQuote()">
+    <div class="quote-modal">
+        <div class="quote-modal-header">
+            <h3 class="quote-modal-title">견적서</h3>
+            <button class="quote-modal-close" onclick="closeCustomerQuote()">×</button>
+        </div>
+
+        <!-- 상품 정보 -->
+        <div class="quote-info-section">
+            <div class="quote-info-row">
+                <span class="quote-label">상품명</span>
+                <span class="quote-value" id="customerQuoteProductName">-</span>
+            </div>
+            <div class="quote-info-row">
+                <span class="quote-label">공장도가</span>
+                <span class="quote-value" id="customerQuoteFactoryPrice">-</span>
+            </div>
+            <div class="quote-info-row">
+                <span class="quote-label">할인율</span>
+                <span class="quote-value" id="customerQuoteDiscountRate" style="color: #dc2626; font-size: 16px;">-</span>
+            </div>
+        </div>
+
+        <!-- 최종 견적가 -->
+        <div class="quote-result-section">
+            <div class="quote-result-label">견적가</div>
+            <div class="quote-result-value" id="customerQuoteFinalPrice">-</div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -1203,6 +1253,31 @@ function calculateQuotePrice() {
     // 결과 표시
     document.getElementById('quoteFinalPrice').textContent = '₩' + finalPrice.toLocaleString();
     document.getElementById('quoteMarginAmount').textContent = '₩' + marginAmount.toLocaleString();
+}
+
+// 손님용 견적서 보기
+function showCustomerQuote() {
+    if (!currentQuoteProduct) return;
+
+    // 손님 제시 할인율 가져오기
+    const customerDiscountRate = parseFloat(document.getElementById('customerDiscountRate').value) || 0;
+
+    // 손님용 견적가 = 공장도가 × (1 - 손님 제시 할인율/100)
+    const customerQuotePrice = Math.round(currentQuoteProduct.factoryPrice * (1 - customerDiscountRate / 100));
+
+    // 손님용 모달 데이터 설정
+    document.getElementById('customerQuoteProductName').textContent = currentQuoteProduct.name.substring(0, 20) + '...';
+    document.getElementById('customerQuoteFactoryPrice').textContent = '₩' + currentQuoteProduct.factoryPrice.toLocaleString();
+    document.getElementById('customerQuoteDiscountRate').textContent = customerDiscountRate.toFixed(1) + '%';
+    document.getElementById('customerQuoteFinalPrice').textContent = '₩' + customerQuotePrice.toLocaleString();
+
+    // 손님용 모달 열기
+    document.getElementById('customerQuoteModal').classList.add('active');
+}
+
+// 손님용 견적서 닫기
+function closeCustomerQuote() {
+    document.getElementById('customerQuoteModal').classList.remove('active');
 }
 </script>
 {% endblock %}
