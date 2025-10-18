@@ -318,8 +318,29 @@ function renderQuoteResult(data) {
     container.scrollIntoView({ behavior: 'smooth' });
 }
 
+// URL 파라미터에서 상품 정보 가져오기
+function loadFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const productCode = params.get('product_code');
+    const quantity = params.get('quantity');
+    const selectedYear = params.get('selected_year');
+
+    if (productCode) {
+        // 상품 상세 페이지에서 넘어온 경우
+        selectProduct(productCode).then(() => {
+            if (quantity) {
+                document.getElementById('quantity').value = quantity;
+            }
+            if (selectedYear) {
+                document.getElementById('selectedYear').value = selectedYear;
+            }
+        });
+    }
+}
+
 // 초기화
 loadCustomerMargin();
+loadFromURL();
 </script>
 
 <style>

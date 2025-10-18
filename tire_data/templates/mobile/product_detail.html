@@ -51,15 +51,53 @@ function renderProduct(product) {
             </div>
 
             <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <div style="font-size: 14px; color: #6b7280; margin-bottom: 5px;">판매가</div>
+                <div style="font-size: 14px; color: #6b7280; margin-bottom: 5px;">공장도가</div>
+                <div style="font-size: 18px; font-weight: 500; color: #9ca3af; text-decoration: line-through; margin-bottom: 10px;">
+                    ${priceInfo.unit_price.toLocaleString()}원
+                </div>
+
+                <div style="font-size: 14px; color: #6b7280; margin-bottom: 5px;">매입가 (할인 적용)</div>
                 <div style="font-size: 28px; font-weight: 700; color: #2563eb; margin-bottom: 15px;">
                     ${priceInfo.discounted_price.toLocaleString()}원
                 </div>
 
                 ${priceInfo.total_discount_rate > 0 ? `
-                    <div style="font-size: 14px; color: #6b7280;">
-                        <span style="text-decoration: line-through;">${priceInfo.unit_price.toLocaleString()}원</span>
-                        <span class="badge badge-red" style="margin-left: 10px;">${priceInfo.total_discount_rate.toFixed(1)}% 할인</span>
+                    <div style="background-color: white; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="font-size: 14px; font-weight: 600; color: #374151;">총 할인율</span>
+                            <span class="badge badge-red" style="font-size: 14px;">${priceInfo.total_discount_rate.toFixed(1)}%</span>
+                        </div>
+
+                        <div id="discountDetails" style="display: none; border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 10px;">
+                            ${priceInfo.basic_discount_rate > 0 ? `
+                                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;">
+                                    <span style="color: #6b7280;">기본 할인</span>
+                                    <span style="color: #ef4444; font-weight: 600;">-${priceInfo.basic_discount_rate.toFixed(1)}%</span>
+                                </div>
+                            ` : ''}
+                            ${priceInfo.customer_discount_rate > 0 ? `
+                                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;">
+                                    <span style="color: #6b7280;">브랜드/그룹 할인</span>
+                                    <span style="color: #ef4444; font-weight: 600;">-${priceInfo.customer_discount_rate.toFixed(1)}%</span>
+                                </div>
+                            ` : ''}
+                            ${priceInfo.additional_discount_rate > 0 ? `
+                                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;">
+                                    <span style="color: #6b7280;">추가 할인</span>
+                                    <span style="color: #ef4444; font-weight: 600;">-${priceInfo.additional_discount_rate.toFixed(1)}%</span>
+                                </div>
+                            ` : ''}
+                            ${priceInfo.dot_discount_rate > 0 ? `
+                                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;">
+                                    <span style="color: #6b7280;">DOT 할인</span>
+                                    <span style="color: #ef4444; font-weight: 600;">-${priceInfo.dot_discount_rate.toFixed(1)}%</span>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <button onclick="toggleDiscountDetails()" style="width: 100%; background: none; border: none; color: #2563eb; font-size: 13px; margin-top: 8px; cursor: pointer; padding: 5px;">
+                            <span id="toggleText">할인 상세 보기 ▼</span>
+                        </button>
                     </div>
                 ` : ''}
             </div>
@@ -83,7 +121,14 @@ function renderProduct(product) {
                 <input type="number" class="form-input" id="quantity" value="4" min="1" max="${product.stock}">
             </div>
 
-            <button onclick="addToCart()" class="btn btn-primary btn-block">장바구니 담기</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button onclick="createQuote()" class="btn btn-secondary btn-block" style="background-color: #10b981; color: white;">
+                    견적서 생성
+                </button>
+                <button onclick="addToCart()" class="btn btn-primary btn-block">
+                    장바구니 담기
+                </button>
+            </div>
         </div>
 
         <div class="card">
@@ -104,6 +149,44 @@ function renderProduct(product) {
             </table>
         </div>
     `;
+}
+
+function toggleDiscountDetails() {
+    const details = document.getElementById('discountDetails');
+    const toggleText = document.getElementById('toggleText');
+
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        toggleText.textContent = '할인 상세 접기 ▲';
+    } else {
+        details.style.display = 'none';
+        toggleText.textContent = '할인 상세 보기 ▼';
+    }
+}
+
+function createQuote() {
+    const customerCode = getCustomerCode();
+    const quantity = parseInt(document.getElementById('quantity').value);
+    const selectedYearEl = document.getElementById('selectedYear');
+    const selectedYear = selectedYearEl ? (selectedYearEl.value || null) : null;
+
+    if (quantity < 1) {
+        showAlert('수량을 확인해주세요', 'error');
+        return;
+    }
+
+    // 견적서 페이지로 이동 (상품 정보를 쿼리 파라미터로 전달)
+    const params = new URLSearchParams({
+        product_code: productCode,
+        customer_code: customerCode,
+        quantity: quantity
+    });
+
+    if (selectedYear) {
+        params.append('selected_year', selectedYear);
+    }
+
+    location.href = `/mobile/quote/?${params.toString()}`;
 }
 
 async function addToCart() {
