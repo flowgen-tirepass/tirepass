@@ -599,7 +599,11 @@
             <button class="quote-modal-close" onclick="closeQuoteModal()">×</button>
         </div>
 
+        <!-- 담당자 확인용: 공급가 정보 -->
         <div class="quote-info-section">
+            <div style="text-align: center; margin-bottom: 15px; color: #6b7280; font-size: 13px;">
+                내부 확인용 (손님에게 비공개)
+            </div>
             <div class="quote-info-row">
                 <span class="quote-label">상품명</span>
                 <span class="quote-value" id="quoteProductName">-</span>
@@ -609,32 +613,17 @@
                 <span class="quote-value" id="quoteFactoryPrice">-</span>
             </div>
             <div class="quote-info-row">
-                <span class="quote-label">할인율</span>
-                <span class="quote-value" id="quoteDiscountRate">-</span>
+                <span class="quote-label">실제 할인율</span>
+                <span class="quote-value" id="quoteDiscountRate" style="color: #dc2626;">-</span>
             </div>
-            <div class="quote-info-row">
-                <span class="quote-label">공급가 (매입가)</span>
-                <span class="quote-value" id="quoteSupplyPrice" style="color: #2563eb; font-size: 16px;">-</span>
-            </div>
-        </div>
-
-        <div class="quote-input-group">
-            <label class="quote-input-label">마진율 (%)</label>
-            <input type="number" class="quote-input" id="quoteMarginRate"
-                   placeholder="예: 20" value="20" min="0" max="100"
-                   oninput="calculateQuotePrice()">
-        </div>
-
-        <div class="quote-result-section">
-            <div class="quote-result-label">제안 판매가 (견적가)</div>
-            <div class="quote-result-value" id="quoteFinalPrice">-</div>
-            <div style="font-size: 12px; opacity: 0.9; margin-top: 10px;">
-                마진: <span id="quoteMarginAmount">-</span>
+            <div class="quote-info-row" style="border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 12px;">
+                <span class="quote-label" style="font-size: 16px;">공급가 (매입가)</span>
+                <span class="quote-value" id="quoteSupplyPrice" style="color: #2563eb; font-size: 18px; font-weight: 700;">-</span>
             </div>
         </div>
 
         <!-- 손님 제시 할인율 입력 -->
-        <div class="quote-input-group" style="margin-top: 15px;">
+        <div class="quote-input-group" style="margin-top: 20px;">
             <label class="quote-input-label">손님 제시 할인율 (%)</label>
             <input type="number" class="quote-input" id="customerDiscountRate"
                    placeholder="예: 20" value="20" min="0" max="100">
@@ -1274,9 +1263,6 @@ async function openQuoteModal(productCode, selectedYear = null) {
                 document.getElementById('quoteFactoryPrice').textContent = '₩' + currentQuoteProduct.factoryPrice.toLocaleString();
                 document.getElementById('quoteDiscountRate').textContent = currentQuoteProduct.discountRate.toFixed(1) + '%';
                 document.getElementById('quoteSupplyPrice').textContent = '₩' + currentQuoteProduct.supplyPrice.toLocaleString();
-
-                // 견적가 계산
-                calculateQuotePrice();
 
                 // 모달 열기
                 document.getElementById('quoteModal').classList.add('active');
