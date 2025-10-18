@@ -325,7 +325,7 @@ def api_products_list(request):
                 total_discount_2025 = base_discount  # 기본 할인만
                 price_2025 = int(base_price * (1 - total_discount_2025 / 100))
                 dot_inventory.append({
-                    'year': '2025/01',
+                    'year': 2025,  # 정수로 변경
                     'stock': ya.year_2025,
                     'discount': total_discount_2025,
                     'price': price_2025
@@ -337,7 +337,7 @@ def api_products_list(request):
                 total_discount_2024 = base_discount + dot_discount_2024  # 단순 합산
                 price_2024 = int(base_price * (1 - total_discount_2024 / 100))
                 dot_inventory.append({
-                    'year': '2024/06',
+                    'year': 2024,  # 정수로 변경
                     'stock': ya.year_2024,
                     'discount': total_discount_2024,
                     'price': price_2024
@@ -349,7 +349,7 @@ def api_products_list(request):
                 total_discount_2023 = base_discount + dot_discount_2023  # 단순 합산
                 price_2023 = int(base_price * (1 - total_discount_2023 / 100))
                 dot_inventory.append({
-                    'year': '2023/06',
+                    'year': 2023,  # 정수로 변경
                     'stock': ya.year_2023,
                     'discount': total_discount_2023,
                     'price': price_2023
@@ -361,7 +361,7 @@ def api_products_list(request):
                 total_discount_2022 = base_discount + dot_discount_2022  # 단순 합산
                 price_2022 = int(base_price * (1 - total_discount_2022 / 100))
                 dot_inventory.append({
-                    'year': '2022/06',
+                    'year': 2022,  # 정수로 변경
                     'stock': ya.year_2022,
                     'discount': total_discount_2022,
                     'price': price_2022
@@ -373,7 +373,7 @@ def api_products_list(request):
                 total_discount_2021 = base_discount + dot_discount_2021  # 단순 합산
                 price_2021 = int(base_price * (1 - total_discount_2021 / 100))
                 dot_inventory.append({
-                    'year': '2021/06',
+                    'year': 2021,  # 정수로 변경
                     'stock': ya.year_2021_before,
                     'discount': total_discount_2021,
                     'price': price_2021
