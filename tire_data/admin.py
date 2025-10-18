@@ -680,13 +680,14 @@ class BrandGroupPatternInline(admin.TabularInline):
 
 @admin.register(BrandGroup)
 class BrandGroupAdmin(admin.ModelAdmin):
-    list_display = ['id', 'brand', 'group_name', 'group_order', 'pattern_count', 'is_active', 'created_at']
+    list_display = ['id', 'brand', 'group_name', 'group_order', 'pattern_count', 'pattern_preview', 'is_active', 'created_at']
     list_filter = ['brand', 'is_active']
     list_editable = ['group_order', 'is_active']
     search_fields = ['brand', 'group_name', 'description']
     ordering = ['brand', 'group_order', 'group_name']
     list_per_page = 50
     inlines = [BrandGroupPatternInline]
+    actions = ['activate_groups', 'deactivate_groups', 'duplicate_group']
 
     # autocomplete 지원
     def get_search_results(self, request, queryset, search_term):
@@ -695,10 +696,12 @@ class BrandGroupAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('기본 정보', {
-            'fields': ('brand', 'group_name', 'group_order', 'description')
+            'fields': ('brand', 'group_name', 'group_order', 'description'),
+            'description': '브랜드별로 타이어 시리즈를 그룹화합니다. 예: 피렐리 → P ZERO 시리즈'
         }),
         ('상태', {
-            'fields': ('is_active',)
+            'fields': ('is_active',),
+            'description': '비활성화하면 고객 할인 적용 시 이 그룹이 제외됩니다.'
         }),
         ('시스템 정보', {
             'fields': ('created_at', 'updated_at'),
@@ -708,24 +711,145 @@ class BrandGroupAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at']
 
     def pattern_count(self, obj):
-        return obj.patterns.count()
+        """패턴 개수 표시"""
+        count = obj.patterns.count()
+        if count > 0:
+            return format_html('<strong style="color: #2563eb;">{} 개</strong>', count)
+        return format_html('<span style="color: #9ca3af;">0 개</span>')
     pattern_count.short_description = '패턴 수'
+
+    def pattern_preview(self, obj):
+        """패턴 미리보기 (처음 3개)"""
+        patterns = obj.patterns.all()[:3]
+        if patterns:
+            pattern_names = [p.pattern for p in patterns]
+            preview = ', '.join(pattern_names)
+            total = obj.patterns.count()
+            if total > 3:
+                preview += f' 외 {total - 3}개'
+            return format_html('<span style="color: #666; font-size: 12px;">{}</span>', preview)
+        return format_html('<span style="color: #9ca3af;">-</span>')
+    pattern_preview.short_description = '패턴 미리보기'
+
+    def activate_groups(self, request, queryset):
+        """선택한 그룹 활성화"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated}개 그룹을 활성화했습니다.', 'success')
+    activate_groups.short_description = '선택한 그룹 활성화'
+
+    def deactivate_groups(self, request, queryset):
+        """선택한 그룹 비활성화"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated}개 그룹을 비활성화했습니다.', 'warning')
+    deactivate_groups.short_description = '선택한 그룹 비활성화'
+
+    def duplicate_group(self, request, queryset):
+        """선택한 그룹 복제 (패턴 포함)"""
+        if queryset.count() != 1:
+            self.message_user(request, '하나의 그룹만 선택해주세요.', 'error')
+            return
+
+        original = queryset.first()
+        # 새 그룹 생성
+        new_group = BrandGroup.objects.create(
+            brand=original.brand,
+            group_name=f'{original.group_name} (복사본)',
+            group_order=original.group_order + 1,
+            description=original.description,
+            is_active=False  # 복사본은 기본적으로 비활성
+        )
+
+        # 패턴 복사
+        for pattern in original.patterns.all():
+            BrandGroupPattern.objects.create(
+                group=new_group,
+                pattern=pattern.pattern
+            )
+
+        self.message_user(request, f'"{original.group_name}"을 복제했습니다. (패턴 {original.patterns.count()}개 포함)', 'success')
+    duplicate_group.short_description = '선택한 그룹 복제 (패턴 포함)'
 
 @admin.register(BrandGroupPattern)
 class BrandGroupPatternAdmin(admin.ModelAdmin):
-    list_display = ['id', 'get_brand', 'get_group_name', 'pattern', 'created_at']
-    list_filter = ['group__brand', 'group__group_name']
+    list_display = ['id', 'get_brand', 'get_group_name', 'pattern_badge', 'get_group_status', 'created_at']
+    list_filter = ['group__brand', 'group__group_name', 'group__is_active']
     search_fields = ['pattern', 'group__brand', 'group__group_name']
     ordering = ['group__brand', 'group__group_name', 'pattern']
-    list_per_page = 50
+    list_per_page = 100
+    autocomplete_fields = ['group']
+    actions = ['copy_patterns_to_group', 'delete_patterns']
+
+    fieldsets = (
+        ('그룹 선택', {
+            'fields': ('group',),
+            'description': '이 패턴이 속할 브랜드 그룹을 선택합니다.'
+        }),
+        ('패턴 정보', {
+            'fields': ('pattern',),
+            'description': '타이어 모델명의 일부분을 입력합니다. 예: "P ZERO", "PILOT SPORT"'
+        }),
+        ('시스템 정보', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at']
 
     def get_brand(self, obj):
-        return obj.group.brand
+        """브랜드 표시"""
+        return format_html(
+            '<strong style="color: #0ea5e9;">{}</strong>',
+            obj.group.brand
+        )
     get_brand.short_description = '브랜드'
+    get_brand.admin_order_field = 'group__brand'
 
     def get_group_name(self, obj):
-        return obj.group.group_name
+        """그룹명 표시"""
+        return format_html(
+            '<span style="color: #666;">{}</span>',
+            obj.group.group_name
+        )
     get_group_name.short_description = '그룹명'
+    get_group_name.admin_order_field = 'group__group_name'
+
+    def pattern_badge(self, obj):
+        """패턴 뱃지 스타일 표시"""
+        return format_html(
+            '<span style="background: #f0f9ff; color: #0369a1; padding: 4px 8px; '
+            'border-radius: 4px; font-weight: 600; font-size: 12px;">{}</span>',
+            obj.pattern
+        )
+    pattern_badge.short_description = '패턴'
+
+    def get_group_status(self, obj):
+        """그룹 활성화 상태"""
+        if obj.group.is_active:
+            return format_html(
+                '<span style="color: #10b981; font-weight: bold;">✓ 활성</span>'
+            )
+        return format_html(
+            '<span style="color: #ef4444; font-weight: bold;">✗ 비활성</span>'
+        )
+    get_group_status.short_description = '그룹 상태'
+    get_group_status.admin_order_field = 'group__is_active'
+
+    def copy_patterns_to_group(self, request, queryset):
+        """선택한 패턴을 다른 그룹으로 복사"""
+        # 이 기능은 추후 구현 (현재는 메시지만)
+        self.message_user(
+            request,
+            '패턴 복사 기능은 추후 구현 예정입니다. 현재는 직접 추가해주세요.',
+            'info'
+        )
+    copy_patterns_to_group.short_description = '선택한 패턴을 다른 그룹으로 복사'
+
+    def delete_patterns(self, request, queryset):
+        """선택한 패턴 삭제"""
+        count = queryset.count()
+        queryset.delete()
+        self.message_user(request, f'{count}개 패턴을 삭제했습니다.', 'success')
+    delete_patterns.short_description = '선택한 패턴 삭제'
 
 @admin.register(CustomerDiscount)
 class CustomerDiscountAdmin(admin.ModelAdmin):
