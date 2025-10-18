@@ -10,6 +10,25 @@
 
 {% block result_list %}
 
+<!-- 액션 드롭다운 및 버튼 -->
+<form action="" method="post" id="changelist-form">
+{% csrf_token %}
+<div style="background: white; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 4px; display: flex; align-items: center; gap: 10px;">
+    <label for="action" style="font-weight: bold;">액션:</label>
+    <select name="action" id="action" style="padding: 5px; min-width: 200px;">
+        <option value="">---------</option>
+        <option value="set_discount_22">선택한 상품의 할인율을 22%로 설정</option>
+        <option value="set_discount_25">선택한 상품의 할인율을 25%로 설정</option>
+        <option value="set_discount_30">선택한 상품의 할인율을 30%로 설정</option>
+    </select>
+    <button type="submit" name="index" value="0" class="button" style="padding: 6px 15px; background: #417690; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        실행
+    </button>
+    <span style="margin-left: 10px; color: #666; font-size: 13px;">
+        선택한 <span id="selected-count" style="font-weight: bold; color: #417690;">0</span>개 상품
+    </span>
+</div>
+
 <!-- ERP 상태 및 필터 -->
 <div style="background: #f8f8f8; border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
     <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -93,6 +112,11 @@
     <table id="result_list">
         <thead>
             <tr>
+                <th scope="col" class="action-checkbox-column" style="width: 30px;">
+                    <div class="text">
+                        <input type="checkbox" id="action-toggle" onclick="toggleAllCheckboxes(this)" />
+                    </div>
+                </th>
                 <th scope="col" class="column-code">
                     <div class="text">상품코드</div>
                 </th>
@@ -116,6 +140,13 @@
         <tbody>
             {% for goods in erp_goods_list %}
             <tr class="{% cycle 'row1' 'row2' %}">
+                <td class="action-checkbox">
+                    <input type="checkbox"
+                           name="_selected_action"
+                           value="{{ goods.code }}"
+                           class="action-select"
+                           onchange="updateSelectedCount()" />
+                </td>
                 <td class="field-code">
                     <a href="/admin/tire_data/yearallocation/?goods_code={{ goods.code }}"
                        style="text-decoration: none; color: #0066cc; font-weight: bold;">
@@ -144,7 +175,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" style="text-align: center; padding: 20px;">
+                <td colspan="7" style="text-align: center; padding: 20px;">
                     상품이 없습니다.
                 </td>
             </tr>
@@ -152,6 +183,7 @@
         </tbody>
     </table>
 </div>
+</form>
 
 <p class="paginator">
     {% if has_filter %}
@@ -254,6 +286,26 @@ function saveDiscount(input) {
         console.error('Error:', error);
     });
 }
+
+// 전체 선택/해제
+function toggleAllCheckboxes(toggleCheckbox) {
+    const checkboxes = document.querySelectorAll('.action-select');
+    checkboxes.forEach(cb => {
+        cb.checked = toggleCheckbox.checked;
+    });
+    updateSelectedCount();
+}
+
+// 선택된 상품 개수 업데이트
+function updateSelectedCount() {
+    const checked = document.querySelectorAll('.action-select:checked');
+    document.getElementById('selected-count').textContent = checked.length;
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedCount();
+});
 </script>
 {% endblock %}
 
