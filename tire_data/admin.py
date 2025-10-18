@@ -771,30 +771,49 @@ class BrandGroupAdmin(admin.ModelAdmin):
 
     def apply_discount_to_all_customers(self, request, queryset):
         """선택한 브랜드/그룹에 대해 전체 고객에게 할인율 일괄 적용"""
-        from django.shortcuts import render
-        from django.contrib import messages
+        from django.shortcuts import render, redirect
+        from django.contrib import messages, admin as admin_module
+        from django.urls import reverse
         from decimal import Decimal
+
+        # queryset 검증
+        if not queryset.exists():
+            self.message_user(request, '그룹을 먼저 선택해주세요.', messages.WARNING)
+            return None
 
         # POST 요청인 경우: 폼 제출 처리
         if 'apply' in request.POST:
+            # POST에서 선택된 그룹 ID 가져오기
+            selected_ids = request.POST.getlist(admin_module.helpers.ACTION_CHECKBOX_NAME)
+            if not selected_ids:
+                self.message_user(request, '그룹을 먼저 선택해주세요.', messages.ERROR)
+                return redirect(reverse('admin:tire_data_brandgroup_changelist'))
+
+            # queryset 재구성
+            queryset = BrandGroup.objects.filter(pk__in=selected_ids)
+
             discount_rate = request.POST.get('discount_rate')
 
             # 유효성 검증
             if not discount_rate:
-                self.message_user(request, '할인율을 입력해주세요.', 'error')
-                return None
+                self.message_user(request, '할인율을 입력해주세요.', messages.ERROR)
+                return redirect(reverse('admin:tire_data_brandgroup_changelist'))
 
             try:
                 discount_rate = Decimal(discount_rate)
                 if discount_rate < 0 or discount_rate > 100:
-                    self.message_user(request, '할인율은 0~100 사이의 값이어야 합니다.', 'error')
-                    return None
+                    self.message_user(request, '할인율은 0~100 사이의 값이어야 합니다.', messages.ERROR)
+                    return redirect(reverse('admin:tire_data_brandgroup_changelist'))
             except:
-                self.message_user(request, '올바른 숫자를 입력해주세요.', 'error')
-                return None
+                self.message_user(request, '올바른 숫자를 입력해주세요.', messages.ERROR)
+                return redirect(reverse('admin:tire_data_brandgroup_changelist'))
 
             # 활성 고객 목록 조회
             active_customers = Customers.objects.filter(is_registered=True)
+
+            if active_customers.count() == 0:
+                self.message_user(request, '활성 고객이 없습니다. 먼저 고객을 등록해주세요.', messages.WARNING)
+                return redirect(reverse('admin:tire_data_brandgroup_changelist'))
 
             created_count = 0
             updated_count = 0
@@ -804,6 +823,10 @@ class BrandGroupAdmin(admin.ModelAdmin):
             for group in queryset:
                 # 각 활성 고객에 대해
                 for customer in active_customers:
+                    # customer.enno가 None이거나 빈 문자열인 경우 건너뜀
+                    if not customer.enno:
+                        continue
+
                     # 이미 존재하는지 확인
                     existing = CustomerDiscount.objects.filter(
                         customer_code=customer.enno,  # customer_code는 사업자번호(enno) 저장
@@ -845,10 +868,14 @@ class BrandGroupAdmin(admin.ModelAdmin):
             if skipped_count > 0:
                 msg_parts.append(f'건너뜀 {skipped_count}건')
 
-            result_msg = f'{discount_rate}%% 할인율 적용 완료: ' + ', '.join(msg_parts)
-            self.message_user(request, result_msg, 'success')
+            if total > 0:
+                result_msg = f'{discount_rate}% 할인율 적용 완료: ' + ', '.join(msg_parts)
+                self.message_user(request, result_msg, messages.SUCCESS)
+            else:
+                self.message_user(request, '적용된 할인율이 없습니다.', messages.WARNING)
 
-            return None
+            # changelist로 리다이렉트
+            return redirect(reverse('admin:tire_data_brandgroup_changelist'))
 
         # GET 요청인 경우: 중간 페이지 표시
         active_customers = Customers.objects.filter(is_registered=True)
@@ -863,7 +890,7 @@ class BrandGroupAdmin(admin.ModelAdmin):
             'selected_groups': selected_groups,
             'customer_count': customer_count,
             'opts': self.model._meta,
-            'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
+            'action_checkbox_name': admin_module.helpers.ACTION_CHECKBOX_NAME,
         }
 
         return render(request, 'admin/apply_discount_to_all.html', context)
