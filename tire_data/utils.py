@@ -102,16 +102,22 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
 
         result['available_years'] = available_years
 
-        # 선택된 년도의 할인율 적용
+        # 선택된 년도의 할인율 적용 (문자열/정수 모두 처리)
         if selected_year:
-            if selected_year == 2024:
-                result['dot_discount_rate'] = year_allocation.year_2024_discount
-            elif selected_year == 2023:
-                result['dot_discount_rate'] = year_allocation.year_2023_discount
-            elif selected_year == 2022:
-                result['dot_discount_rate'] = year_allocation.year_2022_discount
-            elif selected_year == 2021:
-                result['dot_discount_rate'] = year_allocation.year_2021_before_discount
+            try:
+                # selected_year를 정수로 변환
+                year_int = int(selected_year)
+                if year_int == 2024:
+                    result['dot_discount_rate'] = year_allocation.year_2024_discount
+                elif year_int == 2023:
+                    result['dot_discount_rate'] = year_allocation.year_2023_discount
+                elif year_int == 2022:
+                    result['dot_discount_rate'] = year_allocation.year_2022_discount
+                elif year_int == 2021:
+                    result['dot_discount_rate'] = year_allocation.year_2021_before_discount
+            except (ValueError, TypeError):
+                # 변환 실패 시 무시
+                pass
 
     # 6. 최종 가격 계산
     # 공식: 단가 × (1 - 기본할인/100) × (1 - 고객할인/100) × (1 - 추가할인/100) × (1 - DOT할인/100)

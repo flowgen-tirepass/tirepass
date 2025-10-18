@@ -495,10 +495,19 @@ def api_cart_list(request):
         # 선택된 제조년도의 재고 수량 조회
         available_stock = 0
         if cart.selected_year and price_info.get('available_years'):
-            for year_info in price_info['available_years']:
-                if year_info['year'] == cart.selected_year:
-                    available_stock = year_info['quantity']
-                    break
+            # selected_year를 정수로 변환하여 비교
+            try:
+                selected_year_int = int(cart.selected_year)
+                for year_info in price_info['available_years']:
+                    if year_info['year'] == selected_year_int:
+                        available_stock = year_info['quantity']
+                        break
+            except (ValueError, TypeError):
+                # 변환 실패 시 문자열로 비교
+                for year_info in price_info['available_years']:
+                    if str(year_info['year']) == str(cart.selected_year):
+                        available_stock = year_info['quantity']
+                        break
 
         items.append({
             'id': cart.id,
