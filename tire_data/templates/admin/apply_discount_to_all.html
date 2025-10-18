@@ -1,0 +1,224 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .discount-apply-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .info-box {
+        background: #f0f9ff;
+        border: 2px solid #0ea5e9;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .warning-box {
+        background: #fef3c7;
+        border: 2px solid #f59e0b;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .selected-groups {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+
+    .group-item {
+        background: #f9fafb;
+        border-left: 4px solid #0ea5e9;
+        padding: 10px 15px;
+        margin: 10px 0;
+        border-radius: 4px;
+    }
+
+    .group-brand {
+        font-weight: bold;
+        color: #0369a1;
+        font-size: 16px;
+    }
+
+    .group-name {
+        color: #666;
+        margin-left: 10px;
+    }
+
+    .form-group {
+        background: white;
+        border: 2px solid #10b981;
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        color: #059669;
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+
+    .form-group input[type="number"] {
+        width: 200px;
+        padding: 12px;
+        font-size: 18px;
+        border: 2px solid #10b981;
+        border-radius: 6px;
+        text-align: right;
+    }
+
+    .form-group input[type="number"]:focus {
+        outline: none;
+        border-color: #059669;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .button-group {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .btn-apply {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-apply:hover {
+        background: #059669;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-cancel {
+        background: #6b7280;
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 6px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+        background: #4b5563;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-item {
+        display: inline-block;
+        margin: 10px 20px 10px 0;
+    }
+
+    .stat-label {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #0ea5e9;
+        margin-left: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="discount-apply-container">
+    <h1 style="color: #111827; margin-bottom: 20px;">전체 고객에게 할인율 일괄 적용</h1>
+
+    <div class="info-box">
+        <h3 style="color: #0369a1; margin-top: 0;">📊 적용 대상</h3>
+        <div class="stat-item">
+            <span class="stat-label">선택한 그룹:</span>
+            <span class="stat-value">{{ selected_groups|length }}개</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">활성 고객:</span>
+            <span class="stat-value">{{ customer_count }}명</span>
+        </div>
+
+        <div class="selected-groups">
+            <h4 style="margin-top: 0; color: #666;">선택된 브랜드/그룹 목록</h4>
+            {% for group in selected_groups %}
+            <div class="group-item">
+                <span class="group-brand">{{ group.brand }}</span>
+                <span class="group-name">→ {{ group.group_name }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="warning-box">
+        <h3 style="color: #d97706; margin-top: 0;">⚠️ 주의사항</h3>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+            <li><strong>{{ customer_count }}명의 모든 활성 고객</strong>에게 할인율이 적용됩니다.</li>
+            <li>이미 설정된 할인율이 있는 경우 <strong>덮어쓰기</strong>됩니다.</li>
+            <li>총 <strong>{{ selected_groups|length }} × {{ customer_count }} = {% widthratio selected_groups|length 1 customer_count %}건</strong>의 할인 설정이 생성/수정됩니다.</li>
+            <li>이 작업은 되돌릴 수 없으므로 신중하게 진행해주세요.</li>
+        </ul>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- 선택된 그룹 ID를 hidden field로 전달 -->
+        {% for group in selected_groups %}
+        <input type="hidden" name="{{ action_checkbox_name }}" value="{{ group.id }}">
+        {% endfor %}
+
+        <div class="form-group">
+            <label for="discount_rate">
+                💰 적용할 할인율 (%)
+            </label>
+            <input
+                type="number"
+                id="discount_rate"
+                name="discount_rate"
+                step="0.01"
+                min="0"
+                max="100"
+                required
+                placeholder="예: 5.00"
+                autofocus>
+            <p style="color: #666; margin-top: 10px; font-size: 14px;">
+                0부터 100 사이의 숫자를 입력하세요. 소수점 2자리까지 입력 가능합니다.
+            </p>
+        </div>
+
+        <div class="button-group">
+            <button type="submit" name="apply" class="btn-apply">
+                ✅ 할인율 적용
+            </button>
+            <a href="{% url 'admin:tire_data_brandgroup_changelist' %}" class="btn-cancel">
+                ✖ 취소
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

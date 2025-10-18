@@ -687,7 +687,7 @@ class BrandGroupAdmin(admin.ModelAdmin):
     ordering = ['brand', 'group_order', 'group_name']
     list_per_page = 50
     inlines = [BrandGroupPatternInline]
-    actions = ['activate_groups', 'deactivate_groups', 'duplicate_group']
+    actions = ['activate_groups', 'deactivate_groups', 'duplicate_group', 'apply_discount_to_all_customers']
 
     # autocomplete 지원
     def get_search_results(self, request, queryset, search_term):
@@ -768,6 +768,107 @@ class BrandGroupAdmin(admin.ModelAdmin):
 
         self.message_user(request, f'"{original.group_name}"을 복제했습니다. (패턴 {original.patterns.count()}개 포함)', 'success')
     duplicate_group.short_description = '선택한 그룹 복제 (패턴 포함)'
+
+    def apply_discount_to_all_customers(self, request, queryset):
+        """선택한 브랜드/그룹에 대해 전체 고객에게 할인율 일괄 적용"""
+        from django.shortcuts import render
+        from django.contrib import messages
+        from decimal import Decimal
+
+        # POST 요청인 경우: 폼 제출 처리
+        if 'apply' in request.POST:
+            discount_rate = request.POST.get('discount_rate')
+
+            # 유효성 검증
+            if not discount_rate:
+                self.message_user(request, '할인율을 입력해주세요.', 'error')
+                return None
+
+            try:
+                discount_rate = Decimal(discount_rate)
+                if discount_rate < 0 or discount_rate > 100:
+                    self.message_user(request, '할인율은 0~100 사이의 값이어야 합니다.', 'error')
+                    return None
+            except:
+                self.message_user(request, '올바른 숫자를 입력해주세요.', 'error')
+                return None
+
+            # 활성 고객 목록 조회
+            active_customers = Customers.objects.filter(is_registered=True)
+
+            created_count = 0
+            updated_count = 0
+            skipped_count = 0
+
+            # 각 선택된 그룹에 대해
+            for group in queryset:
+                # 각 활성 고객에 대해
+                for customer in active_customers:
+                    # 이미 존재하는지 확인
+                    existing = CustomerDiscount.objects.filter(
+                        customer_code=customer.enno,  # customer_code는 사업자번호(enno) 저장
+                        brand=group.brand,
+                        group=group
+                    ).first()
+
+                    if existing:
+                        # 기존 할인율과 다르면 업데이트
+                        if existing.discount_rate != discount_rate or not existing.is_active:
+                            existing.discount_rate = discount_rate
+                            existing.is_active = True
+                            existing.updated_by = request.user.username
+                            existing.save()
+                            updated_count += 1
+                        else:
+                            skipped_count += 1
+                    else:
+                        # 신규 생성
+                        CustomerDiscount.objects.create(
+                            customer_code=customer.enno,
+                            brand=group.brand,
+                            group=group,
+                            discount_rate=discount_rate,
+                            priority=1,
+                            is_active=True,
+                            created_by=request.user.username,
+                            updated_by=request.user.username
+                        )
+                        created_count += 1
+
+            # 결과 메시지
+            total = created_count + updated_count
+            msg_parts = []
+            if created_count > 0:
+                msg_parts.append(f'신규 {created_count}건')
+            if updated_count > 0:
+                msg_parts.append(f'수정 {updated_count}건')
+            if skipped_count > 0:
+                msg_parts.append(f'건너뜀 {skipped_count}건')
+
+            result_msg = f'{discount_rate}%% 할인율 적용 완료: ' + ', '.join(msg_parts)
+            self.message_user(request, result_msg, 'success')
+
+            return None
+
+        # GET 요청인 경우: 중간 페이지 표시
+        active_customers = Customers.objects.filter(is_registered=True)
+        customer_count = active_customers.count()
+
+        # 선택된 그룹 정보
+        selected_groups = list(queryset.values('id', 'brand', 'group_name'))
+
+        context = {
+            'title': '전체 고객에게 할인율 일괄 적용',
+            'queryset': queryset,
+            'selected_groups': selected_groups,
+            'customer_count': customer_count,
+            'opts': self.model._meta,
+            'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
+        }
+
+        return render(request, 'admin/apply_discount_to_all.html', context)
+
+    apply_discount_to_all_customers.short_description = '선택한 그룹의 할인율을 전체 고객에게 적용'
 
 @admin.register(BrandGroupPattern)
 class BrandGroupPatternAdmin(admin.ModelAdmin):
