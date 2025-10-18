@@ -391,6 +391,40 @@
     overflow-y: auto;
 }
 
+/* 손님용 견적서 모달을 더 크게 */
+#customerQuoteModal .quote-modal {
+    max-width: 500px;
+    padding: 30px;
+}
+
+#customerQuoteModal .quote-info-section {
+    padding: 20px;
+}
+
+#customerQuoteModal .quote-info-row {
+    margin-bottom: 12px;
+}
+
+#customerQuoteModal .quote-label {
+    font-size: 16px;
+}
+
+#customerQuoteModal .quote-value {
+    font-size: 16px;
+}
+
+#customerQuoteModal .quote-result-section {
+    padding: 25px;
+}
+
+#customerQuoteModal .quote-result-label {
+    font-size: 18px;
+}
+
+#customerQuoteModal .quote-result-value {
+    font-size: 32px;
+}
+
 .quote-modal-header {
     display: flex;
     justify-content: space-between;
@@ -815,6 +849,10 @@ function renderProducts(products) {
                                 <button class="dot-cart-button" onclick="event.stopPropagation(); addToCartWithYear('${product.code}', ${dot.year})">
                                     🛒 장바구니
                                 </button>
+                                <button class="dot-cart-button" onclick="event.stopPropagation(); openQuoteModalWithYear('${product.code}', ${dot.year})"
+                                        style="background: #10b981;">
+                                    견적가
+                                </button>
                             </div>
                         `).join('')}
                     </div>
@@ -1169,7 +1207,7 @@ loadProducts(1);
 // ===== 견적가 계산 기능 =====
 let currentQuoteProduct = null;
 
-async function openQuoteModal(productCode) {
+async function openQuoteModal(productCode, selectedYear = null) {
     const customerCode = getCustomerCode();
     if (!customerCode) {
         showAlert('로그인이 필요합니다.', 'error');
@@ -1196,6 +1234,12 @@ async function openQuoteModal(productCode) {
                 quantity: 1,
                 margin_rate: 20  // 기본 마진율 20%
             });
+
+            // DOT 년도가 선택되었으면 추가
+            if (selectedYear) {
+                quoteParams.append('selected_year', selectedYear);
+            }
+
             const quoteResponse = await fetch(`/api/mobile/calculate-quote/?${quoteParams}`);
 
             const quoteData = await quoteResponse.json();
@@ -1208,11 +1252,16 @@ async function openQuoteModal(productCode) {
                     factoryPrice: quoteData.data.purchase.unit_price,
                     discountRate: quoteData.data.purchase.discount_rate,
                     supplyPrice: quoteData.data.purchase.purchase_price,
-                    totalPrice: quoteData.data.purchase.purchase_total
+                    totalPrice: quoteData.data.purchase.purchase_total,
+                    selectedYear: selectedYear
                 };
 
                 // 모달 데이터 설정
-                document.getElementById('quoteProductName').textContent = currentQuoteProduct.name.substring(0, 20) + '...';
+                const productNameText = selectedYear
+                    ? `${currentQuoteProduct.name.substring(0, 20)}... (${selectedYear}년)`
+                    : currentQuoteProduct.name.substring(0, 20) + '...';
+
+                document.getElementById('quoteProductName').textContent = productNameText;
                 document.getElementById('quoteFactoryPrice').textContent = '₩' + currentQuoteProduct.factoryPrice.toLocaleString();
                 document.getElementById('quoteDiscountRate').textContent = currentQuoteProduct.discountRate.toFixed(1) + '%';
                 document.getElementById('quoteSupplyPrice').textContent = '₩' + currentQuoteProduct.supplyPrice.toLocaleString();
@@ -1234,6 +1283,11 @@ async function openQuoteModal(productCode) {
         console.error('Error:', error);
         showAlert('오류가 발생했습니다: ' + error.message, 'error');
     }
+}
+
+// DOT 년도 선택하여 견적가 모달 열기
+async function openQuoteModalWithYear(productCode, year) {
+    await openQuoteModal(productCode, year);
 }
 
 function closeQuoteModal() {
