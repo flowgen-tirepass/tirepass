@@ -1226,11 +1226,6 @@ class CustomUserAdmin(BaseUserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
-# Django 관리자 사이트 커스터마이즈
-admin.site.site_header = 'TirePASS 관리'
-admin.site.site_title = 'TirePASS 관리자'
-admin.site.index_title = 'TirePASS 관리 시스템'
-
 
 # ============================================
 # 쇼핑/주문 관련 Admin
@@ -1738,3 +1733,108 @@ class LogEntryAdmin(admin.ModelAdmin):
             )
         return obj.change_message or '-'
     change_message_short.short_description = '변경 내용'
+
+
+# ============================================
+# Custom Admin Site - 사이드바 메뉴 재구성
+# ============================================
+
+class TirePassAdminSite(admin.AdminSite):
+    """
+    TirePASS 전용 Admin Site
+    사이드바를 3개 카테고리로 재구성: 판매, 할인, 설정
+    """
+    site_header = 'TirePASS 관리'
+    site_title = 'TirePASS 관리자'
+    index_title = 'TirePASS 관리 시스템'
+
+    def get_app_list(self, request, app_label=None):
+        """
+        사이드바 메뉴를 3개 카테고리로 재구성
+
+        A. 판매 (8개): Goods, MobileOrder, ERPPhoneOrder, OrderItem, Payment, ShoppingCart, ShippingAddress, Customers
+        B. 할인 (6개): BrandGroup, BrandGroupPattern, CustomerDiscount, CustomerProductDiscount, YearAllocation, DiscountHistory
+        C. 설정 (8개): GoodsDisplayName, PerformanceCategory, PerformanceTag, GoodsPerformanceTag, ERPSnapshot, GoodsRealtimeSnapshot, User, LogEntry
+        """
+        # 기본 앱 목록 가져오기
+        app_dict = self._build_app_dict(request, app_label)
+
+        # 모델별 카테고리 매핑
+        category_mapping = {
+            # A. 판매 (8개)
+            'goods': 'A. 판매',
+            'mobileorder': 'A. 판매',
+            'erpphoneorder': 'A. 판매',
+            'orderitem': 'A. 판매',
+            'payment': 'A. 판매',
+            'shoppingcart': 'A. 판매',
+            'shippingaddress': 'A. 판매',
+            'customers': 'A. 판매',
+
+            # B. 할인 (6개)
+            'brandgroup': 'B. 할인',
+            'brandgrouppattern': 'B. 할인',
+            'customerdiscount': 'B. 할인',
+            'customerproductdiscount': 'B. 할인',
+            'yearallocation': 'B. 할인',
+            'discounthistory': 'B. 할인',
+
+            # C. 설정 (8개)
+            'goodsdisplayname': 'C. 설정',
+            'performancecategory': 'C. 설정',
+            'performancetag': 'C. 설정',
+            'goodsperformancetag': 'C. 설정',
+            'erpsnapshot': 'C. 설정',
+            'goodsrealtimesnapshot': 'C. 설정',
+            'user': 'C. 설정',
+            'logentry': 'C. 설정',
+        }
+
+        # 카테고리별로 모델 그룹화
+        categorized = {
+            'A. 판매': {'name': 'A. 판매', 'app_label': 'sales', 'app_url': '', 'models': []},
+            'B. 할인': {'name': 'B. 할인', 'app_label': 'discounts', 'app_url': '', 'models': []},
+            'C. 설정': {'name': 'C. 설정', 'app_label': 'settings', 'app_url': '', 'models': []},
+        }
+
+        # 각 앱의 모델들을 카테고리별로 분류
+        for app in app_dict.values():
+            for model in app['models']:
+                model_name = model['object_name'].lower()
+                category = category_mapping.get(model_name)
+
+                if category:
+                    categorized[category]['models'].append(model)
+
+        # 각 카테고리의 모델을 이름순으로 정렬
+        for category in categorized.values():
+            category['models'].sort(key=lambda x: x['name'])
+
+        # 결과 리스트 생성 (A → B → C 순서)
+        app_list = [
+            categorized['A. 판매'],
+            categorized['B. 할인'],
+            categorized['C. 설정'],
+        ]
+
+        # 빈 카테고리 제거
+        app_list = [cat for cat in app_list if cat['models']]
+
+        return app_list
+
+
+# 커스텀 Admin Site 인스턴스 생성
+custom_admin_site = TirePassAdminSite(name='custom_admin')
+
+# 기본 admin.site에 등록된 모든 모델을 custom_admin_site로 복사
+def register_all_to_custom_site():
+    """기본 admin.site의 모든 모델 등록을 custom_admin_site로 복사"""
+    for model, model_admin in admin.site._registry.items():
+        # 이미 등록되지 않은 경우에만 등록
+        if model not in custom_admin_site._registry:
+            # 같은 AdminClass 인스턴스를 재사용
+            admin_class = model_admin.__class__
+            custom_admin_site.register(model, admin_class)
+
+# 등록 실행
+register_all_to_custom_site()

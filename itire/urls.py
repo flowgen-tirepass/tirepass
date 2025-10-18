@@ -17,13 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from tire_data.admin_forms import CustomAdminAuthenticationForm
+from tire_data.admin import custom_admin_site  # 커스텀 Admin Site 임포트
 
-# 커스텀 로그인 폼 적용
-admin.site.login_form = CustomAdminAuthenticationForm
-admin.site.login_template = 'admin/login.html'
+# 커스텀 로그인 폼 적용 (커스텀 사이트에 적용)
+custom_admin_site.login_form = CustomAdminAuthenticationForm
+custom_admin_site.login_template = 'admin/login.html'
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', custom_admin_site.urls),  # 기본 admin.site 대신 custom_admin_site 사용
     # path('mobile/', include('mobile.urls')),  # 기존 mobile 앱 비활성화
     path('', include('tire_data.urls')),  # admin/logout/ 오버라이드 포함
 ]
