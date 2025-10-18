@@ -195,15 +195,15 @@
 
 .action-buttons {
     display: grid;
-    grid-template-columns: 1fr 3fr;
-    gap: clamp(8px, 2vw, 10px);
+    grid-template-columns: 1fr 2fr 2fr;
+    gap: clamp(6px, 1.5vw, 8px);
 }
 
-.cart-button, .buy-button {
-    padding: clamp(12px, 3.5vw, 16px);
+.cart-button, .quote-button, .buy-button {
+    padding: clamp(10px, 3vw, 14px);
     border: none;
     border-radius: clamp(6px, 1.5vw, 8px);
-    font-size: clamp(14px, 4vw, 18px);
+    font-size: clamp(12px, 3.5vw, 15px);
     font-weight: 700;
     cursor: pointer;
 }
@@ -214,6 +214,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.quote-button {
+    background: #10b981;
+    color: white;
 }
 
 .buy-button {
@@ -357,6 +362,121 @@
         padding: 1px;
     }
 }
+
+/* 견적가 모달 스타일 */
+.quote-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.quote-modal-overlay.active {
+    display: flex;
+}
+
+.quote-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.quote-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.quote-modal-title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.quote-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+}
+
+.quote-info-section {
+    background: #f3f4f6;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.quote-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.quote-info-row:last-child {
+    margin-bottom: 0;
+}
+
+.quote-label {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.quote-value {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.quote-input-group {
+    margin-bottom: 15px;
+}
+
+.quote-input-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.quote-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.quote-result-section {
+    background: #10b981;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.quote-result-label {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+
+.quote-result-value {
+    font-size: 24px;
+    font-weight: 700;
+}
 </style>
 {% endblock %}
 
@@ -427,6 +547,50 @@
 
 <!-- 페이징 -->
 <div id="pagination" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;"></div>
+
+<!-- 견적가 계산 모달 -->
+<div id="quoteModal" class="quote-modal-overlay" onclick="if(event.target === this) closeQuoteModal()">
+    <div class="quote-modal">
+        <div class="quote-modal-header">
+            <h3 class="quote-modal-title">견적가 계산</h3>
+            <button class="quote-modal-close" onclick="closeQuoteModal()">×</button>
+        </div>
+
+        <div class="quote-info-section">
+            <div class="quote-info-row">
+                <span class="quote-label">상품명</span>
+                <span class="quote-value" id="quoteProductName">-</span>
+            </div>
+            <div class="quote-info-row">
+                <span class="quote-label">공장도가</span>
+                <span class="quote-value" id="quoteFactoryPrice">-</span>
+            </div>
+            <div class="quote-info-row">
+                <span class="quote-label">할인율</span>
+                <span class="quote-value" id="quoteDiscountRate">-</span>
+            </div>
+            <div class="quote-info-row">
+                <span class="quote-label">공급가 (매입가)</span>
+                <span class="quote-value" id="quoteSupplyPrice" style="color: #2563eb; font-size: 16px;">-</span>
+            </div>
+        </div>
+
+        <div class="quote-input-group">
+            <label class="quote-input-label">마진율 (%)</label>
+            <input type="number" class="quote-input" id="quoteMarginRate"
+                   placeholder="예: 20" value="20" min="0" max="100"
+                   oninput="calculateQuotePrice()">
+        </div>
+
+        <div class="quote-result-section">
+            <div class="quote-result-label">제안 판매가 (견적가)</div>
+            <div class="quote-result-value" id="quoteFinalPrice">-</div>
+            <div style="font-size: 12px; opacity: 0.9; margin-top: 10px;">
+                마진: <span id="quoteMarginAmount">-</span>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -619,11 +783,15 @@ function renderProducts(products) {
                 </div>
             </div>
 
-            <!-- 장바구니 / 구매하기 버튼 -->
+            <!-- 장바구니 / 견적가 / 구매하기 버튼 -->
             <div class="action-buttons">
                 <button onclick="event.stopPropagation(); addToCart('${product.code}')"
                         class="cart-button">
                     🛒
+                </button>
+                <button onclick="event.stopPropagation(); openQuoteModal('${product.code}')"
+                        class="quote-button">
+                    견적가
                 </button>
                 <button onclick="event.stopPropagation(); buyNow('${product.code}')"
                         class="buy-button">
@@ -947,5 +1115,99 @@ function initFromURL() {
 // 초기화 및 로드
 initFromURL();
 loadProducts(1);
+
+// ===== 견적가 계산 기능 =====
+let currentQuoteProduct = null;
+
+async function openQuoteModal(productCode) {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        showAlert('로그인이 필요합니다.', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        // 상품 정보 가져오기
+        const response = await fetch(`/api/mobile/products/?search=${productCode}`);
+        const data = await response.json();
+
+        if (data.success && data.data.products.length > 0) {
+            const product = data.data.products.find(p => p.code === productCode);
+            if (!product) {
+                throw new Error('상품을 찾을 수 없습니다.');
+            }
+
+            // 견적가 계산 정보 가져오기
+            const quoteResponse = await fetch('/api/mobile/quote/calculate/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    customer_code: customerCode,
+                    product_code: productCode,
+                    quantity: 1,
+                    margin_rate: 20  // 기본 마진율 20%
+                })
+            });
+
+            const quoteData = await quoteResponse.json();
+            hideLoading();
+
+            if (quoteData.success) {
+                currentQuoteProduct = {
+                    code: productCode,
+                    name: product.korean_name || product.name,
+                    factoryPrice: quoteData.data.purchase.unit_price,
+                    discountRate: quoteData.data.purchase.discount_rate,
+                    supplyPrice: quoteData.data.purchase.purchase_price,
+                    totalPrice: quoteData.data.purchase.purchase_total
+                };
+
+                // 모달 데이터 설정
+                document.getElementById('quoteProductName').textContent = currentQuoteProduct.name.substring(0, 20) + '...';
+                document.getElementById('quoteFactoryPrice').textContent = '₩' + currentQuoteProduct.factoryPrice.toLocaleString();
+                document.getElementById('quoteDiscountRate').textContent = currentQuoteProduct.discountRate.toFixed(1) + '%';
+                document.getElementById('quoteSupplyPrice').textContent = '₩' + currentQuoteProduct.supplyPrice.toLocaleString();
+
+                // 견적가 계산
+                calculateQuotePrice();
+
+                // 모달 열기
+                document.getElementById('quoteModal').classList.add('active');
+            } else {
+                showAlert(quoteData.message || '견적가 계산 실패', 'error');
+            }
+        } else {
+            hideLoading();
+            showAlert('상품 정보를 불러올 수 없습니다.', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('Error:', error);
+        showAlert('오류가 발생했습니다: ' + error.message, 'error');
+    }
+}
+
+function closeQuoteModal() {
+    document.getElementById('quoteModal').classList.remove('active');
+    currentQuoteProduct = null;
+}
+
+function calculateQuotePrice() {
+    if (!currentQuoteProduct) return;
+
+    const marginRate = parseFloat(document.getElementById('quoteMarginRate').value) || 0;
+
+    // 제안가 = 공급가 × (1 + 마진율/100)
+    const finalPrice = Math.round(currentQuoteProduct.supplyPrice * (1 + marginRate / 100));
+    const marginAmount = finalPrice - currentQuoteProduct.supplyPrice;
+
+    // 결과 표시
+    document.getElementById('quoteFinalPrice').textContent = '₩' + finalPrice.toLocaleString();
+    document.getElementById('quoteMarginAmount').textContent = '₩' + marginAmount.toLocaleString();
+}
 </script>
 {% endblock %}

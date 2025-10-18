@@ -94,3 +94,5 @@ package-lock.json
 mcp-config.json
 start-mcp-server.js
 *.bat
+test_assistant.py
+test_manual_input.py
