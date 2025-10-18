@@ -367,6 +367,18 @@ def api_products_list(request):
                     'price': price_2022
                 })
 
+            # 2021년 이전 (상품 기본할인 + DOT 할인)
+            if ya.year_2021_before > 0:
+                dot_discount_2021 = float(ya.year_2021_before_discount)
+                price_2021 = int(base_discounted_price * (1 - dot_discount_2021 / 100))
+                total_discount_2021 = base_discount + dot_discount_2021
+                dot_inventory.append({
+                    'year': '2021/06',
+                    'stock': ya.year_2021_before,
+                    'discount': total_discount_2021,
+                    'price': price_2021
+                })
+
         # 상품 목록에 표시할 할인율
         discount_rate = base_discount
 
