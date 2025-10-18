@@ -758,11 +758,11 @@ function renderProducts(products) {
                     <div class="dot-inventory-list">
                         ${product.dot_inventory.map((dot, index) => `
                             <div class="dot-item-row" style="border-left: 4px solid ${dotColors[index % 4]};">
-                                <span class="dot-year">${dot.year.replace('/01', '년').replace('/06', '년')}</span>
+                                <span class="dot-year">${dot.year}년</span>
                                 <span class="dot-info">재고 ${dot.stock}개</span>
                                 <span class="dot-info">할인 ${dot.discount}%</span>
                                 <span class="dot-price">₩${dot.price.toLocaleString()}</span>
-                                <button class="dot-cart-button" onclick="event.stopPropagation(); addToCartWithYear('${product.code}', '${dot.year}')">
+                                <button class="dot-cart-button" onclick="event.stopPropagation(); addToCartWithYear('${product.code}', ${dot.year})">
                                     🛒 장바구니
                                 </button>
                             </div>
