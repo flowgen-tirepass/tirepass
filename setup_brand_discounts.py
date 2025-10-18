@@ -50,11 +50,11 @@ try:
     print("=" * 60)
 
     cursor.execute("""
-        SELECT g.brand, COUNT(*) as total, AVG(ya.base_discount) as avg_discount
+        SELECT g.bun1, COUNT(*) as total, AVG(ya.base_discount) as avg_discount
         FROM year_allocations ya
         JOIN goods g ON ya.goods_code = g.CODE
-        WHERE g.brand IS NOT NULL AND g.brand != ''
-        GROUP BY g.brand
+        WHERE g.bun1 IS NOT NULL AND g.bun1 != ''
+        GROUP BY g.bun1
         ORDER BY total DESC
         LIMIT 10
     """)
@@ -91,7 +91,7 @@ try:
         UPDATE year_allocations ya
         JOIN goods g ON ya.goods_code = g.CODE
         SET ya.base_discount = 20.00
-        WHERE g.brand IN ('미쉐린', '피렐리', '콘티넨탈')
+        WHERE g.bun1 IN ('미쉐린', '피렐리', '콘티넨탈')
     """)
     print(f"   [성공] {cursor.rowcount}개 상품 업데이트 완료")
 
@@ -101,7 +101,7 @@ try:
         UPDATE year_allocations ya
         JOIN goods g ON ya.goods_code = g.CODE
         SET ya.base_discount = 15.00
-        WHERE g.brand IN ('브리지스톤', '던롭', '굳이어', '요코하마')
+        WHERE g.bun1 IN ('브리지스톤', '던롭', '굳이어', '요코하마')
     """)
     print(f"   [성공] {cursor.rowcount}개 상품 업데이트 완료")
 
@@ -111,7 +111,7 @@ try:
         UPDATE year_allocations ya
         JOIN goods g ON ya.goods_code = g.CODE
         SET ya.base_discount = 10.00
-        WHERE g.brand IN ('금호', '넥센', '한국')
+        WHERE g.bun1 IN ('금호', '넥센', '한국')
     """)
     print(f"   [성공] {cursor.rowcount}개 상품 업데이트 완료")
 
@@ -121,7 +121,7 @@ try:
         UPDATE year_allocations ya
         JOIN goods g ON ya.goods_code = g.CODE
         SET ya.base_discount = 5.00
-        WHERE g.brand IN ('하이로', 'BFG', '안나이트', '맥시스', '하이플라이', '파이어스톤')
+        WHERE g.bun1 IN ('하이로', 'BFG', '안나이트', '맥시스', '하이플라이', '파이어스톤')
     """)
     print(f"   [성공] {cursor.rowcount}개 상품 업데이트 완료")
 
@@ -135,11 +135,11 @@ try:
     print("=" * 60)
 
     cursor.execute("""
-        SELECT g.brand, COUNT(*) as total, AVG(ya.base_discount) as avg_discount
+        SELECT g.bun1, COUNT(*) as total, AVG(ya.base_discount) as avg_discount
         FROM year_allocations ya
         JOIN goods g ON ya.goods_code = g.CODE
-        WHERE g.brand IS NOT NULL AND g.brand != ''
-        GROUP BY g.brand
+        WHERE g.bun1 IS NOT NULL AND g.bun1 != ''
+        GROUP BY g.bun1
         ORDER BY avg_discount DESC, total DESC
         LIMIT 20
     """)
@@ -159,7 +159,7 @@ try:
         SELECT
             g.CODE,
             g.NAME,
-            g.brand,
+            g.bun1,
             g.FIXP as factory_price,
             ya.base_discount,
             ROUND(g.FIXP * (1 - ya.base_discount / 100)) as supply_price
