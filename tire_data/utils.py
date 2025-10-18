@@ -52,16 +52,28 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
         return result
 
     result['unit_price'] = product.fixp
-    result['basic_discount_rate'] = product.discount_rate
     result['brand'] = product.bun1 or ''
     result['product_name'] = product.name
 
-    # 2. 고객 브랜드/그룹 할인율 조회
+    # 2. 기본 할인율 조회 (YearAllocation의 base_discount 우선, 없으면 Goods의 discount_rate)
+    try:
+        year_allocation = YearAllocation.objects.get(goods_code=product_code)
+        # YearAllocation의 base_discount가 있으면 사용
+        if year_allocation.base_discount is not None and year_allocation.base_discount > 0:
+            result['basic_discount_rate'] = year_allocation.base_discount
+        else:
+            result['basic_discount_rate'] = product.discount_rate
+    except YearAllocation.DoesNotExist:
+        # YearAllocation이 없으면 Goods의 discount_rate 사용
+        result['basic_discount_rate'] = product.discount_rate
+        year_allocation = None
+
+    # 3. 고객 브랜드/그룹 할인율 조회
     customer_discount = get_customer_discount(customer_code, product)
     if customer_discount:
         result['customer_discount_rate'] = customer_discount
 
-    # 3. 고객 추가 할인율 조회 (개별 상품)
+    # 4. 고객 추가 할인율 조회 (개별 상품)
     try:
         product_discount = CustomerProductDiscount.objects.get(
             customer_code=customer_code,
@@ -73,10 +85,8 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
     except CustomerProductDiscount.DoesNotExist:
         pass
 
-    # 4. DOT 할인율 조회
-    try:
-        year_allocation = YearAllocation.objects.get(goods_code=product_code)
-
+    # 5. DOT 할인율 조회
+    if year_allocation:
         # 선택 가능한 제조년도 목록 (재고가 있는 년도만)
         available_years = []
         if year_allocation.year_2025 > 0:
@@ -102,10 +112,8 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
                 result['dot_discount_rate'] = year_allocation.year_2022_discount
             elif selected_year == 2021:
                 result['dot_discount_rate'] = year_allocation.year_2021_before_discount
-    except YearAllocation.DoesNotExist:
-        pass
 
-    # 5. 최종 가격 계산
+    # 6. 최종 가격 계산
     # 공식: 단가 × (1 - 기본할인/100) × (1 - 고객할인/100) × (1 - 추가할인/100) × (1 - DOT할인/100)
     unit_price = Decimal(str(result['unit_price']))
     basic_rate = Decimal(str(result['basic_discount_rate'])) / Decimal('100')
