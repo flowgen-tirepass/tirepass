@@ -43,7 +43,8 @@ class ShoppingCart(models.Model):
         """고객명 조회"""
         from .models import Customers
         try:
-            customer = Customers.objects.get(code=self.customer_code)
+            # customer_code는 실제로 사업자번호(enno)를 저장
+            customer = Customers.objects.get(enno=self.customer_code)
             return customer.name
         except Customers.DoesNotExist:
             return '-'
@@ -220,7 +221,8 @@ class ShippingAddress(models.Model):
         """고객명 조회"""
         from .models import Customers
         try:
-            customer = Customers.objects.get(code=self.customer_code)
+            # customer_code는 실제로 사업자번호(enno)를 저장
+            customer = Customers.objects.get(enno=self.customer_code)
             return customer.name
         except Customers.DoesNotExist:
             return '-'

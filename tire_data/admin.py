@@ -693,7 +693,8 @@ class CustomerDiscountAdmin(admin.ModelAdmin):
 
     def get_customer_name(self, obj):
         try:
-            customer = Customers.objects.get(code=obj.customer_code)
+            # customer_code는 실제로 사업자번호(enno)를 저장
+            customer = Customers.objects.get(enno=obj.customer_code)
             return customer.name
         except Customers.DoesNotExist:
             return '-'
