@@ -1303,10 +1303,21 @@ class YearAllocationAdmin(admin.ModelAdmin):
 
     def save_formset(self, request, form, formset, change):
         """일괄 저장 시 각 인스턴스의 save() 메서드가 호출되도록 보장"""
+        from django.contrib import messages
+        from django.core.exceptions import ValidationError
+
         instances = formset.save(commit=False)
 
-        # 각 인스턴스를 개별적으로 저장 (모델의 save() 메서드 호출)
+        # 각 인스턴스를 개별적으로 저장하면서 음수 검증
         for instance in instances:
+            # 음수 검증
+            errors = self._validate_negative_values(instance)
+            if errors:
+                for error in errors:
+                    messages.error(request, error)
+                raise ValidationError(errors)
+
+            # 모델의 save() 메서드 호출 (Goods.jaego 자동 동기화)
             instance.save()
 
         # 삭제된 인스턴스 처리
@@ -1315,31 +1326,6 @@ class YearAllocationAdmin(admin.ModelAdmin):
 
         # formset 자체도 저장
         formset.save_m2m()
-
-    def changelist_view(self, request, extra_context=None):
-        """일괄 저장 시 음수 방지 검증"""
-        from django.contrib import messages
-        from django.core.exceptions import ValidationError
-
-        if request.method == 'POST' and '_save' in request.POST:
-            # 일괄 저장 전 음수 검증
-            formset = self.get_changelist_formset(request)
-            all_errors = []
-
-            for form in formset.forms:
-                if form.has_changed() and form.is_valid():
-                    obj = form.save(commit=False)
-                    errors = self._validate_negative_values(obj)
-                    if errors:
-                        all_errors.extend(errors)
-
-            if all_errors:
-                for error in all_errors:
-                    messages.error(request, error)
-                # 오류가 있으면 저장하지 않고 현재 페이지 유지
-                return super().changelist_view(request, extra_context)
-
-        return super().changelist_view(request, extra_context)
 
 @admin.register(DiscountHistory)
 class DiscountHistoryAdmin(admin.ModelAdmin):
