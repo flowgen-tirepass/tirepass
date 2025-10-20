@@ -295,12 +295,10 @@ def update_stock(product_code, selected_year, quantity, operation='subtract'):
 
     allocation.save()
 
-    # 전체 재고도 업데이트
-    try:
-        product = Goods.objects.get(code=product_code)
-        product.jaego = max(0, product.jaego + change)
-        product.save()
-    except Goods.DoesNotExist:
-        pass
+    # 전체 재고도 업데이트 (Goods.jaego는 YearAllocation.save()에서 자동 업데이트됨)
+    # YearAllocation 모델의 save() 메서드에서 Goods.jaego가 자동으로 동기화됨
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"✓ 재고 업데이트 완료: {product_code} (년도={year_int}, 변경량={change})")
 
     return True
