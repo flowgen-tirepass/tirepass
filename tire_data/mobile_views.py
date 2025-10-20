@@ -74,3 +74,7 @@ def mobile_terms(request):
 def mobile_privacy(request):
     """개인정보처리방침 페이지"""
     return render(request, 'mobile/privacy.html')
+
+def mobile_payment_success(request):
+    """결제 성공 페이지 (토스페이먼츠 리다이렉트)"""
+    return render(request, 'mobile/payment_success.html')

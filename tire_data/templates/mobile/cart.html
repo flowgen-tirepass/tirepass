@@ -419,8 +419,6 @@ async function processCardPayment() {
     const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
 
     showLoading();
-    closePaymentModal();
-    closeCheckoutModal();
 
     try {
         const cartIds = cartItems.map(item => item.id);
@@ -449,24 +447,21 @@ async function processCardPayment() {
             return;
         }
 
-        // 2. 토스페이먼츠 결제창 호출
-        const clientKey = '{{ TOSS_PAYMENTS_CLIENT_KEY|default:"test_ck_EP59LybZ8BlBZd2LBbAQV6GYo7pR" }}';
-        const paymentWidget = PaymentWidget(clientKey, PaymentWidget.ANONYMOUS);
+        closePaymentModal();
+        closeCheckoutModal();
 
-        await paymentWidget.renderPaymentMethods(
-            '#payment-method',
-            { value: totalAmount },
-            { variantKey: 'DEFAULT' }
-        );
+        // 2. 토스페이먼츠 결제창 호출
+        const clientKey = data.data.client_key || 'test_ck_EP59LybZ8BlBZd2LBbAQV6GYo7pR';
+        const tossPayments = TossPayments(clientKey);
 
         // 결제 요청
-        await paymentWidget.requestPayment({
+        await tossPayments.requestPayment('카드', {
+            amount: totalAmount,
             orderId: data.data.order_number,
             orderName: `타이어 ${cartItems.length}개`,
-            successUrl: window.location.origin + '/api/mobile/payment/confirm/',
+            customerName: selectedAddress ? selectedAddress.recipient_name : '',
+            successUrl: window.location.origin + '/mobile/payment/success/',
             failUrl: window.location.origin + '/mobile/cart/?payment=failed',
-            customerEmail: '',
-            customerName: selectedAddress ? selectedAddress.recipient_name : ''
         });
 
     } catch (error) {

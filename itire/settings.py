@@ -124,7 +124,7 @@ if IS_PYTHONANYWHERE:
             'OPTIONS': {
                 'charset': 'utf8mb4',
                 'connect_timeout': 10,  # 연결 타임아웃 10초
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'; SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;",
             },
             'CONN_MAX_AGE': 0,  # 매 요청마다 새 연결 (타임아웃 방지)
         }
@@ -142,7 +142,7 @@ else:
             'OPTIONS': {
                 'charset': 'utf8mb4',
                 'connect_timeout': 28800,
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'; SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;",
             },
             'CONN_MAX_AGE': 600,
         }

@@ -254,7 +254,7 @@ def update_stock(product_code, selected_year, quantity, operation='subtract'):
 
     Args:
         product_code: 상품 코드
-        selected_year: 제조년도
+        selected_year: 제조년도 (정수 또는 문자열)
         quantity: 수량
         operation: 'subtract'(차감) 또는 'add'(추가)
 
@@ -266,19 +266,29 @@ def update_stock(product_code, selected_year, quantity, operation='subtract'):
     except YearAllocation.DoesNotExist:
         return False
 
+    # selected_year를 정수로 변환 (문자열인 경우 처리)
+    try:
+        if isinstance(selected_year, str):
+            # "2023/45" 형식이면 앞부분만 추출
+            year_int = int(selected_year.split('/')[0])
+        else:
+            year_int = int(selected_year)
+    except (ValueError, TypeError):
+        return False
+
     # 수량 계산
     change = quantity if operation == 'add' else -quantity
 
     # 해당 년도 재고 업데이트
-    if selected_year == 2025:
+    if year_int == 2025:
         allocation.year_2025 = max(0, allocation.year_2025 + change)
-    elif selected_year == 2024:
+    elif year_int == 2024:
         allocation.year_2024 = max(0, allocation.year_2024 + change)
-    elif selected_year == 2023:
+    elif year_int == 2023:
         allocation.year_2023 = max(0, allocation.year_2023 + change)
-    elif selected_year == 2022:
+    elif year_int == 2022:
         allocation.year_2022 = max(0, allocation.year_2022 + change)
-    elif selected_year == 2021:
+    elif year_int == 2021:
         allocation.year_2021_before = max(0, allocation.year_2021_before + change)
     else:
         return False

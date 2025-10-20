@@ -135,7 +135,7 @@ class BaseOrderAdmin(admin.ModelAdmin):
                    'total_amount_display', 'final_amount_display', 'order_status_display',
                    'payment_status_display', 'order_date']
     list_filter = ['order_status', 'payment_status', 'order_date']
-    search_fields = ['order_number', 'customer_code', 'customer_name', 'erp_order_number']
+    search_fields = ['=order_number', 'order_number', '=customer_code', 'customer_code', 'customer_name', '=erp_order_number', 'erp_order_number']
     ordering = ['-order_date']
     list_per_page = 50
     inlines = [OrderItemInline, PaymentInline]

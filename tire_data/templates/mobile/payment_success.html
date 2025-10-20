@@ -1,0 +1,70 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}결제 진행중 - TirePASS{% endblock %}
+{% block header_title %}결제 진행중{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center; padding: 40px 20px;">
+    <div class="spinner" style="margin: 20px auto;"></div>
+    <h2 style="font-size: 20px; margin-bottom: 15px;">결제 승인 처리중입니다</h2>
+    <p style="color: #6b7280; margin-bottom: 20px;">잠시만 기다려주세요...</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// URL 파라미터에서 결제 정보 가져오기
+const urlParams = new URLSearchParams(window.location.search);
+const paymentKey = urlParams.get('paymentKey');
+const orderId = urlParams.get('orderId');
+const amount = urlParams.get('amount');
+
+async function confirmPayment() {
+    if (!paymentKey || !orderId || !amount) {
+        showAlert('결제 정보가 올바르지 않습니다.', 'error');
+        setTimeout(() => {
+            location.href = '/mobile/cart/';
+        }, 2000);
+        return;
+    }
+
+    try {
+        // 결제 승인 API 호출
+        const response = await fetch('/api/mobile/payment/confirm/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                paymentKey: paymentKey,
+                orderId: orderId,
+                amount: parseInt(amount)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showAlert('결제가 완료되었습니다!', 'success');
+            setTimeout(() => {
+                location.href = '/mobile/orders/';
+            }, 1500);
+        } else {
+            showAlert(data.message || '결제 승인 실패', 'error');
+            setTimeout(() => {
+                location.href = '/mobile/cart/';
+            }, 2000);
+        }
+    } catch (error) {
+        console.error('결제 승인 오류:', error);
+        showAlert('결제 처리 중 오류가 발생했습니다.', 'error');
+        setTimeout(() => {
+            location.href = '/mobile/cart/';
+        }, 2000);
+    }
+}
+
+// 페이지 로드 시 자동으로 결제 승인 처리
+document.addEventListener('DOMContentLoaded', confirmPayment);
+</script>
+{% endblock %}

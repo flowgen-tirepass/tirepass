@@ -75,7 +75,7 @@ class TireBrandFilter(SimpleListFilter):
 class GoodsAdmin(admin.ModelAdmin):
     list_display = ['code', 'name', 'bun1', 'display_jaego', 'display_fixp']
     list_filter = [TireOnlyFilter, StockOnlyFilter, TireBrandFilter]  # 커스텀 필터들
-    search_fields = ['code', 'name', 'bun1']
+    search_fields = ['=code', 'code', 'name', 'bun1']  # =code: 정확히 일치, code: 포함
     readonly_fields = ['code']  # 상품코드는 읽기 전용
     list_per_page = 50
     change_list_template = 'admin/goods_changelist.html'
@@ -111,9 +111,9 @@ class GoodsAdmin(admin.ModelAdmin):
     display_fixp.admin_order_field = 'fixp'
 
     def get_queryset(self, request):
-        """빈 queryset 반환 (ERP 데이터 사용)"""
-        # Django admin의 기본 queryset을 사용하지 않음
-        return Goods.objects.none()
+        """MySQL 데이터베이스에서 상품 조회"""
+        qs = super().get_queryset(request)
+        return qs
 
     def is_tire_product(self, goods):
         """
@@ -651,11 +651,12 @@ class CustomersAdmin(admin.ModelAdmin):
     """모바일 회원가입 고객"""
     list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'product_discount_count']
     list_filter = ['is_registered', 'must_change_password']
-    search_fields = ['code', 'name', 'rep', 'enno']
+    search_fields = ['=code', 'code', 'name', 'rep', '=enno', 'enno']  # =code: 정확히 일치, code: 포함
     ordering = ['code']
     list_per_page = 50
     readonly_fields = ['code']
     fields = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'must_change_password']
+    actions = ['sync_from_erp']
 
     def product_discount_count(self, obj):
         """개별 상품 할인 개수"""
@@ -670,6 +671,58 @@ class CustomersAdmin(admin.ModelAdmin):
         return '0 개'
     product_discount_count.short_description = '개별 할인 상품'
 
+    @admin.action(description='ERP에서 고객 정보 동기화')
+    def sync_from_erp(self, request, queryset):
+        """선택한 고객들의 정보를 ERP에서 가져와서 업데이트"""
+        from .erp_api_client import ERPAPIClient
+        from django.contrib import messages
+
+        success_count = 0
+        error_count = 0
+
+        for customer in queryset:
+            try:
+                # ERP API에서 고객 정보 조회
+                erp_data = ERPAPIClient.get_customer_detail(customer.code)
+
+                if not erp_data:
+                    error_count += 1
+                    messages.warning(request, f'고객 {customer.code}: ERP에서 데이터를 가져올 수 없습니다.')
+                    continue
+
+                # 고객 정보 업데이트
+                customer.name = erp_data.get('NAME', customer.name)
+                customer.rep = erp_data.get('REP', customer.rep)
+                customer.tel1 = erp_data.get('TEL1', customer.tel1)
+                customer.tel3 = erp_data.get('TEL3', customer.tel3)
+                customer.enno = erp_data.get('ENNO', customer.enno)
+                customer.save()
+
+                success_count += 1
+
+            except Exception as e:
+                error_count += 1
+                messages.error(request, f'고객 {customer.code}: 오류 - {str(e)}')
+
+        # 결과 메시지
+        if success_count > 0:
+            messages.success(request, f'{success_count}개 고객 정보를 ERP에서 동기화했습니다.')
+        if error_count > 0:
+            messages.error(request, f'{error_count}개 고객 동기화 실패')
+
+        # 주문의 customer_name도 업데이트
+        if success_count > 0:
+            try:
+                updated_orders = 0
+                for customer in queryset:
+                    updated = Order.objects.filter(customer_code=customer.code).update(customer_name=customer.name)
+                    updated_orders += updated
+
+                if updated_orders > 0:
+                    messages.info(request, f'관련 주문 {updated_orders}개의 고객명도 업데이트했습니다.')
+            except Exception as e:
+                messages.warning(request, f'주문 업데이트 중 오류: {str(e)}')
+
 class BrandGroupPatternInline(admin.TabularInline):
     """브랜드 그룹에 패턴을 인라인으로 추가/편집"""
     model = BrandGroupPattern
@@ -683,7 +736,7 @@ class BrandGroupAdmin(admin.ModelAdmin):
     list_display = ['id', 'brand', 'group_name', 'group_order', 'pattern_count', 'pattern_preview', 'is_active', 'created_at']
     list_filter = ['brand', 'is_active']
     list_editable = ['group_order', 'is_active']
-    search_fields = ['brand', 'group_name', 'description']
+    search_fields = ['brand', 'group_name', 'description']  # 브랜드/그룹명은 정확한 일치보다 포함 검색이 유용
     ordering = ['brand', 'group_order', 'group_name']
     list_per_page = 50
     inlines = [BrandGroupPatternInline]
@@ -900,7 +953,7 @@ class BrandGroupAdmin(admin.ModelAdmin):
 class BrandGroupPatternAdmin(admin.ModelAdmin):
     list_display = ['id', 'get_brand', 'get_group_name', 'pattern_badge', 'get_group_status', 'created_at']
     list_filter = ['group__brand', 'group__group_name', 'group__is_active']
-    search_fields = ['pattern', 'group__brand', 'group__group_name']
+    search_fields = ['pattern', 'group__brand', 'group__group_name']  # 패턴은 부분 검색이 유용
     ordering = ['group__brand', 'group__group_name', 'pattern']
     list_per_page = 100
     autocomplete_fields = ['group']
@@ -983,7 +1036,7 @@ class CustomerDiscountAdmin(admin.ModelAdmin):
     list_display = ['customer_code', 'get_customer_name', 'brand', 'get_group_name', 'discount_rate', 'priority', 'date_range', 'is_active', 'is_valid_status']
     list_filter = ['is_active', 'brand', 'group__brand', 'group__group_name']
     list_editable = ['discount_rate', 'priority', 'is_active']
-    search_fields = ['customer_code', 'brand', 'group__group_name', 'memo']
+    search_fields = ['=customer_code', 'customer_code', 'brand', 'group__group_name', 'memo']
     ordering = ['customer_code', 'brand', '-priority']
     list_per_page = 50
     autocomplete_fields = ['group']
@@ -1047,7 +1100,7 @@ class YearAllocationAdmin(admin.ModelAdmin):
                    'total_allocated', 'last_updated']
     list_editable = ['year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
                     'year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount']
-    search_fields = ['goods_code']
+    search_fields = ['=goods_code', 'goods_code']  # =goods_code: 정확히 일치, goods_code: 포함
     ordering = ['goods_code']
     readonly_fields = ['last_updated', 'total_allocated', 'stock_quantity']
     list_per_page = 50
@@ -1083,21 +1136,80 @@ class YearAllocationAdmin(admin.ModelAdmin):
         }),
     )
 
+    def _validate_negative_values(self, obj):
+        """음수 방지 검증"""
+        errors = []
+        if obj.year_2025 < 0:
+            errors.append(f'{obj.goods_code}: 2025년 수량은 음수일 수 없습니다.')
+        if obj.year_2024 < 0:
+            errors.append(f'{obj.goods_code}: 2024년 수량은 음수일 수 없습니다.')
+        if obj.year_2023 < 0:
+            errors.append(f'{obj.goods_code}: 2023년 수량은 음수일 수 없습니다.')
+        if obj.year_2022 < 0:
+            errors.append(f'{obj.goods_code}: 2022년 수량은 음수일 수 없습니다.')
+        if obj.year_2021_before < 0:
+            errors.append(f'{obj.goods_code}: 2021년 이전 수량은 음수일 수 없습니다.')
+        if obj.year_2024_discount < 0:
+            errors.append(f'{obj.goods_code}: 2024년 할인율은 음수일 수 없습니다.')
+        if obj.year_2023_discount < 0:
+            errors.append(f'{obj.goods_code}: 2023년 할인율은 음수일 수 없습니다.')
+        if obj.year_2022_discount < 0:
+            errors.append(f'{obj.goods_code}: 2022년 할인율은 음수일 수 없습니다.')
+        if obj.year_2021_before_discount < 0:
+            errors.append(f'{obj.goods_code}: 2021년 이전 할인율은 음수일 수 없습니다.')
+        if obj.base_discount < 0:
+            errors.append(f'{obj.goods_code}: 기본 할인율은 음수일 수 없습니다.')
+        return errors
+
     def save_model(self, request, obj, form, change):
         """저장 전 유효성 검증"""
+        from django.contrib import messages
+        from django.core.exceptions import ValidationError
+
+        # 음수 방지 검증
+        errors = self._validate_negative_values(obj)
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            raise ValidationError(errors)
+
         try:
             obj.clean()  # clean() 메서드 호출하여 검증
             super().save_model(request, obj, form, change)
         except Exception as e:
-            from django.contrib import messages
             messages.error(request, str(e))
             raise
+
+    def changelist_view(self, request, extra_context=None):
+        """일괄 저장 시 음수 방지 검증"""
+        from django.contrib import messages
+        from django.core.exceptions import ValidationError
+
+        if request.method == 'POST' and '_save' in request.POST:
+            # 일괄 저장 전 음수 검증
+            formset = self.get_changelist_formset(request)
+            all_errors = []
+
+            for form in formset.forms:
+                if form.has_changed() and form.is_valid():
+                    obj = form.save(commit=False)
+                    errors = self._validate_negative_values(obj)
+                    if errors:
+                        all_errors.extend(errors)
+
+            if all_errors:
+                for error in all_errors:
+                    messages.error(request, error)
+                # 오류가 있으면 저장하지 않고 현재 페이지 유지
+                return super().changelist_view(request, extra_context)
+
+        return super().changelist_view(request, extra_context)
 
 @admin.register(DiscountHistory)
 class DiscountHistoryAdmin(admin.ModelAdmin):
     list_display = ['customer_code', 'product_code', 'brand', 'applied_discount', 'original_price', 'final_price', 'transaction_date']
     list_filter = ['brand', 'transaction_date']
-    search_fields = ['customer_code', 'product_code', 'brand']
+    search_fields = ['=customer_code', 'customer_code', '=product_code', 'product_code', 'brand']
     ordering = ['-transaction_date']
     readonly_fields = ['transaction_date']
     list_per_page = 50
@@ -1110,7 +1222,7 @@ class CustomerProductDiscountAdmin(admin.ModelAdmin):
                    'additional_discount_rate', 'priority', 'date_range', 'is_active', 'is_valid_status']
     list_filter = ['is_active', 'brand', 'customer_code']
     list_editable = ['additional_discount_rate', 'priority', 'is_active']
-    search_fields = ['customer_code', 'product_code', 'brand', 'memo']
+    search_fields = ['=customer_code', 'customer_code', '=product_code', 'product_code', 'brand', 'memo']
     ordering = ['customer_code', 'brand', 'product_code', '-priority']
     list_per_page = 50
 
@@ -1236,7 +1348,7 @@ class ShoppingCartAdmin(admin.ModelAdmin):
     list_display = ['id', 'customer_code', 'get_customer_name', 'product_code', 'get_product_name',
                    'quantity', 'selected_year', 'final_price', 'created_at']
     list_filter = ['customer_code', 'selected_year', 'created_at']
-    search_fields = ['customer_code', 'product_code']
+    search_fields = ['=customer_code', 'customer_code', '=product_code', 'product_code']
     ordering = ['-created_at']
     list_per_page = 50
 
@@ -1268,7 +1380,7 @@ class OrderItemAdmin(admin.ModelAdmin):
     list_display = ['id', 'get_order_number', 'product_code', 'product_name', 'brand',
                    'quantity', 'selected_year', 'discounted_price', 'final_price']
     list_filter = ['brand', 'selected_year']
-    search_fields = ['order__order_number', 'product_code', 'product_name']
+    search_fields = ['=order__order_number', 'order__order_number', '=product_code', 'product_code', 'product_name']
     ordering = ['-created_at']
     list_per_page = 50
 
@@ -1283,7 +1395,7 @@ class PaymentAdmin(admin.ModelAdmin):
     list_display = ['id', 'get_order_number', 'payment_method', 'payment_amount',
                    'payment_status', 'payment_date', 'transaction_id']
     list_filter = ['payment_method', 'payment_status', 'payment_date']
-    search_fields = ['order__order_number', 'transaction_id', 'pg_name']
+    search_fields = ['=order__order_number', 'order__order_number', '=transaction_id', 'transaction_id', 'pg_name']
     ordering = ['-created_at']
     list_per_page = 50
 
@@ -1315,7 +1427,7 @@ class ShippingAddressAdmin(admin.ModelAdmin):
     list_display = ['id', 'customer_code', 'get_customer_name', 'recipient_name',
                    'phone_number', 'address', 'is_default', 'created_at']
     list_filter = ['is_default', 'created_at']
-    search_fields = ['customer_code', 'recipient_name', 'phone_number', 'address']
+    search_fields = ['=customer_code', 'customer_code', 'recipient_name', 'phone_number', 'address']
     ordering = ['-is_default', '-created_at']
     list_per_page = 50
 
@@ -1344,7 +1456,7 @@ class ShippingAddressAdmin(admin.ModelAdmin):
 class GoodsDisplayNameAdmin(admin.ModelAdmin):
     """상품 표시명 (한글/영문) 관리"""
     list_display = ['goods_code', 'get_original_name', 'korean_name', 'english_name', 'updated_at']
-    search_fields = ['goods_code', 'korean_name', 'english_name']
+    search_fields = ['=goods_code', 'goods_code', 'korean_name', 'english_name']
     ordering = ['goods_code']
     list_per_page = 50
 

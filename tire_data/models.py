@@ -314,6 +314,37 @@ class YearAllocation(models.Model):
                 '__all__': f'연도별 수량 합계({total})가 재고수량({stock_quantity})을 초과할 수 없습니다.'
             })
 
+    def save(self, *args, **kwargs):
+        """저장 시 Goods.jaego를 YearAllocation의 total_allocated와 동기화"""
+        # 기존 데이터가 있으면 이전 total_allocated 계산
+        old_total = 0
+        if self.pk:
+            try:
+                old_obj = YearAllocation.objects.get(pk=self.pk)
+                old_total = old_obj.total_allocated
+            except YearAllocation.DoesNotExist:
+                old_total = 0
+
+        # 새로운 total_allocated 계산
+        new_total = self.total_allocated
+
+        # 변경량 계산
+        change = new_total - old_total
+
+        # 모델 저장
+        super().save(*args, **kwargs)
+
+        # Goods.jaego 동기화 (변경량만큼 조정)
+        if change != 0:
+            try:
+                goods = Goods.objects.get(code=self.goods_code)
+                goods.jaego = max(0, int(goods.jaego) + change)
+                goods.save(update_fields=['jaego'])
+            except Goods.DoesNotExist:
+                pass
+            except (ValueError, TypeError):
+                pass
+
 
 class BrandGroup(models.Model):
     """브랜드별 그룹 관리 모델"""

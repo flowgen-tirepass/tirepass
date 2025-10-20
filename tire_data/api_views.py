@@ -1628,13 +1628,15 @@ def api_payment_confirm(request):
             order.confirmed_date = timezone.now()
             order.save()
 
+            # 재고 차감
             for item in order.items.all():
-                update_stock(
-                    product_code=item.product_code,
-                    year=item.selected_year,
-                    quantity=item.quantity,
-                    operation='subtract'
-                )
+                if item.selected_year:
+                    update_stock(
+                        product_code=item.product_code,
+                        selected_year=item.selected_year,
+                        quantity=item.quantity,
+                        operation='subtract'
+                    )
 
             if cart_ids:
                 ShoppingCart.objects.filter(id__in=cart_ids).delete()
