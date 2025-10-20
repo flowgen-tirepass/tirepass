@@ -1142,42 +1142,88 @@ class CustomerDiscountAdmin(admin.ModelAdmin):
 class YearAllocationAdmin(admin.ModelAdmin):
     list_display = ['goods_code', 'stock_quantity', 'year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
                    'year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount',
-                   'total_allocated', 'last_updated']
+                   'mobile_stock_display', 'last_updated']
     list_editable = ['year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before',
                     'year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount']
     search_fields = ['=goods_code', 'goods_code']  # =goods_code: 정확히 일치, goods_code: 포함
     ordering = ['goods_code']
-    readonly_fields = ['last_updated', 'total_allocated', 'stock_quantity']
+    readonly_fields = ['last_updated', 'total_allocated', 'stock_quantity', 'mobile_stock_display']
     list_per_page = 50
 
     def stock_quantity(self, obj):
-        """Goods 테이블의 재고수량 표시 (정수)"""
+        """Goods 테이블의 재고수량 표시 (ERP 참고용)"""
         try:
             from .models import Goods
             from django.utils.html import format_html
             # filter().first()로 변경하여 중복 레코드 문제 방지
             goods = Goods.objects.filter(code=obj.goods_code).first()
             if goods:
-                return format_html('<span>{}</span>', int(goods.jaego))
+                erp_stock = int(goods.jaego)
+                mobile_stock = obj.total_allocated
+
+                # ERP 재고와 모바일 재고 차이 표시
+                if erp_stock > mobile_stock:
+                    # ERP 재고가 더 많음 (정상)
+                    return format_html(
+                        '<span style="color: #666;" title="ERP 참고용 재고">{}</span>',
+                        erp_stock
+                    )
+                elif erp_stock == mobile_stock:
+                    # 동일함
+                    return format_html(
+                        '<span style="color: #666;" title="ERP 참고용 재고">{}</span>',
+                        erp_stock
+                    )
+                else:
+                    # 모바일 재고가 더 많음 (경고)
+                    return format_html(
+                        '<span style="color: #d63031; font-weight: bold;" title="⚠️ 모바일 재고({})가 ERP 재고보다 많습니다!">{}</span>',
+                        mobile_stock, erp_stock
+                    )
             else:
-                return format_html('<span>0</span>')
+                return format_html('<span style="color: #999;">-</span>')
         except (ValueError, TypeError):
-            return format_html('<span>0</span>')
-    stock_quantity.short_description = '재고수량'
+            return format_html('<span style="color: #999;">-</span>')
+    stock_quantity.short_description = '재고수량 (ERP 참고)'
+
+    def mobile_stock_display(self, obj):
+        """모바일 판매 가능 재고 표시"""
+        from django.utils.html import format_html
+        mobile_stock = obj.total_allocated
+
+        # 재고 부족 여부에 따라 색상 변경
+        if mobile_stock == 0:
+            # 재고 없음 (빨강)
+            return format_html(
+                '<span style="color: #d63031; font-weight: bold;" title="재고 없음 - 주문 불가">품절 (0)</span>'
+            )
+        elif mobile_stock <= 5:
+            # 재고 부족 (주황)
+            return format_html(
+                '<span style="color: #e17055; font-weight: bold;" title="재고 부족 - 모바일 주문 가능">⚠️ {}</span>',
+                mobile_stock
+            )
+        else:
+            # 재고 충분 (초록)
+            return format_html(
+                '<span style="color: #00b894; font-weight: bold;" title="모바일 판매 가능 재고">{}</span>',
+                mobile_stock
+            )
+    mobile_stock_display.short_description = '모바일 판매 가능'
 
     fieldsets = (
         ('상품 정보', {
-            'fields': ('goods_code', 'stock_quantity')
+            'fields': ('goods_code', 'stock_quantity', 'mobile_stock_display')
         }),
-        ('연도별 재고 수량', {
+        ('📦 모바일 판매 재고 (DOT별 수량)', {
             'fields': ('year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before'),
-            'description': 'ERP의 전체 재고 중 각 제조년도별로 할당된 수량을 입력합니다.'
+            'description': '⚠️ 모바일 주문 시 이 수량에서 차감됩니다. ERP 재고와는 별도로 관리됩니다.'
         }),
-        ('DOT 할인율 (연도별)', {
+        ('💰 DOT 할인율 (연도별)', {
             'fields': ('year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount'),
             'description': '과거 제조년도 상품에 대한 추가 할인율을 설정합니다.'
         }),
-        ('시스템 정보', {
+        ('📊 시스템 정보', {
             'fields': ('total_allocated', 'last_updated'),
             'classes': ('collapse',)
         }),
