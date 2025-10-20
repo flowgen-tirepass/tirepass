@@ -340,13 +340,15 @@ class YearAllocation(models.Model):
         # Goods.jaego 동기화 (변경량만큼 조정)
         if change != 0:
             try:
-                goods = Goods.objects.get(code=self.goods_code)
-                old_jaego = goods.jaego
-                goods.jaego = max(0, int(goods.jaego) + change)
-                goods.save(update_fields=['jaego'])
-                logger.info(f"✓ 재고 동기화: {self.goods_code} | YearAllocation: {old_total}→{new_total} (변경: {change:+d}) | Goods.jaego: {old_jaego}→{goods.jaego}")
-            except Goods.DoesNotExist:
-                logger.warning(f"⚠️ Goods 테이블에 {self.goods_code} 없음 - YearAllocation만 업데이트됨")
+                # filter().first()로 중복 레코드 문제 방지
+                goods = Goods.objects.filter(code=self.goods_code).first()
+                if goods:
+                    old_jaego = goods.jaego
+                    goods.jaego = max(0, int(goods.jaego) + change)
+                    goods.save(update_fields=['jaego'])
+                    logger.info(f"✓ 재고 동기화: {self.goods_code} | YearAllocation: {old_total}→{new_total} (변경: {change:+d}) | Goods.jaego: {old_jaego}→{goods.jaego}")
+                else:
+                    logger.warning(f"⚠️ Goods 테이블에 {self.goods_code} 없음 - YearAllocation만 업데이트됨")
             except (ValueError, TypeError) as e:
                 logger.error(f"✗ 재고 동기화 실패: {self.goods_code} - {str(e)}")
         else:
