@@ -1147,7 +1147,7 @@ class YearAllocationAdmin(admin.ModelAdmin):
                     'year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount']
     search_fields = ['=goods_code', 'goods_code']  # =goods_code: 정확히 일치, goods_code: 포함
     ordering = ['goods_code']
-    readonly_fields = ['last_updated', 'total_allocated', 'stock_quantity', 'mobile_stock_display']
+    readonly_fields = ['last_updated', 'total_allocated_display', 'stock_quantity', 'mobile_stock_display']
     list_per_page = 50
 
     def stock_quantity(self, obj):
@@ -1211,6 +1211,34 @@ class YearAllocationAdmin(admin.ModelAdmin):
             )
     mobile_stock_display.short_description = '모바일 판매 가능'
 
+    def total_allocated_display(self, obj):
+        """total_allocated를 읽기 전용 필드로 표시"""
+        from django.utils.html import format_html
+        return format_html('<span>{}</span>', obj.total_allocated)
+    total_allocated_display.short_description = 'DOT 합계'
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        """수량 및 할인율 필드에서 음수 입력 방지"""
+        formfield = super().formfield_for_dbfield(db_field, request, **kwargs)
+
+        # 수량 필드: 음수 입력 금지 (min=0)
+        if db_field.name in ['year_2025', 'year_2024', 'year_2023', 'year_2022', 'year_2021_before']:
+            formfield.widget.attrs.update({
+                'min': '0',
+                'style': 'width: 80px;'
+            })
+
+        # 할인율 필드: 음수 입력 금지 (min=0, max=100)
+        if db_field.name in ['year_2024_discount', 'year_2023_discount', 'year_2022_discount', 'year_2021_before_discount', 'base_discount']:
+            formfield.widget.attrs.update({
+                'min': '0',
+                'max': '100',
+                'step': '0.01',
+                'style': 'width: 80px;'
+            })
+
+        return formfield
+
     fieldsets = (
         ('상품 정보', {
             'fields': ('goods_code', 'stock_quantity', 'mobile_stock_display')
@@ -1224,7 +1252,7 @@ class YearAllocationAdmin(admin.ModelAdmin):
             'description': '과거 제조년도 상품에 대한 추가 할인율을 설정합니다.'
         }),
         ('📊 시스템 정보', {
-            'fields': ('total_allocated', 'last_updated'),
+            'fields': ('total_allocated_display', 'last_updated'),
             'classes': ('collapse',)
         }),
     )
