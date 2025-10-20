@@ -291,15 +291,60 @@ class GoodsAdmin(admin.ModelAdmin):
             else:
                 logger.warning(f"⚠️ ERP 응답 0개! 검색어: '{enhanced_search_term}', 브랜드 필터: {filter_brand}")
         elif search_term:
-            # 검색만 사용 시: 검색 결과를 페이지네이션
-            logger.info(f"검색 모드: '{enhanced_search_term}' (offset={offset}, limit={per_page})")
+            # 검색만 사용 시: DB + ERP API 결합 검색
+            logger.info(f"검색 모드: '{search_term}' (offset={offset}, limit={per_page})")
+
+            # 1. 먼저 데이터베이스에서 검색 (정확한 코드 매칭 우선)
+            db_goods_list = []
+            from django.db.models import Q
+            db_queryset = Goods.objects.filter(
+                Q(code__iexact=search_term) |  # 정확한 코드 매칭
+                Q(code__icontains=search_term) |  # 코드 포함
+                Q(name__icontains=search_term) |  # 상품명 포함
+                Q(bun1__icontains=search_term)  # 브랜드 포함
+            )[:per_page]
+
+            for goods in db_queryset:
+                db_goods_list.append({
+                    'code': goods.code,
+                    'name': goods.name,
+                    'bun1': goods.bun1,
+                    'jaego': float(goods.jaego) if goods.jaego else 0,
+                    'fixp': int(goods.fixp) if goods.fixp else 0,
+                })
+
+            logger.info(f"DB 검색 결과: {len(db_goods_list)}개 상품")
+
+            # 2. ERP API에서도 검색
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page, search=enhanced_search_term)
+            logger.info(f"ERP 검색 결과: {len(erp_goods_list)}개 상품")
+
+            # 3. 두 결과 합치기 (DB 우선, 중복 제거)
+            seen_codes = set()
+            combined_list = []
+
+            # DB 결과 먼저 추가
+            for goods in db_goods_list:
+                code = goods.get('code')
+                if code and code not in seen_codes:
+                    combined_list.append(goods)
+                    seen_codes.add(code)
+
+            # ERP 결과 추가 (중복 제외)
+            for goods in erp_goods_list:
+                code = goods.get('code')
+                if code and code not in seen_codes:
+                    combined_list.append(goods)
+                    seen_codes.add(code)
+
+            erp_goods_list = combined_list
+            logger.info(f"통합 검색 결과: {len(erp_goods_list)}개 상품 (DB: {len(db_goods_list)}, ERP: {len(erp_goods_list) - len(db_goods_list)})")
+
             # 검색 결과가 limit만큼 반환되면 더 많은 결과가 있을 수 있음
-            if len(erp_goods_list) == per_page:
+            if len(erp_goods_list) >= per_page:
                 erp_goods_count = 9999  # 충분히 큰 숫자 (페이지네이션 가능하게)
             else:
                 erp_goods_count = offset + len(erp_goods_list)
-            logger.info(f"검색 결과: {len(erp_goods_list)}개 상품 (현재 페이지)")
         else:
             # 일반 조회: 기본 페이지네이션
             logger.info(f"일반 조회 모드 (offset={offset}, limit={per_page})")
