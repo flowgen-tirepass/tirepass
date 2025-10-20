@@ -1110,10 +1110,12 @@ class YearAllocationAdmin(admin.ModelAdmin):
         try:
             from .models import Goods
             from django.utils.html import format_html
-            goods = Goods.objects.get(code=obj.goods_code)
-            return format_html('<span>{}</span>', int(goods.jaego))
-        except Goods.DoesNotExist:
-            return format_html('<span>0</span>')
+            # filter().first()로 변경하여 중복 레코드 문제 방지
+            goods = Goods.objects.filter(code=obj.goods_code).first()
+            if goods:
+                return format_html('<span>{}</span>', int(goods.jaego))
+            else:
+                return format_html('<span>0</span>')
         except (ValueError, TypeError):
             return format_html('<span>0</span>')
     stock_quantity.short_description = '재고수량'
