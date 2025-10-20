@@ -34,35 +34,50 @@ else:
     for code, count in duplicates:
         print(f"  - {code}: {count}개")
 
-    # 2. 각 중복 CODE에 대해 가장 최근 레코드만 남기고 나머지 삭제
-    print("\n2단계: 중복 레코드 제거 중...")
-    removed_count = 0
-
+    # 2. 각 중복 CODE의 상세 정보 확인
+    print("\n2단계: 중복 레코드 상세 확인...")
     for code, count in duplicates:
-        # 해당 CODE의 모든 레코드 조회 (PK 기준 정렬)
+        print(f"\n  상품코드: {code}")
         with connection.cursor() as cursor:
             cursor.execute("""
-                SELECT id FROM goods
+                SELECT CODE, NAME, BUN1, JAEGO, FIXP
+                FROM goods
                 WHERE CODE = %s
-                ORDER BY id DESC
             """, [code])
-            ids = [row[0] for row in cursor.fetchall()]
+            rows = cursor.fetchall()
+            for i, (c, name, bun1, jaego, fixp) in enumerate(rows, 1):
+                print(f"    [{i}] 상품명: {name}")
+                print(f"        브랜드: {bun1}")
+                print(f"        재고: {jaego}")
+                print(f"        가격: {fixp}")
 
-        if len(ids) > 1:
-            # 첫 번째(최신) ID를 제외한 나머지 삭제
-            keep_id = ids[0]
-            delete_ids = ids[1:]
+    # 3. 중복 제거 방법 안내
+    print("\n" + "=" * 60)
+    print("⚠️  주의: Goods 테이블의 Primary Key는 CODE입니다.")
+    print("중복된 레코드가 존재하는 것은 비정상적인 상황입니다.")
+    print("")
+    print("=== 방법 1: 간단한 중복 제거 (추천) ===")
+    print("PythonAnywhere MySQL Console에서 실행:")
+    print("")
+    print("-- 중복된 모든 레코드를 삭제하고 하나만 남기기")
+    print("DELETE t1 FROM goods t1")
+    print("INNER JOIN goods t2")
+    print("WHERE t1.CODE = t2.CODE")
+    print("  AND (t1.JAEGO < t2.JAEGO OR (t1.JAEGO = t2.JAEGO AND t1.NAME > t2.NAME));")
+    print("")
+    print("-- 설명: 재고가 많은 레코드를 우선 유지, 재고 동일하면 NAME 순서로 첫 번째 유지")
+    print("")
+    print("=== 방법 2: 수동으로 확인 후 제거 ===")
+    print("")
+    for code, count in duplicates:
+        print(f"-- {code} 중복 제거")
+        print(f"SELECT * FROM goods WHERE CODE = '{code}';")
+        print(f"-- 위 결과를 보고 남길 레코드를 결정한 후:")
+        print(f"-- (예시) 두 번째 레코드를 삭제하려면:")
+        print(f"DELETE FROM goods WHERE CODE = '{code}' AND NAME = '...(삭제할 레코드의 NAME)';")
+        print("")
 
-            with connection.cursor() as cursor:
-                placeholders = ','.join(['%s'] * len(delete_ids))
-                cursor.execute(f"""
-                    DELETE FROM goods
-                    WHERE id IN ({placeholders})
-                """, delete_ids)
-                deleted = cursor.rowcount
-                removed_count += deleted
-
-            print(f"  ✓ {code}: {deleted}개 제거 (ID {keep_id} 유지)")
+    removed_count = 0  # 자동 삭제는 하지 않음
 
     print(f"\n완료! 총 {removed_count}개의 중복 레코드를 제거했습니다.")
 
