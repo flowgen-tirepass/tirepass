@@ -316,6 +316,9 @@ class YearAllocation(models.Model):
 
     def save(self, *args, **kwargs):
         """저장 시 Goods.jaego를 YearAllocation의 total_allocated와 동기화"""
+        import logging
+        logger = logging.getLogger(__name__)
+
         # 기존 데이터가 있으면 이전 total_allocated 계산
         old_total = 0
         if self.pk:
@@ -338,12 +341,16 @@ class YearAllocation(models.Model):
         if change != 0:
             try:
                 goods = Goods.objects.get(code=self.goods_code)
+                old_jaego = goods.jaego
                 goods.jaego = max(0, int(goods.jaego) + change)
                 goods.save(update_fields=['jaego'])
+                logger.info(f"✓ 재고 동기화: {self.goods_code} | YearAllocation: {old_total}→{new_total} (변경: {change:+d}) | Goods.jaego: {old_jaego}→{goods.jaego}")
             except Goods.DoesNotExist:
-                pass
-            except (ValueError, TypeError):
-                pass
+                logger.warning(f"⚠️ Goods 테이블에 {self.goods_code} 없음 - YearAllocation만 업데이트됨")
+            except (ValueError, TypeError) as e:
+                logger.error(f"✗ 재고 동기화 실패: {self.goods_code} - {str(e)}")
+        else:
+            logger.debug(f"YearAllocation 저장: {self.goods_code} | total_allocated: {new_total} (변경 없음)")
 
 
 class BrandGroup(models.Model):

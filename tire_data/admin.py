@@ -1227,6 +1227,21 @@ class YearAllocationAdmin(admin.ModelAdmin):
             messages.error(request, str(e))
             raise
 
+    def save_formset(self, request, form, formset, change):
+        """일괄 저장 시 각 인스턴스의 save() 메서드가 호출되도록 보장"""
+        instances = formset.save(commit=False)
+
+        # 각 인스턴스를 개별적으로 저장 (모델의 save() 메서드 호출)
+        for instance in instances:
+            instance.save()
+
+        # 삭제된 인스턴스 처리
+        for obj in formset.deleted_objects:
+            obj.delete()
+
+        # formset 자체도 저장
+        formset.save_m2m()
+
     def changelist_view(self, request, extra_context=None):
         """일괄 저장 시 음수 방지 검증"""
         from django.contrib import messages
