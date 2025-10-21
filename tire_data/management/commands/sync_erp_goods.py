@@ -8,7 +8,7 @@ Django management command: ERP 상품 데이터 동기화
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from tire_data.erp_api_client import ERPAPIClient
-from tire_data.models import Goods
+from tire_data.models import Goods, ExcludedGoods
 from datetime import datetime
 
 
@@ -29,15 +29,29 @@ class Command(BaseCommand):
             goods_list = ERPAPIClient.get_goods_list(offset=0, limit=total_count)
             self.stdout.write(self.style.SUCCESS(f"다운로드 완료: {len(goods_list):,}개\n"))
 
+            # 제외 목록 조회
+            excluded_codes = set(ExcludedGoods.objects.values_list('code', flat=True))
+            if excluded_codes:
+                self.stdout.write(f"⚠️  제외 목록: {len(excluded_codes)}개 상품은 동기화하지 않습니다.")
+                for code in excluded_codes:
+                    self.stdout.write(f"  - {code}")
+
             # MySQL DB 동기화
-            self.stdout.write("MySQL DB 동기화 중...")
+            self.stdout.write("\nMySQL DB 동기화 중...")
 
             created_count = 0
             updated_count = 0
+            skipped_count = 0
 
             with transaction.atomic():
                 for i, goods_data in enumerate(goods_list, 1):
                     code = goods_data.get('code')
+
+                    # 제외 목록에 있으면 건너뛰기
+                    if code in excluded_codes:
+                        skipped_count += 1
+                        continue
+
                     name = goods_data.get('name', '')
                     bun1 = goods_data.get('bun1', '')
                     jaego = goods_data.get('jaego', 0)
@@ -71,6 +85,8 @@ class Command(BaseCommand):
             self.stdout.write(f"소요 시간: {elapsed:.1f}초")
             self.stdout.write(f"신규 생성: {created_count:,}개")
             self.stdout.write(f"업데이트: {updated_count:,}개")
+            if skipped_count > 0:
+                self.stdout.write(f"제외됨: {skipped_count:,}개 (ERP 동기화 제외 목록)")
             self.stdout.write(f"총 처리: {created_count + updated_count:,}개")
 
         except Exception as e:

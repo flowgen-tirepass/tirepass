@@ -19,6 +19,24 @@ class GoodsDisplayName(models.Model):
     def __str__(self):
         return f"{self.goods_code} - {self.korean_name}"
 
+
+class ExcludedGoods(models.Model):
+    """ERP 동기화에서 제외할 상품 목록"""
+    code = models.CharField(max_length=20, primary_key=True, verbose_name='상품코드')
+    reason = models.CharField(max_length=200, verbose_name='제외 사유')
+    excluded_at = models.DateTimeField(auto_now_add=True, verbose_name='제외일시')
+    excluded_by = models.CharField(max_length=50, default='admin', verbose_name='제외자')
+
+    class Meta:
+        db_table = 'excluded_goods'
+        managed = True
+        verbose_name = '제외 상품'
+        verbose_name_plural = 'C. ⚙️ 설정 | 05. ERP 동기화 제외 상품'
+
+    def __str__(self):
+        return f"{self.code} - {self.reason}"
+
+
 class Goods(models.Model):
     """상품(타이어) 정보 모델"""
     code = models.CharField(max_length=20, primary_key=True, verbose_name='상품코드', db_column='CODE')

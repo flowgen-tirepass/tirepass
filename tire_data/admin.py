@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils.html import format_html
 import re
 from .models import (
-    Goods, GoodsDisplayName, CustomersFull, Customers, YearAllocation, BrandGroup,
+    Goods, GoodsDisplayName, ExcludedGoods, CustomersFull, Customers, YearAllocation, BrandGroup,
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
     ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag,
@@ -2055,6 +2055,27 @@ class TirePassAdminSite(admin.AdminSite):
         app_list = [cat for cat in app_list if cat['models']]
 
         return app_list
+
+
+@admin.register(ExcludedGoods)
+class ExcludedGoodsAdmin(admin.ModelAdmin):
+    """ERP 동기화 제외 상품 관리"""
+    list_display = ['code', 'reason', 'excluded_at', 'excluded_by']
+    search_fields = ['code', 'reason']
+    readonly_fields = ['excluded_at']
+    fields = ['code', 'reason', 'excluded_by', 'excluded_at']
+
+    def has_add_permission(self, request):
+        """추가 권한"""
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        """변경 권한"""
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        """삭제 권한 (제외 목록에서 제거 = 다시 동기화 허용)"""
+        return True
 
 
 # 커스텀 Admin Site 인스턴스 생성
