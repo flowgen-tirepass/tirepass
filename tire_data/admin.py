@@ -314,7 +314,12 @@ class GoodsAdmin(admin.ModelAdmin):
                 Q(code__icontains=search_term) |  # 코드 포함
                 Q(name__icontains=search_term) |  # 상품명 포함
                 Q(bun1__icontains=search_term)  # 브랜드 포함
-            )[:per_page]
+            )
+            # 제외 목록 필터링
+            if excluded_codes:
+                db_queryset = db_queryset.exclude(code__in=excluded_codes)
+
+            db_queryset = db_queryset[:per_page]
 
             for goods in db_queryset:
                 db_goods_list.append({
