@@ -315,7 +315,14 @@ class YearAllocation(models.Model):
             })
 
     def save(self, *args, **kwargs):
-        """저장 시 Goods.jaego를 YearAllocation의 total_allocated와 동기화"""
+        """
+        YearAllocation 저장
+
+        ⚠️ 중요: Goods.jaego는 ERP 참고용이므로 절대 수정하지 않음!
+        - Goods.jaego: ERP 동기화로만 업데이트 (읽기 전용)
+        - YearAllocation: 모바일 판매 재고 (관리자가 수정 가능)
+        - 두 재고는 독립적으로 관리됨
+        """
         import logging
         logger = logging.getLogger(__name__)
 
@@ -337,22 +344,11 @@ class YearAllocation(models.Model):
         # 모델 저장
         super().save(*args, **kwargs)
 
-        # Goods.jaego 동기화 (변경량만큼 조정)
+        # 변경사항 로깅 (Goods.jaego는 수정하지 않음!)
         if change != 0:
-            try:
-                # filter().first()로 중복 레코드 문제 방지
-                goods = Goods.objects.filter(code=self.goods_code).first()
-                if goods:
-                    old_jaego = goods.jaego
-                    goods.jaego = max(0, int(goods.jaego) + change)
-                    goods.save(update_fields=['jaego'])
-                    logger.info(f"✓ 재고 동기화: {self.goods_code} | YearAllocation: {old_total}→{new_total} (변경: {change:+d}) | Goods.jaego: {old_jaego}→{goods.jaego}")
-                else:
-                    logger.warning(f"⚠️ Goods 테이블에 {self.goods_code} 없음 - YearAllocation만 업데이트됨")
-            except (ValueError, TypeError) as e:
-                logger.error(f"✗ 재고 동기화 실패: {self.goods_code} - {str(e)}")
+            logger.info(f"✓ YearAllocation 업데이트: {self.goods_code} | 모바일 판매 가능: {old_total}→{new_total} (변경: {change:+d})")
         else:
-            logger.debug(f"YearAllocation 저장: {self.goods_code} | total_allocated: {new_total} (변경 없음)")
+            logger.debug(f"YearAllocation 저장: {self.goods_code} | 모바일 판매 가능: {new_total} (변경 없음)")
 
 
 class BrandGroup(models.Model):
