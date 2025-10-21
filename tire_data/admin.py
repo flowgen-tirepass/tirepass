@@ -198,6 +198,11 @@ class GoodsAdmin(admin.ModelAdmin):
         per_page = 50
         offset = (page - 1) * per_page
 
+        # 제외 목록 조회 (ERP 동기화 제외 상품)
+        excluded_codes = set(ExcludedGoods.objects.values_list('code', flat=True))
+        if excluded_codes:
+            logger.info(f"⚠️  제외 목록: {len(excluded_codes)}개 상품 ({', '.join(list(excluded_codes)[:5])}{'...' if len(excluded_codes) > 5 else ''})")
+
         # 검색어 및 필터
         search_term = request.GET.get('q', '')
         filter_tire_only = request.GET.get('tire_only', '')
@@ -246,6 +251,13 @@ class GoodsAdmin(admin.ModelAdmin):
 
             erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=enhanced_search_term)
             logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품 (검색어: '{enhanced_search_term}')")
+
+            # 제외 목록 필터링
+            if excluded_codes:
+                before_count = len(erp_goods_list)
+                erp_goods_list = [g for g in erp_goods_list if g.get('code') not in excluded_codes]
+                if before_count != len(erp_goods_list):
+                    logger.info(f"제외 목록 필터링: {before_count}개 → {len(erp_goods_list)}개 ({before_count - len(erp_goods_list)}개 제외)")
 
             # ERP 응답 샘플 로그 (처음 3개)
             if len(erp_goods_list) > 0:
@@ -319,6 +331,13 @@ class GoodsAdmin(admin.ModelAdmin):
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page, search=enhanced_search_term)
             logger.info(f"ERP 검색 결과: {len(erp_goods_list)}개 상품")
 
+            # 제외 목록 필터링
+            if excluded_codes:
+                before_count = len(erp_goods_list)
+                erp_goods_list = [g for g in erp_goods_list if g.get('code') not in excluded_codes]
+                if before_count != len(erp_goods_list):
+                    logger.info(f"제외 목록 필터링: {before_count}개 → {len(erp_goods_list)}개 ({before_count - len(erp_goods_list)}개 제외)")
+
             # 3. 두 결과 합치기 (DB 우선, 중복 제거)
             seen_codes = set()
             combined_list = []
@@ -351,6 +370,13 @@ class GoodsAdmin(admin.ModelAdmin):
             erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=per_page)
             erp_goods_count = ERPAPIClient.get_goods_count()
             logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품, 전체: {erp_goods_count}")
+
+            # 제외 목록 필터링
+            if excluded_codes:
+                before_count = len(erp_goods_list)
+                erp_goods_list = [g for g in erp_goods_list if g.get('code') not in excluded_codes]
+                if before_count != len(erp_goods_list):
+                    logger.info(f"제외 목록 필터링: {before_count}개 → {len(erp_goods_list)}개 ({before_count - len(erp_goods_list)}개 제외)")
 
         # 필터 적용 전 원본 개수
         original_count = len(erp_goods_list)
