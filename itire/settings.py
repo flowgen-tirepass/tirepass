@@ -285,3 +285,21 @@ LOGIN_REDIRECT_URL = '/mobile/home/'
 # admin 로그아웃 → admin 로그인 페이지
 # mobile 로그아웃 → mobile 인트로 페이지 (뷰에서 명시적으로 처리)
 LOGOUT_REDIRECT_URL = '/admin/login/'
+
+
+# ============================================
+# 토스페이먼츠 설정
+# ============================================
+
+import os
+
+# 테스트 키 (개발 환경)
+TOSS_CLIENT_KEY = os.getenv('TOSS_CLIENT_KEY', 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq')
+TOSS_SECRET_KEY = os.getenv('TOSS_SECRET_KEY', 'test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R')
+
+# 실제 운영 키는 환경변수로 설정
+# export TOSS_CLIENT_KEY='live_ck_...'
+# export TOSS_SECRET_KEY='live_sk_...'
+
+# 토스 API URL
+TOSS_API_URL = 'https://api.tosspayments.com/v1/payments'
