@@ -1109,17 +1109,17 @@ class BrandGroupPatternAdmin(admin.ModelAdmin):
 
 @admin.register(CustomerDiscount)
 class CustomerDiscountAdmin(admin.ModelAdmin):
-    list_display = ['customer_code', 'get_customer_name', 'brand', 'get_group_name', 'discount_rate', 'priority', 'date_range', 'is_active', 'is_valid_status']
+    list_display = ['get_customer_name', 'customer_code', 'brand', 'get_group_name', 'discount_rate', 'priority', 'date_range', 'is_active', 'is_valid_status']
     list_filter = ['is_active', 'brand', 'group__brand', 'group__group_name']
     list_editable = ['discount_rate', 'priority', 'is_active']
-    search_fields = ['=customer_code', 'customer_code', 'brand', 'group__group_name', 'memo']
-    ordering = ['customer_code', 'brand', '-priority']
+    search_fields = ['customer__name', 'customer__code', '=customer_code', 'customer_code', 'brand', 'group__group_name', 'memo']
+    ordering = ['customer__name', 'brand', '-priority']
     list_per_page = 50
-    autocomplete_fields = ['group']
+    autocomplete_fields = ['group', 'customer']
 
     fieldsets = (
         ('고객 및 브랜드', {
-            'fields': ('customer_code', 'brand', 'group')
+            'fields': ('customer', 'customer_code', 'brand', 'group')
         }),
         ('할인 설정', {
             'fields': ('discount_rate', 'priority', 'start_date', 'end_date')
@@ -1135,12 +1135,12 @@ class CustomerDiscountAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at']
 
     def get_customer_name(self, obj):
-        try:
-            # customer_code는 실제로 사업자번호(enno)를 저장
-            customer = Customers.objects.get(enno=obj.customer_code)
-            return customer.name
-        except Customers.DoesNotExist:
-            return '-'
+        # customer ForeignKey 사용, 없으면 customer_code로 조회 (하위 호환성)
+        if obj.customer:
+            return obj.customer.name
+        # 기존 customer_code는 사업자번호(enno)를 저장
+        customer = Customers.objects.filter(enno=obj.customer_code).first()
+        return customer.name if customer else f'⚠️ {obj.customer_code}'
     get_customer_name.short_description = '고객명'
 
     def get_group_name(self, obj):

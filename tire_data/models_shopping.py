@@ -42,12 +42,9 @@ class ShoppingCart(models.Model):
     def customer_name(self):
         """고객명 조회"""
         from .models import Customers
-        try:
-            # customer_code는 실제로 사업자번호(enno)를 저장
-            customer = Customers.objects.get(enno=self.customer_code)
-            return customer.name
-        except Customers.DoesNotExist:
-            return '-'
+        # customer_code는 실제로 사업자번호(enno)를 저장
+        customer = Customers.objects.filter(enno=self.customer_code).first()
+        return customer.name if customer else '-'
 
 
 class Order(models.Model):
@@ -220,12 +217,9 @@ class ShippingAddress(models.Model):
     def customer_name(self):
         """고객명 조회"""
         from .models import Customers
-        try:
-            # customer_code는 실제로 사업자번호(enno)를 저장
-            customer = Customers.objects.get(enno=self.customer_code)
-            return customer.name
-        except Customers.DoesNotExist:
-            return '-'
+        # customer_code는 실제로 사업자번호(enno)를 저장
+        customer = Customers.objects.filter(enno=self.customer_code).first()
+        return customer.name if customer else '-'
 
     @property
     def full_address(self):
