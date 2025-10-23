@@ -1,0 +1,371 @@
+{% extends 'mobile/base.html' %}
+{% load humanize %}
+
+{% block title %}주문 상세 - TirePASS{% endblock %}
+{% block header_title %}주문 상세{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .detail-container {
+        padding: 4vw;
+        padding-bottom: 100px;
+    }
+
+    .status-card {
+        background: white;
+        padding: 5vw;
+        border-radius: 3vw;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 4vw;
+        text-align: center;
+    }
+
+    .status-icon {
+        font-size: 15vw;
+        margin-bottom: 3vw;
+    }
+
+    .status-text {
+        font-size: 5vw;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 2vw;
+    }
+
+    .status-description {
+        font-size: 3.5vw;
+        color: #666;
+    }
+
+    .info-card {
+        background: white;
+        padding: 5vw;
+        border-radius: 3vw;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 4vw;
+    }
+
+    .card-title {
+        font-size: 4.5vw;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 4vw;
+        display: flex;
+        align-items: center;
+        gap: 2vw;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 3vw 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-size: 3.8vw;
+        color: #666;
+        flex-shrink: 0;
+        width: 30%;
+    }
+
+    .info-value {
+        font-size: 3.8vw;
+        font-weight: 600;
+        color: #333;
+        text-align: right;
+        flex: 1;
+    }
+
+    .order-number-highlight {
+        font-family: 'Courier New', monospace;
+        color: #667eea;
+        font-weight: bold;
+    }
+
+    .item-list {
+        background: #f8f9fa;
+        padding: 3.5vw;
+        border-radius: 2vw;
+        margin-bottom: 2.5vw;
+    }
+
+    .item-list:last-child {
+        margin-bottom: 0;
+    }
+
+    .item-name-bold {
+        font-size: 3.8vw;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1.5vw;
+    }
+
+    .item-info-text {
+        font-size: 3.2vw;
+        color: #666;
+        margin-bottom: 0.8vw;
+    }
+
+    .item-price-bold {
+        font-size: 4.2vw;
+        font-weight: bold;
+        color: #e74c3c;
+        margin-top: 2vw;
+    }
+
+    .action-btns {
+        display: flex;
+        gap: 3vw;
+        margin-top: 5vw;
+    }
+
+    .btn-full {
+        flex: 1;
+        padding: 4vw;
+        border-radius: 2.5vw;
+        font-size: 4.5vw;
+        font-weight: bold;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+    }
+
+    .btn-outline {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+    }
+
+    .btn-solid {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-full:active {
+        transform: scale(0.98);
+    }
+
+    /* 태블릿 이상 */
+    @media (min-width: 768px) {
+        .detail-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .status-card, .info-card {
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .status-icon {
+            font-size: 60px;
+        }
+
+        .status-text {
+            font-size: 20px;
+        }
+
+        .status-description {
+            font-size: 14px;
+        }
+
+        .card-title {
+            font-size: 18px;
+        }
+
+        .info-label, .info-value {
+            font-size: 15px;
+        }
+
+        .item-list {
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .item-name-bold {
+            font-size: 15px;
+        }
+
+        .item-price-bold {
+            font-size: 17px;
+        }
+
+        .btn-full {
+            padding: 16px;
+            font-size: 18px;
+            border-radius: 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <!-- 주문 상태 카드 -->
+    <div class="status-card">
+        {% if order.order_status == 'pending' %}
+        <div class="status-icon">⏳</div>
+        <div class="status-text">결제 대기 중</div>
+        <div class="status-description">결제를 완료해 주세요</div>
+        {% elif order.order_status == 'confirmed' %}
+        <div class="status-icon">✅</div>
+        <div class="status-text">주문 확인 완료</div>
+        <div class="status-description">상품을 준비하고 있습니다</div>
+        {% elif order.order_status == 'shipping' %}
+        <div class="status-icon">🚚</div>
+        <div class="status-text">배송 중</div>
+        <div class="status-description">곧 도착 예정입니다</div>
+        {% elif order.order_status == 'delivered' %}
+        <div class="status-icon">📦</div>
+        <div class="status-text">배송 완료</div>
+        <div class="status-description">상품을 수령하셨나요?</div>
+        {% elif order.order_status == 'cancelled' %}
+        <div class="status-icon">❌</div>
+        <div class="status-text">주문 취소</div>
+        <div class="status-description">주문이 취소되었습니다</div>
+        {% else %}
+        <div class="status-icon">📋</div>
+        <div class="status-text">주문 접수</div>
+        <div class="status-description">주문이 접수되었습니다</div>
+        {% endif %}
+    </div>
+
+    <!-- 주문 정보 -->
+    <div class="info-card">
+        <div class="card-title">
+            <span>📋</span>
+            <span>주문 정보</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">주문번호</span>
+            <span class="info-value order-number-highlight">{{ order.order_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">주문일시</span>
+            <span class="info-value">{{ order.created_at|date:"Y.m.d H:i" }}</span>
+        </div>
+        {% if order.confirmed_date %}
+        <div class="info-row">
+            <span class="info-label">확인일시</span>
+            <span class="info-value">{{ order.confirmed_date|date:"Y.m.d H:i" }}</span>
+        </div>
+        {% endif %}
+        <div class="info-row">
+            <span class="info-label">결제금액</span>
+            <span class="info-value">₩{{ order.final_amount|intcomma }}</span>
+        </div>
+        {% if payment %}
+        <div class="info-row">
+            <span class="info-label">결제수단</span>
+            <span class="info-value">{{ payment.payment_method|default:"카드결제" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">결제상태</span>
+            <span class="info-value">
+                {% if order.payment_status == 'paid' %}결제완료
+                {% elif order.payment_status == 'unpaid' %}미결제
+                {% elif order.payment_status == 'refunded' %}환불완료
+                {% else %}{{ order.payment_status }}
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 배송 정보 -->
+    {% if shipping %}
+    <div class="info-card">
+        <div class="card-title">
+            <span>🚚</span>
+            <span>배송 정보</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">받는 분</span>
+            <span class="info-value">{{ shipping.recipient_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">연락처</span>
+            <span class="info-value">{{ shipping.recipient_phone }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">배송지</span>
+            <span class="info-value">{{ shipping.address }}</span>
+        </div>
+        {% if shipping.delivery_note %}
+        <div class="info-row">
+            <span class="info-label">요청사항</span>
+            <span class="info-value">{{ shipping.delivery_note }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 주문 상품 -->
+    <div class="info-card">
+        <div class="card-title">
+            <span>📦</span>
+            <span>주문 상품 ({{ order.items.count }}건)</span>
+        </div>
+        {% for item in order.items.all %}
+        <div class="item-list">
+            <div class="item-name-bold">{{ item.product_name }}</div>
+            <div class="item-info-text">상품코드: {{ item.product_code }}</div>
+            {% if item.selected_year %}
+            <div class="item-info-text">📅 DOT {{ item.selected_year }}년</div>
+            {% endif %}
+            <div class="item-info-text">수량: {{ item.quantity }}개</div>
+            {% if item.discount_rate > 0 %}
+            <div class="item-info-text">할인율: {{ item.discount_rate }}%</div>
+            {% endif %}
+            <div class="item-price-bold">
+                ₩{{ item.final_price|intcomma }} × {{ item.quantity }} = ₩{{ item.total_price|intcomma }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="action-btns">
+        <a href="{% url 'mobile_orders' %}" class="btn-full btn-outline">
+            목록으로
+        </a>
+        <button class="btn-full btn-solid" onclick="reorderThis()">
+            재주문
+        </button>
+    </div>
+</div>
+
+<script>
+async function reorderThis() {
+    if (!confirm('이 주문의 상품을 장바구니에 담으시겠습니까?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/mobile/api/orders/{{ order.id }}/reorder', {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('✅ 장바구니에 담았습니다');
+            window.location.href = '/mobile/cart/';
+        } else {
+            alert('❌ ' + (data.error || '재주문 실패'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('네트워크 오류가 발생했습니다');
+    }
+}
+</script>
+{% endblock %}

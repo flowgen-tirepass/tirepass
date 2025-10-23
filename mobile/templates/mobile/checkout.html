@@ -1,0 +1,533 @@
+{% extends 'mobile/base.html' %}
+{% load humanize %}
+
+{% block title %}주문/결제 - TirePASS{% endblock %}
+{% block header_title %}주문/결제{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .checkout-container {
+        padding-bottom: 100px;
+    }
+
+    .section-card {
+        background: white;
+        margin: 3vw;
+        padding: 5vw;
+        border-radius: 3vw;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+        font-size: 4.5vw;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 4vw;
+        display: flex;
+        align-items: center;
+        gap: 2vw;
+    }
+
+    .order-item {
+        padding: 3vw 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .order-item:last-child {
+        border-bottom: none;
+    }
+
+    .order-item-name {
+        font-size: 3.8vw;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1.5vw;
+    }
+
+    .order-item-info {
+        font-size: 3.2vw;
+        color: #666;
+        margin-bottom: 1vw;
+    }
+
+    .order-item-price {
+        font-size: 4.5vw;
+        font-weight: bold;
+        color: #e74c3c;
+        margin-top: 2vw;
+    }
+
+    .form-group {
+        margin-bottom: 4vw;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 3.8vw;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 2vw;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 3.5vw;
+        font-size: 4vw;
+        border: 2px solid #e0e0e0;
+        border-radius: 2vw;
+        background: white;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .price-summary {
+        margin-top: 4vw;
+    }
+
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 2.5vw 0;
+        font-size: 3.8vw;
+    }
+
+    .price-label {
+        color: #666;
+    }
+
+    .price-value {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .price-total {
+        border-top: 2px solid #e0e0e0;
+        padding-top: 3vw;
+        margin-top: 2vw;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .price-total-label {
+        font-size: 4.8vw;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .price-total-value {
+        font-size: 6.5vw;
+        font-weight: bold;
+        color: #e74c3c;
+    }
+
+    /* 토스 결제 위젯 영역 */
+    #payment-widget {
+        margin: 3vw;
+    }
+
+    .payment-button-wrapper {
+        position: fixed;
+        bottom: 60px;
+        left: 0;
+        right: 0;
+        padding: 4vw;
+        background: white;
+        border-top: 2px solid #e0e0e0;
+        z-index: 999;
+    }
+
+    .btn-payment {
+        width: 100%;
+        padding: 4.5vw;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 2.5vw;
+        font-size: 5vw;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .btn-payment:active {
+        transform: scale(0.98);
+    }
+
+    .btn-payment:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .loading-overlay.show {
+        display: flex;
+    }
+
+    .loading-content {
+        background: white;
+        padding: 8vw;
+        border-radius: 3vw;
+        text-align: center;
+    }
+
+    .loading-spinner {
+        font-size: 12vw;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+        margin-top: 4vw;
+        font-size: 4vw;
+        color: #333;
+    }
+
+    /* 태블릿 이상 */
+    @media (min-width: 768px) {
+        .section-card {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .section-title {
+            font-size: 18px;
+        }
+
+        .order-item-name {
+            font-size: 15px;
+        }
+
+        .order-item-price {
+            font-size: 18px;
+        }
+
+        .form-input {
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+        }
+
+        .price-total-label {
+            font-size: 18px;
+        }
+
+        .price-total-value {
+            font-size: 26px;
+        }
+
+        .payment-button-wrapper {
+            max-width: 600px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .btn-payment {
+            padding: 18px;
+            font-size: 18px;
+            border-radius: 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkout-container" id="checkoutContainer">
+    <!-- 주문 상품 -->
+    <div class="section-card">
+        <div class="section-title">
+            <span>📦</span>
+            <span>주문 상품</span>
+        </div>
+        <div id="orderItems">
+            <div class="loading">주문 정보를 불러오는 중...</div>
+        </div>
+    </div>
+
+    <!-- 배송지 정보 -->
+    <div class="section-card">
+        <div class="section-title">
+            <span>🚚</span>
+            <span>배송지 정보</span>
+        </div>
+        <div class="form-group">
+            <label class="form-label">받는 분</label>
+            <input type="text" id="recipientName" class="form-input"
+                   placeholder="이름을 입력하세요" value="{{ customer.name }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">연락처</label>
+            <input type="tel" id="recipientPhone" class="form-input"
+                   placeholder="010-1234-5678" value="{{ customer.tel1 }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">배송 주소</label>
+            <input type="text" id="shippingAddress" class="form-input"
+                   placeholder="주소를 입력하세요" value="{{ customer.juso1 }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">요청사항 (선택)</label>
+            <input type="text" id="deliveryNote" class="form-input"
+                   placeholder="배송 시 요청사항을 입력하세요">
+        </div>
+    </div>
+
+    <!-- 결제 금액 -->
+    <div class="section-card">
+        <div class="section-title">
+            <span>💰</span>
+            <span>결제 금액</span>
+        </div>
+        <div class="price-summary" id="priceSummary">
+            <div class="price-row">
+                <span class="price-label">상품 금액</span>
+                <span class="price-value" id="subtotal">₩0</span>
+            </div>
+            <div class="price-row">
+                <span class="price-label">할인 금액</span>
+                <span class="price-value" id="discount">-₩0</span>
+            </div>
+            <div class="price-row">
+                <span class="price-label">배송비</span>
+                <span class="price-value">무료</span>
+            </div>
+            <div class="price-total">
+                <span class="price-total-label">최종 결제 금액</span>
+                <span class="price-total-value" id="totalAmount">₩0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스 결제 위젯 -->
+    <div class="section-card">
+        <div class="section-title">
+            <span>💳</span>
+            <span>결제 수단</span>
+        </div>
+        <div id="payment-widget"></div>
+        <div id="agreement"></div>
+    </div>
+</div>
+
+<!-- 결제 버튼 -->
+<div class="payment-button-wrapper">
+    <button class="btn-payment" id="btnPayment" onclick="requestPayment()">
+        결제하기
+    </button>
+</div>
+
+<!-- 로딩 오버레이 -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="loading-spinner">⏳</div>
+        <div class="loading-text">주문 생성 중...</div>
+    </div>
+</div>
+
+<!-- 토스페이먼츠 SDK -->
+<script src="https://js.tosspayments.com/v1/payment-widget"></script>
+
+<script>
+let cartItems = [];
+let orderData = null;
+let paymentWidget = null;
+
+// 페이지 로드 시
+window.addEventListener('DOMContentLoaded', async () => {
+    await loadCartItems();
+    await createOrder();
+    initPaymentWidget();
+});
+
+// 장바구니 조회
+async function loadCartItems() {
+    try {
+        const response = await fetch('/mobile/api/cart');
+        const data = await response.json();
+
+        if (response.ok) {
+            cartItems = data.cart_items;
+            renderOrderItems();
+            updatePriceSummary();
+        } else {
+            alert('장바구니를 불러올 수 없습니다');
+            window.location.href = '/mobile/cart/';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('네트워크 오류가 발생했습니다');
+    }
+}
+
+// 주문 항목 렌더링
+function renderOrderItems() {
+    const container = document.getElementById('orderItems');
+
+    if (cartItems.length === 0) {
+        container.innerHTML = '<div class="loading">장바구니가 비어있습니다</div>';
+        return;
+    }
+
+    let html = '';
+    cartItems.forEach(item => {
+        html += `
+            <div class="order-item">
+                <div class="order-item-name">${item.product_name}</div>
+                <div class="order-item-info">상품코드: ${item.product_code}</div>
+                ${item.selected_year ? `<div class="order-item-info">📅 DOT ${item.selected_year}년</div>` : ''}
+                <div class="order-item-info">수량: ${item.quantity}개</div>
+                <div class="order-item-price">₩${formatNumber(item.final_price * item.quantity)}</div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+// 가격 요약 업데이트
+function updatePriceSummary() {
+    let subtotal = 0;
+    let totalDiscount = 0;
+    let finalTotal = 0;
+
+    cartItems.forEach(item => {
+        const itemOriginalPrice = item.final_price / (1 - item.discount_rate / 100);
+        const itemDiscount = itemOriginalPrice - item.final_price;
+
+        subtotal += itemOriginalPrice * item.quantity;
+        totalDiscount += itemDiscount * item.quantity;
+        finalTotal += item.final_price * item.quantity;
+    });
+
+    document.getElementById('subtotal').textContent = `₩${formatNumber(Math.round(subtotal))}`;
+    document.getElementById('discount').textContent = `-₩${formatNumber(Math.round(totalDiscount))}`;
+    document.getElementById('totalAmount').textContent = `₩${formatNumber(Math.round(finalTotal))}`;
+}
+
+// 주문 생성
+async function createOrder() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('show');
+
+    try {
+        const response = await fetch('/mobile/api/order/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                recipient_name: document.getElementById('recipientName').value,
+                recipient_phone: document.getElementById('recipientPhone').value,
+                shipping_address: document.getElementById('shippingAddress').value,
+                delivery_note: document.getElementById('deliveryNote').value
+            })
+        });
+
+        const data = await response.json();
+        overlay.classList.remove('show');
+
+        if (response.ok) {
+            orderData = data;
+            console.log('주문 생성 완료:', orderData);
+        } else {
+            alert('❌ ' + (data.error || '주문 생성 실패'));
+            window.location.href = '/mobile/cart/';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        overlay.classList.remove('show');
+        alert('네트워크 오류가 발생했습니다');
+    }
+}
+
+// 토스 결제 위젯 초기화
+async function initPaymentWidget() {
+    if (!orderData) {
+        console.error('주문 정보가 없습니다');
+        return;
+    }
+
+    const clientKey = '{{ toss_client_key }}';
+    const customerKey = '{{ customer.code }}';  // 고객 코드를 customerKey로 사용
+
+    try {
+        paymentWidget = await loadTossPayments(clientKey);
+
+        // 결제 위젯 렌더링
+        await paymentWidget.renderPaymentMethods(
+            '#payment-widget',
+            { value: orderData.order.final_amount },
+            { variantKey: 'DEFAULT' }
+        );
+
+        // 이용약관 렌더링
+        await paymentWidget.renderAgreement('#agreement', {
+            variantKey: 'AGREEMENT'
+        });
+
+    } catch (error) {
+        console.error('결제 위젯 초기화 실패:', error);
+        alert('결제 시스템을 불러올 수 없습니다');
+    }
+}
+
+// 결제 요청
+async function requestPayment() {
+    if (!orderData) {
+        alert('주문 정보가 없습니다');
+        return;
+    }
+
+    // 배송지 정보 검증
+    const recipientName = document.getElementById('recipientName').value.trim();
+    const recipientPhone = document.getElementById('recipientPhone').value.trim();
+    const shippingAddress = document.getElementById('shippingAddress').value.trim();
+
+    if (!recipientName || !recipientPhone || !shippingAddress) {
+        alert('배송지 정보를 모두 입력해주세요');
+        return;
+    }
+
+    try {
+        await paymentWidget.requestPayment({
+            orderId: orderData.order.order_number,
+            orderName: `타이어 ${cartItems.length}건`,
+            successUrl: `${window.location.origin}/mobile/payment/success`,
+            failUrl: `${window.location.origin}/mobile/payment/fail`,
+            customerEmail: '{{ customer.email|default:"" }}',
+            customerName: recipientName,
+            customerMobilePhone: recipientPhone,
+        });
+    } catch (error) {
+        console.error('결제 요청 실패:', error);
+        alert('결제 요청 중 오류가 발생했습니다');
+    }
+}
+
+// 숫자 포맷팅
+function formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+</script>
+{% endblock %}

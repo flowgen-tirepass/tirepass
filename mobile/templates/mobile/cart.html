@@ -1,0 +1,529 @@
+{% extends 'mobile/base.html' %}
+{% load humanize %}
+
+{% block title %}장바구니 - TirePASS{% endblock %}
+{% block header_title %}장바구니{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .cart-container {
+        padding-bottom: 100px;
+    }
+
+    .cart-empty {
+        text-align: center;
+        padding: 20vw 5vw;
+    }
+
+    .empty-icon {
+        font-size: 25vw;
+        opacity: 0.3;
+        margin-bottom: 4vw;
+    }
+
+    .empty-text {
+        font-size: 4.5vw;
+        color: #999;
+        margin-bottom: 6vw;
+    }
+
+    .btn-go-shopping {
+        display: inline-block;
+        padding: 3.5vw 8vw;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 2.5vw;
+        font-size: 4vw;
+        font-weight: bold;
+    }
+
+    .cart-item {
+        background: white;
+        margin: 3vw;
+        border-radius: 3vw;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .cart-item-content {
+        display: flex;
+        padding: 4vw;
+        gap: 4vw;
+    }
+
+    .cart-item-image {
+        width: 25vw;
+        height: 25vw;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 2vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .cart-item-image span {
+        font-size: 12vw;
+        opacity: 0.5;
+    }
+
+    .cart-item-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2vw;
+    }
+
+    .cart-item-name {
+        font-size: 3.8vw;
+        font-weight: bold;
+        color: #333;
+        line-height: 1.3;
+    }
+
+    .cart-item-code {
+        font-size: 3vw;
+        color: #999;
+        font-family: 'Courier New', monospace;
+    }
+
+    .cart-item-dot {
+        display: inline-block;
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 1vw 2.5vw;
+        border-radius: 1.5vw;
+        font-size: 3vw;
+        font-weight: 600;
+    }
+
+    .cart-item-price {
+        font-size: 5vw;
+        font-weight: bold;
+        color: #e74c3c;
+    }
+
+    .cart-item-discount {
+        display: inline-block;
+        background: #ff6b6b;
+        color: white;
+        padding: 1vw 2vw;
+        border-radius: 1vw;
+        font-size: 2.8vw;
+        font-weight: bold;
+        margin-left: 2vw;
+    }
+
+    .cart-item-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 3vw 4vw;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .quantity-control-cart {
+        display: flex;
+        align-items: center;
+        gap: 2.5vw;
+    }
+
+    .qty-btn {
+        width: 8vw;
+        height: 8vw;
+        border: 1.5px solid #667eea;
+        background: white;
+        border-radius: 1.5vw;
+        font-size: 4.5vw;
+        color: #667eea;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+    }
+
+    .qty-btn:active {
+        background: #667eea;
+        color: white;
+    }
+
+    .qty-display {
+        font-size: 4vw;
+        font-weight: bold;
+        min-width: 10vw;
+        text-align: center;
+    }
+
+    .btn-delete {
+        padding: 2vw 4vw;
+        background: #fff;
+        border: 1.5px solid #e74c3c;
+        color: #e74c3c;
+        border-radius: 1.5vw;
+        font-size: 3.5vw;
+        cursor: pointer;
+    }
+
+    .btn-delete:active {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .cart-summary {
+        position: fixed;
+        bottom: 60px;
+        left: 0;
+        right: 0;
+        background: white;
+        border-top: 2px solid #e0e0e0;
+        padding: 4vw;
+        z-index: 999;
+    }
+
+    .summary-rows {
+        margin-bottom: 3vw;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2vw;
+        font-size: 3.8vw;
+    }
+
+    .summary-label {
+        color: #666;
+    }
+
+    .summary-value {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .summary-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 3vw 0;
+        border-top: 2px solid #e0e0e0;
+        margin-bottom: 3vw;
+    }
+
+    .summary-total-label {
+        font-size: 4.5vw;
+        font-weight: bold;
+    }
+
+    .summary-total-value {
+        font-size: 6vw;
+        font-weight: bold;
+        color: #e74c3c;
+    }
+
+    .btn-checkout {
+        width: 100%;
+        padding: 4vw;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 2.5vw;
+        font-size: 5vw;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .btn-checkout:active {
+        transform: scale(0.98);
+    }
+
+    .btn-checkout:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 10vw;
+        font-size: 4vw;
+        color: #999;
+    }
+
+    /* 태블릿 이상 */
+    @media (min-width: 768px) {
+        .cart-item {
+            max-width: 600px;
+            margin: 15px auto;
+            border-radius: 15px;
+        }
+
+        .cart-item-image {
+            width: 100px;
+            height: 100px;
+        }
+
+        .cart-item-image span {
+            font-size: 48px;
+        }
+
+        .cart-item-name {
+            font-size: 15px;
+        }
+
+        .cart-item-price {
+            font-size: 20px;
+        }
+
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+        }
+
+        .qty-display {
+            font-size: 16px;
+        }
+
+        .cart-summary {
+            max-width: 600px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 20px;
+        }
+
+        .summary-row {
+            font-size: 15px;
+        }
+
+        .summary-total-label {
+            font-size: 18px;
+        }
+
+        .summary-total-value {
+            font-size: 24px;
+        }
+
+        .btn-checkout {
+            padding: 16px;
+            font-size: 18px;
+            border-radius: 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cart-container" id="cartContainer">
+    <div class="loading" id="loadingIndicator">장바구니 불러오는 중...</div>
+</div>
+
+<!-- 장바구니 요약 (처음엔 숨김) -->
+<div class="cart-summary" id="cartSummary" style="display: none;">
+    <div class="summary-rows">
+        <div class="summary-row">
+            <span class="summary-label">상품 개수</span>
+            <span class="summary-value" id="totalItems">0개</span>
+        </div>
+        <div class="summary-row">
+            <span class="summary-label">상품 금액</span>
+            <span class="summary-value" id="subtotalAmount">₩0</span>
+        </div>
+        <div class="summary-row">
+            <span class="summary-label">할인 금액</span>
+            <span class="summary-value" id="discountAmount">-₩0</span>
+        </div>
+    </div>
+    <div class="summary-total">
+        <span class="summary-total-label">최종 결제 금액</span>
+        <span class="summary-total-value" id="totalAmount">₩0</span>
+    </div>
+    <button class="btn-checkout" onclick="proceedToCheckout()" id="btnCheckout">
+        주문하기
+    </button>
+</div>
+
+<script>
+let cartItems = [];
+
+// 페이지 로드 시 장바구니 조회
+window.addEventListener('DOMContentLoaded', loadCart);
+
+// 장바구니 불러오기
+async function loadCart() {
+    try {
+        const response = await fetch('/mobile/api/cart');
+        const data = await response.json();
+
+        document.getElementById('loadingIndicator').style.display = 'none';
+
+        if (response.ok) {
+            cartItems = data.cart_items;
+            renderCart();
+        } else {
+            showError(data.error || '장바구니를 불러올 수 없습니다');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('loadingIndicator').style.display = 'none';
+        showError('네트워크 오류가 발생했습니다');
+    }
+}
+
+// 장바구니 렌더링
+function renderCart() {
+    const container = document.getElementById('cartContainer');
+
+    if (cartItems.length === 0) {
+        container.innerHTML = `
+            <div class="cart-empty">
+                <div class="empty-icon">🛒</div>
+                <div class="empty-text">장바구니가 비어있습니다</div>
+                <a href="/mobile/search/" class="btn-go-shopping">쇼핑 시작하기</a>
+            </div>
+        `;
+        document.getElementById('cartSummary').style.display = 'none';
+        return;
+    }
+
+    let html = '';
+    cartItems.forEach(item => {
+        html += `
+            <div class="cart-item" data-cart-id="${item.id}">
+                <div class="cart-item-content">
+                    <div class="cart-item-image">
+                        <span>🛞</span>
+                    </div>
+                    <div class="cart-item-details">
+                        <div class="cart-item-name">${item.product_name}</div>
+                        <div class="cart-item-code">${item.product_code}</div>
+                        ${item.selected_year ? `<span class="cart-item-dot">📅 DOT ${item.selected_year}년</span>` : ''}
+                        <div>
+                            <span class="cart-item-price">₩${formatNumber(item.final_price)}</span>
+                            ${item.discount_rate > 0 ? `<span class="cart-item-discount">${item.discount_rate}% 할인</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="cart-item-controls">
+                    <div class="quantity-control-cart">
+                        <button class="qty-btn" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">-</button>
+                        <span class="qty-display">${item.quantity}개</span>
+                        <button class="qty-btn" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">+</button>
+                    </div>
+                    <button class="btn-delete" onclick="deleteCartItem(${item.id})">🗑️ 삭제</button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    updateSummary();
+    document.getElementById('cartSummary').style.display = 'block';
+}
+
+// 수량 변경
+async function updateQuantity(cartId, newQuantity) {
+    if (newQuantity < 1) {
+        if (confirm('상품을 장바구니에서 삭제하시겠습니까?')) {
+            deleteCartItem(cartId);
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch(`/mobile/api/cart/${cartId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ quantity: newQuantity })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // 장바구니 새로고침
+            await loadCart();
+        } else {
+            alert('❌ ' + (data.error || '수량 변경 실패'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('네트워크 오류가 발생했습니다');
+    }
+}
+
+// 장바구니 항목 삭제
+async function deleteCartItem(cartId) {
+    try {
+        const response = await fetch(`/mobile/api/cart/${cartId}/delete`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // 장바구니 새로고침
+            await loadCart();
+        } else {
+            alert('❌ ' + (data.error || '삭제 실패'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('네트워크 오류가 발생했습니다');
+    }
+}
+
+// 요약 정보 업데이트
+function updateSummary() {
+    let totalItems = 0;
+    let subtotal = 0;
+    let totalDiscount = 0;
+    let finalTotal = 0;
+
+    cartItems.forEach(item => {
+        totalItems += item.quantity;
+        const itemOriginalPrice = item.final_price / (1 - item.discount_rate / 100);
+        const itemDiscount = itemOriginalPrice - item.final_price;
+
+        subtotal += itemOriginalPrice * item.quantity;
+        totalDiscount += itemDiscount * item.quantity;
+        finalTotal += item.final_price * item.quantity;
+    });
+
+    document.getElementById('totalItems').textContent = `${totalItems}개`;
+    document.getElementById('subtotalAmount').textContent = `₩${formatNumber(Math.round(subtotal))}`;
+    document.getElementById('discountAmount').textContent = `-₩${formatNumber(Math.round(totalDiscount))}`;
+    document.getElementById('totalAmount').textContent = `₩${formatNumber(Math.round(finalTotal))}`;
+}
+
+// 주문하기
+async function proceedToCheckout() {
+    if (cartItems.length === 0) {
+        alert('장바구니가 비어있습니다');
+        return;
+    }
+
+    // 주문 생성 페이지로 이동
+    window.location.href = '/mobile/checkout/';
+}
+
+// 에러 표시
+function showError(message) {
+    const container = document.getElementById('cartContainer');
+    container.innerHTML = `
+        <div class="cart-empty">
+            <div class="empty-icon">⚠️</div>
+            <div class="empty-text">${message}</div>
+            <a href="/mobile/search/" class="btn-go-shopping">쇼핑 시작하기</a>
+        </div>
+    `;
+}
+
+// 숫자 포맷팅
+function formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+</script>
+{% endblock %}

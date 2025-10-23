@@ -11,6 +11,20 @@ urlpatterns = [
     path('logout/', views.mobile_logout, name='mobile_logout'),
     path('change-password/', views.mobile_change_password, name='mobile_change_password'),
 
+    # 상품 상세
+    path('product/<str:product_code>/', views.product_detail, name='product_detail'),
+
+    # 장바구니 페이지
+    path('cart/', views.cart_view, name='mobile_cart'),
+
+    # 주문/결제 페이지
+    path('checkout/', views.checkout_view, name='mobile_checkout'),
+    path('order/complete/<int:order_id>/', views.order_complete_view, name='payment_complete'),
+
+    # 주문 내역
+    path('orders/', views.orders_view, name='mobile_orders'),
+    path('order/<int:order_id>/', views.order_detail_view, name='mobile_order_detail'),
+
     # 장바구니 API
     path('api/cart/add', api_views.cart_add, name='api_cart_add'),
     path('api/cart', api_views.cart_list, name='api_cart_list'),
@@ -19,6 +33,8 @@ urlpatterns = [
 
     # 주문 API
     path('api/order/create', api_views.order_create, name='api_order_create'),
+    path('api/orders', api_views.orders_list, name='api_orders_list'),
+    path('api/orders/<int:order_id>/reorder', api_views.order_reorder, name='api_order_reorder'),
 
     # 결제 API (토스페이먼츠 콜백)
     path('payment/success', api_views.payment_success, name='payment_success'),

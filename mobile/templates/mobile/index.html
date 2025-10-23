@@ -1,0 +1,521 @@
+{% extends 'mobile/base.html' %}
+{% load static %}
+
+{% block title %}TirePASS{% endblock %}
+{% block nav_home %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .search-container {
+        background: white;
+        padding: 3vw 4vw;
+        margin-bottom: 4vw;
+    }
+
+    .search-wrapper {
+        display: flex;
+        gap: 2vw;
+        align-items: center;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 3vw 4vw;
+        border: 0.3vw solid #e0e0e0;
+        border-radius: 2vw;
+        font-size: 4vw;
+        background: #f8f8f8;
+    }
+
+    .search-icon {
+        font-size: 6vw;
+        color: #666;
+        padding: 2vw;
+        cursor: pointer;
+    }
+
+    .calc-btn {
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        color: white;
+        border: none;
+        padding: 2.5vw;
+        border-radius: 2vw;
+        font-size: 5vw;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 12vw;
+        height: 11vw;
+    }
+
+    /* 태블릿 이상 */
+    @media (min-width: 768px) {
+        .search-container {
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .search-wrapper {
+            gap: 12px;
+        }
+
+        .search-input {
+            padding: 12px 16px;
+            border-width: 1px;
+            border-radius: 12px;
+            font-size: 16px;
+        }
+
+        .search-icon {
+            font-size: 24px;
+            padding: 10px;
+        }
+
+        .calc-btn {
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 20px;
+            min-width: 50px;
+            height: 44px;
+        }
+    }
+
+    /* 작은 화면 */
+    @media (max-width: 374px) {
+        .search-input {
+            font-size: 3.5vw;
+            padding: 2.5vw 3vw;
+        }
+
+        .calc-btn {
+            min-width: 11vw;
+            height: 10vw;
+            font-size: 4.5vw;
+        }
+    }
+
+    .stat-info {
+        background: #6c5ce7;
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .stat-info .icon {
+        font-size: 24px;
+    }
+
+    .stat-text {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .brand-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 1.5vw;
+        margin: 3vw;
+        width: calc(100% - 6vw);
+    }
+
+    .brand-item {
+        background: #ffffff;
+        padding: 8%;
+        text-align: center;
+        border-radius: 2vw;
+        text-decoration: none;
+        box-shadow: 0 0.5vw 1vw rgba(0,0,0,0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        border: 0.2vw solid #e8e8e8;
+        transition: all 0.2s ease;
+        aspect-ratio: 1.8/1;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .brand-item:active {
+        transform: scale(0.95);
+        box-shadow: 0 0.3vw 0.8vw rgba(0,0,0,0.15);
+    }
+
+    .brand-item img {
+        display: block;
+        max-width: 85%;
+        max-height: 85%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+    }
+
+    /* 큰 화면 (태블릿 및 데스크톱) */
+    @media (min-width: 768px) {
+        .brand-grid {
+            max-width: 600px;
+            margin: 20px auto;
+            gap: 12px;
+        }
+
+        .brand-item {
+            padding: 12px;
+            border-radius: 12px;
+            border-width: 1px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+        }
+    }
+
+    /* 중간 모바일 화면 (375px ~ 414px) */
+    @media (min-width: 375px) and (max-width: 414px) {
+        .brand-grid {
+            gap: 2vw;
+            margin: 3vw;
+        }
+
+        .brand-item {
+            padding: 10%;
+            aspect-ratio: 2/1;
+        }
+    }
+
+    /* 작은 모바일 화면 (320px ~ 374px) */
+    @media (max-width: 374px) {
+        .brand-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 1.2vw;
+            margin: 2.5vw;
+        }
+
+        .brand-item {
+            padding: 6%;
+            border-radius: 1.5vw;
+            aspect-ratio: 1.6/1;
+        }
+
+        .brand-item img {
+            max-width: 90%;
+            max-height: 90%;
+        }
+    }
+
+    /* 매우 작은 화면 (320px 이하) */
+    @media (max-width: 320px) {
+        .brand-grid {
+            gap: 1vw;
+            margin: 2vw;
+        }
+
+        .brand-item {
+            padding: 5%;
+            aspect-ratio: 1.5/1;
+        }
+    }
+
+    /* 큰 모바일/작은 태블릿 (414px ~ 768px) */
+    @media (min-width: 414px) and (max-width: 767px) {
+        .brand-grid {
+            gap: 2.5vw;
+            margin: 4vw;
+        }
+
+        .brand-item {
+            padding: 12%;
+            aspect-ratio: 2.2/1;
+            border-radius: 2.5vw;
+        }
+    }
+
+    .view-products-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4vw;
+        margin: 0 3vw 4vw;
+        border-radius: 2.5vw;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+        font-size: 4.5vw;
+        font-weight: bold;
+        box-shadow: 0 1vw 3vw rgba(102, 126, 234, 0.3);
+    }
+
+    .stats-info {
+        text-align: center;
+        color: #999;
+        font-size: 3.5vw;
+        margin-bottom: 5vw;
+        padding: 0 4vw;
+    }
+
+    .quick-menu-title {
+        font-size: 4.5vw;
+        font-weight: bold;
+        margin: 5vw 3vw 3vw;
+        color: #333;
+    }
+
+    .quick-menu {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2.5vw;
+        padding: 0 3vw;
+        margin-bottom: 6vw;
+    }
+
+    .quick-menu-item {
+        background: white;
+        padding: 5vw;
+        border-radius: 2.5vw;
+        text-align: center;
+        text-decoration: none;
+        color: #333;
+        border: 0.3vw solid #e0e0e0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2vw;
+        transition: all 0.2s ease;
+    }
+
+    .quick-menu-item:active {
+        transform: scale(0.95);
+        background: #f5f5f5;
+    }
+
+    .quick-menu-icon {
+        font-size: 7vw;
+        color: #4a90e2;
+    }
+
+    .quick-menu-text {
+        font-size: 3.5vw;
+        font-weight: 500;
+    }
+
+    .company-info {
+        background: #f8f8f8;
+        padding: 7vw 4vw;
+        text-align: center;
+        margin-top: 8vw;
+    }
+
+    .company-logo {
+        font-size: 6vw;
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 3vw;
+    }
+
+    .company-name {
+        font-size: 3.5vw;
+        color: #666;
+        margin-bottom: 1.5vw;
+    }
+
+    .company-rep {
+        font-size: 3.2vw;
+        color: #999;
+    }
+
+    /* 태블릿 이상 화면 */
+    @media (min-width: 768px) {
+        .view-products-btn {
+            padding: 20px;
+            margin: 0 auto 25px;
+            max-width: 600px;
+            border-radius: 15px;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .stats-info {
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .quick-menu-title {
+            font-size: 18px;
+            margin: 25px auto 15px;
+            max-width: 600px;
+            padding: 0 15px;
+        }
+
+        .quick-menu {
+            gap: 12px;
+            padding: 0 15px;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .quick-menu-item {
+            padding: 20px;
+            border-radius: 12px;
+            border-width: 1px;
+            gap: 10px;
+        }
+
+        .quick-menu-icon {
+            font-size: 28px;
+        }
+
+        .quick-menu-text {
+            font-size: 14px;
+        }
+
+        .company-info {
+            padding: 30px 15px;
+            margin-top: 40px;
+        }
+
+        .company-logo {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .company-name {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .company-rep {
+            font-size: 13px;
+        }
+    }
+
+    .recent-section {
+        margin-top: 20px;
+    }
+
+    .recent-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 15px;
+        font-size: 15px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .recent-title .icon {
+        color: #e74c3c;
+    }
+
+    .info-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .info-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        text-align: center;
+    }
+
+    .info-card .icon {
+        font-size: 40px;
+        margin-bottom: 10px;
+        opacity: 0.5;
+    }
+
+    .info-card .text {
+        color: #999;
+        font-size: 13px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- 검색 영역 -->
+    <div class="search-container">
+        <form method="get" action="{% url 'mobile_search' %}" class="search-wrapper">
+            <input type="text" name="q" placeholder="타이어 검색(숫자만 입력)" class="search-input">
+            <span class="search-icon">🔍</span>
+            <button type="button" class="calc-btn">🧮</button>
+        </form>
+    </div>
+
+    <!-- 브랜드 그리드 -->
+    <div class="brand-grid">
+        <a href="{% url 'mobile_search' %}?brand=GOODYEAR" class="brand-item">
+            <img src="{% static 'mobile/img/brands/goodyear.png' %}" alt="GOODYEAR">
+        </a>
+        <a href="{% url 'mobile_search' %}?brand=KUMHO" class="brand-item">
+            <img src="{% static 'mobile/img/brands/kumho.png' %}" alt="KUMHO">
+        </a>
+        <a href="{% url 'mobile_search' %}?brand=NEXEN" class="brand-item">
+            <img src="{% static 'mobile/img/brands/nexen.png' %}" alt="NEXEN">
+        </a>
+        <a href="{% url 'mobile_search' %}?brand=DUNLOP" class="brand-item">
+            <img src="{% static 'mobile/img/brands/dunlop.png' %}" alt="DUNLOP">
+        </a>
+        <a href="{% url 'mobile_search' %}?brand=MICHELIN" class="brand-item">
+            <img src="{% static 'mobile/img/brands/michelin.png' %}" alt="MICHELIN">
+        </a>
+        <a href="{% url 'mobile_search' %}?brand=BRIDGESTONE" class="brand-item">
+            <img src="{% static 'mobile/img/brands/bridgestone.png' %}" alt="BRIDGESTONE">
+        </a>
+        <a href="{% url 'mobile_search' %}?brand=YOKOHAMA" class="brand-item">
+            <img src="{% static 'mobile/img/brands/yokohama.png' %}" alt="YOKOHAMA">
+        </a>
+        <a href="{% url 'mobile_search' %}?brand=CONTINENTAL" class="brand-item">
+            <img src="{% static 'mobile/img/brands/continental.png' %}" alt="CONTINENTAL">
+        </a>
+        <a href="{% url 'mobile_search' %}?brand=PIRELLI" class="brand-item">
+            <img src="{% static 'mobile/img/brands/pirelli.png' %}" alt="PIRELLI">
+        </a>
+        <a href="{% url 'mobile_search' %}?brand=HANKOOK" class="brand-item">
+            <img src="{% static 'mobile/img/brands/hankook.png' %}" alt="HANKOOK">
+        </a>
+    </div>
+
+    <!-- 전체 상품 보기 버튼 -->
+    <a href="{% url 'mobile_search' %}" class="view-products-btn">
+        🗂️ 전체 상품 보기
+    </a>
+
+    <!-- 통계 정보 -->
+    <div class="stats-info">
+        {{ goods_count|default:"0" }}개의 타이어 제품을 확인해보세요
+    </div>
+
+    <!-- 빠른 검색 -->
+    <div class="quick-menu-title">빠른 검색</div>
+    <div class="quick-menu">
+        <a href="{% url 'mobile_search' %}?tire_only=1" class="quick-menu-item">
+            <span class="quick-menu-icon">🔥</span>
+            <span class="quick-menu-text">인기상품</span>
+        </a>
+        <a href="{% url 'mobile_search' %}?in_stock=1" class="quick-menu-item">
+            <span class="quick-menu-icon">⭐</span>
+            <span class="quick-menu-text">신상품</span>
+        </a>
+        <a href="{% url 'mobile_search' %}?discount=1" class="quick-menu-item">
+            <span class="quick-menu-icon">🆆</span>
+            <span class="quick-menu-text">낮은가격</span>
+        </a>
+        <a href="{% url 'mobile_search' %}?size=215" class="quick-menu-item">
+            <span class="quick-menu-icon">🔍</span>
+            <span class="quick-menu-text">215 사이즈</span>
+        </a>
+    </div>
+
+    <!-- 회사 정보 -->
+    <div class="company-info">
+        <div class="company-logo">TirePASS</div>
+        <div class="company-name">회사명: 타이어패스 주식회사</div>
+        <div class="company-rep">대표자: 홍길동</div>
+    </div>
+{% endblock %}

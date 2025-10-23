@@ -1,0 +1,373 @@
+{% extends 'mobile/base.html' %}
+
+{% block title %}상품 검색 - TirePASS{% endblock %}
+{% block header_title %}상품 검색{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .search-container {
+        background: white;
+        padding: 3vw 4vw;
+        margin: -10px -10px 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .search-wrapper {
+        display: flex;
+        gap: 2vw;
+        align-items: center;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 3vw 4vw;
+        border: 0.3vw solid #e0e0e0;
+        border-radius: 2vw;
+        font-size: 4vw;
+        background: #f8f8f8;
+    }
+
+    .search-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 3vw 5vw;
+        border-radius: 2vw;
+        font-size: 4vw;
+        cursor: pointer;
+    }
+
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(45%, 1fr));
+        gap: 3vw;
+        padding: 0 2vw;
+    }
+
+    .product-card {
+        background: white;
+        border-radius: 3vw;
+        overflow: hidden;
+        box-shadow: 0 1vw 3vw rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        border: 0.3vw solid #f0f0f0;
+    }
+
+    .product-card:active {
+        transform: scale(0.98);
+        box-shadow: 0 0.5vw 2vw rgba(0,0,0,0.15);
+    }
+
+    .product-image-area {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 5vw;
+        height: 35vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .tire-icon {
+        font-size: 15vw;
+        opacity: 0.5;
+    }
+
+    .product-brand-badge {
+        position: absolute;
+        top: 2vw;
+        right: 2vw;
+        background: rgba(255,255,255,0.9);
+        padding: 1vw 2vw;
+        border-radius: 1vw;
+        font-size: 2.5vw;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .product-details {
+        padding: 3vw;
+    }
+
+    .product-code {
+        font-size: 2.8vw;
+        color: #999;
+        margin-bottom: 1vw;
+        font-family: 'Courier New', monospace;
+    }
+
+    .product-name {
+        font-size: 3.5vw;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 2vw;
+        line-height: 1.3;
+        min-height: 9vw;
+    }
+
+    .product-price-section {
+        border-top: 0.2vw solid #f0f0f0;
+        padding-top: 2vw;
+        margin-top: 2vw;
+    }
+
+    .product-price {
+        font-size: 4.5vw;
+        font-weight: bold;
+        color: #e74c3c;
+        display: block;
+        margin-bottom: 1vw;
+    }
+
+    .product-stock {
+        display: inline-block;
+        padding: 1vw 2vw;
+        background: #f0f9ff;
+        color: #27ae60;
+        border-radius: 1vw;
+        font-size: 3vw;
+        font-weight: 500;
+    }
+
+    .stock-low {
+        background: #fff5f5;
+        color: #e74c3c;
+    }
+
+    .discount-badge {
+        display: inline-block;
+        background: #ff6b6b;
+        color: white;
+        padding: 1vw 2vw;
+        border-radius: 1vw;
+        font-size: 2.8vw;
+        font-weight: bold;
+        margin-left: 2vw;
+    }
+
+    .filter-bar {
+        background: white;
+        padding: 2vw 3vw;
+        margin: -10px -10px 15px;
+        border-bottom: 0.3vw solid #e0e0e0;
+        display: flex;
+        gap: 2vw;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .filter-chip {
+        display: inline-block;
+        padding: 1.5vw 3vw;
+        background: #f5f5f5;
+        border-radius: 2vw;
+        font-size: 3vw;
+        color: #666;
+        text-decoration: none;
+        border: 0.2vw solid transparent;
+    }
+
+    .filter-chip.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+
+    .results-info {
+        padding: 0 3vw;
+        margin-bottom: 3vw;
+        font-size: 3.5vw;
+        color: #666;
+    }
+
+    .results-info strong {
+        color: #667eea;
+        font-size: 4vw;
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 10vw 5vw;
+        background: white;
+        margin: 5vw;
+        border-radius: 3vw;
+        box-shadow: 0 1vw 3vw rgba(0,0,0,0.1);
+    }
+
+    .no-results-icon {
+        font-size: 20vw;
+        margin-bottom: 3vw;
+        opacity: 0.3;
+    }
+
+    .no-results-text {
+        font-size: 4vw;
+        color: #999;
+        margin-bottom: 2vw;
+    }
+
+    /* 태블릿 이상 */
+    @media (min-width: 768px) {
+        .search-container {
+            padding: 15px 20px;
+        }
+
+        .search-input {
+            padding: 12px 16px;
+            border-width: 1px;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .search-btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .product-grid {
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .product-card {
+            border-radius: 12px;
+            border-width: 1px;
+        }
+
+        .product-image-area {
+            padding: 20px;
+            height: 140px;
+        }
+
+        .tire-icon {
+            font-size: 60px;
+        }
+
+        .product-details {
+            padding: 12px;
+        }
+
+        .product-code {
+            font-size: 11px;
+        }
+
+        .product-name {
+            font-size: 14px;
+            min-height: 36px;
+        }
+
+        .product-price {
+            font-size: 18px;
+        }
+
+        .product-stock {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+    }
+
+    /* 작은 화면 */
+    @media (max-width: 374px) {
+        .product-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- 검색 영역 -->
+    <div class="search-container">
+        <form method="get" action="{% url 'mobile_search' %}" class="search-wrapper">
+            <input type="text" name="q" value="{{ search_query }}"
+                   placeholder="타이어 검색(숫자만 입력)"
+                   class="search-input" autofocus>
+            <button type="submit" class="search-btn">검색</button>
+        </form>
+    </div>
+
+    <!-- 필터 바 -->
+    <div class="filter-bar">
+        <a href="{% url 'mobile_search' %}" class="filter-chip {% if not brand_filter and not tire_only and not in_stock %}active{% endif %}">전체</a>
+        <a href="?tire_only=1" class="filter-chip {% if tire_only %}active{% endif %}">타이어만</a>
+        <a href="?in_stock=1" class="filter-chip {% if in_stock %}active{% endif %}">재고있음</a>
+        {% for brand in brands|slice:":5" %}
+            <a href="?brand={{ brand }}" class="filter-chip {% if brand_filter == brand %}active{% endif %}">{{ brand }}</a>
+        {% endfor %}
+    </div>
+
+    <!-- 결과 정보 -->
+    {% if search_query or brand_filter %}
+    <div class="results-info">
+        검색결과: <strong>{{ total_count }}</strong>개 상품
+    </div>
+    {% endif %}
+
+    <!-- 상품 그리드 -->
+    <div class="product-grid">
+        {% for item in page_obj %}
+        <a href="{% url 'product_detail' item.code %}" style="text-decoration: none; color: inherit;">
+            <div class="product-card">
+                <!-- 이미지 영역 -->
+                <div class="product-image-area">
+                    <span class="tire-icon">🛞</span>
+                    {% if item.brand or item.bun1 %}
+                    <div class="product-brand-badge">{{ item.brand|default:item.bun1 }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 상품 정보 -->
+                <div class="product-details">
+                    <div class="product-code">{{ item.code }}</div>
+                    <div class="product-name">{{ item.name|truncatechars:50 }}</div>
+
+                    <div class="product-price-section">
+                        <span class="product-price">₩{{ item.formatted_price }}</span>
+
+                        {% if item.discount_rate and item.discount_rate > 0 %}
+                        <span class="discount-badge">{{ item.discount_rate }}% 할인</span>
+                        {% endif %}
+
+                        <div style="margin-top: 2vw;">
+                            {% if item.jaego > 0 %}
+                            <span class="product-stock {% if item.jaego < 10 %}stock-low{% endif %}">
+                                재고: {{ item.jaego }}개
+                            </span>
+                            {% else %}
+                            <span class="product-stock stock-low">품절</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <div class="no-results">
+            <div class="no-results-icon">🔍</div>
+            <div class="no-results-text">검색 결과가 없습니다</div>
+            <div style="font-size: 3vw; color: #bbb;">다른 검색어를 입력해보세요</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if brand_filter %}&brand={{ brand_filter }}{% endif %}{% if tire_only %}&tire_only=1{% endif %}{% if in_stock %}&in_stock=1{% endif %}&sort={{ sort_order }}&per_page={{ per_page }}">&laquo;</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if brand_filter %}&brand={{ brand_filter }}{% endif %}{% if tire_only %}&tire_only=1{% endif %}{% if in_stock %}&in_stock=1{% endif %}&sort={{ sort_order }}&per_page={{ per_page }}">이전</a>
+            {% endif %}
+
+            <span class="current">
+                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if brand_filter %}&brand={{ brand_filter }}{% endif %}{% if tire_only %}&tire_only=1{% endif %}{% if in_stock %}&in_stock=1{% endif %}&sort={{ sort_order }}&per_page={{ per_page }}">다음</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if brand_filter %}&brand={{ brand_filter }}{% endif %}{% if tire_only %}&tire_only=1{% endif %}{% if in_stock %}&in_stock=1{% endif %}&sort={{ sort_order }}&per_page={{ per_page }}">&raquo;</a>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

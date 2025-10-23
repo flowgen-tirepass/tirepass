@@ -1,0 +1,597 @@
+{% extends 'mobile/base.html' %}
+{% load humanize %}
+
+{% block title %}{{ product.name }} - TirePASS{% endblock %}
+{% block header_title %}상품 상세{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .product-detail-container {
+        padding-bottom: 80px;
+    }
+
+    .product-image-section {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 10vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 60vw;
+        position: relative;
+    }
+
+    .tire-large-icon {
+        font-size: 40vw;
+        opacity: 0.5;
+    }
+
+    .brand-badge-large {
+        position: absolute;
+        top: 4vw;
+        right: 4vw;
+        background: rgba(255,255,255,0.95);
+        padding: 2vw 4vw;
+        border-radius: 2vw;
+        font-size: 4vw;
+        font-weight: bold;
+        color: #667eea;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .product-info-section {
+        background: white;
+        padding: 5vw;
+        margin: 3vw;
+        border-radius: 3vw;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .product-code-detail {
+        font-size: 3.5vw;
+        color: #999;
+        font-family: 'Courier New', monospace;
+        margin-bottom: 2vw;
+    }
+
+    .product-name-detail {
+        font-size: 5vw;
+        font-weight: bold;
+        color: #333;
+        line-height: 1.4;
+        margin-bottom: 4vw;
+    }
+
+    .price-section {
+        background: #f8f9fa;
+        padding: 4vw;
+        border-radius: 2vw;
+        margin-bottom: 4vw;
+    }
+
+    .discount-info {
+        display: flex;
+        align-items: center;
+        gap: 2vw;
+        margin-bottom: 2vw;
+    }
+
+    .discount-badge-large {
+        background: #ff6b6b;
+        color: white;
+        padding: 1.5vw 3vw;
+        border-radius: 1.5vw;
+        font-size: 3.5vw;
+        font-weight: bold;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        color: #999;
+        font-size: 3.5vw;
+    }
+
+    .final-price {
+        font-size: 7vw;
+        font-weight: bold;
+        color: #e74c3c;
+    }
+
+    .stock-info {
+        display: flex;
+        align-items: center;
+        gap: 2vw;
+        padding: 3vw;
+        background: #e8f5e9;
+        border-radius: 2vw;
+        margin-top: 3vw;
+    }
+
+    .stock-icon {
+        font-size: 5vw;
+    }
+
+    .stock-text {
+        font-size: 3.8vw;
+        color: #27ae60;
+        font-weight: 600;
+    }
+
+    .stock-low {
+        background: #ffebee;
+    }
+
+    .stock-low .stock-text {
+        color: #e74c3c;
+    }
+
+    .option-section {
+        background: white;
+        padding: 5vw;
+        margin: 3vw;
+        border-radius: 3vw;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .option-title {
+        font-size: 4vw;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 3vw;
+        display: flex;
+        align-items: center;
+        gap: 2vw;
+    }
+
+    .option-select {
+        width: 100%;
+        padding: 3.5vw;
+        font-size: 4vw;
+        border: 2px solid #e0e0e0;
+        border-radius: 2vw;
+        background: white;
+        margin-bottom: 3vw;
+    }
+
+    .quantity-control {
+        display: flex;
+        align-items: center;
+        gap: 3vw;
+    }
+
+    .quantity-btn {
+        width: 12vw;
+        height: 12vw;
+        border: 2px solid #667eea;
+        background: white;
+        border-radius: 2vw;
+        font-size: 6vw;
+        color: #667eea;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .quantity-btn:active {
+        background: #667eea;
+        color: white;
+    }
+
+    .quantity-input {
+        flex: 1;
+        text-align: center;
+        padding: 3vw;
+        font-size: 5vw;
+        font-weight: bold;
+        border: 2px solid #e0e0e0;
+        border-radius: 2vw;
+    }
+
+    .dot-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2vw;
+        margin-top: 3vw;
+    }
+
+    .dot-item {
+        padding: 3vw;
+        border: 2px solid #e0e0e0;
+        border-radius: 2vw;
+        text-align: center;
+        cursor: pointer;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    .dot-item.selected {
+        border-color: #667eea;
+        background: #f0f4ff;
+    }
+
+    .dot-item.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .dot-year {
+        font-size: 4.5vw;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 1vw;
+    }
+
+    .dot-stock {
+        font-size: 3vw;
+        color: #666;
+    }
+
+    .action-buttons {
+        position: fixed;
+        bottom: 60px;
+        left: 0;
+        right: 0;
+        padding: 3vw;
+        background: white;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        gap: 3vw;
+        z-index: 999;
+    }
+
+    .btn-cart {
+        flex: 1;
+        padding: 4vw;
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+        font-size: 4.5vw;
+        font-weight: bold;
+        border-radius: 2vw;
+        cursor: pointer;
+    }
+
+    .btn-buy {
+        flex: 2;
+        padding: 4vw;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        font-size: 4.5vw;
+        font-weight: bold;
+        border-radius: 2vw;
+        cursor: pointer;
+    }
+
+    .btn-cart:active, .btn-buy:active {
+        transform: scale(0.98);
+    }
+
+    .alert-message {
+        position: fixed;
+        top: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 3vw 5vw;
+        border-radius: 2vw;
+        font-size: 3.8vw;
+        z-index: 9999;
+        display: none;
+        animation: slideDown 0.3s ease;
+    }
+
+    .alert-message.show {
+        display: block;
+    }
+
+    @keyframes slideDown {
+        from {
+            top: 50px;
+            opacity: 0;
+        }
+        to {
+            top: 70px;
+            opacity: 1;
+        }
+    }
+
+    /* 태블릿 이상 */
+    @media (min-width: 768px) {
+        .product-image-section {
+            padding: 60px;
+            min-height: 300px;
+        }
+
+        .tire-large-icon {
+            font-size: 150px;
+        }
+
+        .product-info-section, .option-section {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .product-code-detail {
+            font-size: 13px;
+        }
+
+        .product-name-detail {
+            font-size: 20px;
+        }
+
+        .final-price {
+            font-size: 28px;
+        }
+
+        .option-select, .quantity-input {
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+        }
+
+        .quantity-btn {
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+        }
+
+        .action-buttons {
+            max-width: 600px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .btn-cart, .btn-buy {
+            padding: 16px;
+            font-size: 18px;
+            border-radius: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="product-detail-container">
+    <!-- 상품 이미지 섹션 -->
+    <div class="product-image-section">
+        <span class="tire-large-icon">🛞</span>
+        {% if product.brand or product.bun1 %}
+        <div class="brand-badge-large">{{ product.brand|default:product.bun1 }}</div>
+        {% endif %}
+    </div>
+
+    <!-- 상품 정보 섹션 -->
+    <div class="product-info-section">
+        <div class="product-code-detail">{{ product.code }}</div>
+        <div class="product-name-detail">{{ product.name }}</div>
+
+        <div class="price-section">
+            {% if discount_rate > 0 %}
+            <div class="discount-info">
+                <span class="discount-badge-large">{{ discount_rate }}% 할인</span>
+                <span class="original-price">₩{{ product.fixp|intcomma }}</span>
+            </div>
+            {% endif %}
+            <div class="final-price" id="displayPrice">₩{{ final_price|intcomma }}</div>
+        </div>
+
+        <div class="stock-info {% if product.jaego < 10 %}stock-low{% endif %}">
+            <span class="stock-icon">📦</span>
+            <span class="stock-text">
+                {% if product.jaego > 0 %}
+                    재고 {{ product.jaego }}개 보유
+                {% else %}
+                    품절
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- DOT 연식 선택 -->
+    {% if dot_years %}
+    <div class="option-section">
+        <div class="option-title">
+            <span>📅</span>
+            <span>DOT 연식 선택</span>
+        </div>
+        <div class="dot-grid">
+            {% for year_info in dot_years %}
+            <div class="dot-item {% if year_info.stock == 0 %}disabled{% endif %}"
+                 data-year="{{ year_info.year }}"
+                 data-stock="{{ year_info.stock }}"
+                 onclick="selectDotYear(this)">
+                <div class="dot-year">{{ year_info.year }}년</div>
+                <div class="dot-stock">재고: {{ year_info.stock }}개</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 수량 선택 -->
+    <div class="option-section">
+        <div class="option-title">
+            <span>🔢</span>
+            <span>수량 선택</span>
+        </div>
+        <div class="quantity-control">
+            <button class="quantity-btn" onclick="decreaseQuantity()">-</button>
+            <input type="number" id="quantity" class="quantity-input" value="1" min="1" max="{{ product.jaego }}" readonly>
+            <button class="quantity-btn" onclick="increaseQuantity()">+</button>
+        </div>
+    </div>
+</div>
+
+<!-- 하단 액션 버튼 -->
+<div class="action-buttons">
+    <button class="btn-cart" onclick="addToCart()">🛒 장바구니</button>
+    <button class="btn-buy" onclick="buyNow()">바로 구매</button>
+</div>
+
+<!-- 알림 메시지 -->
+<div class="alert-message" id="alertMessage"></div>
+
+<script>
+// 전역 변수
+let selectedDotYear = null;
+const productCode = '{{ product.code }}';
+const maxStock = {{ product.jaego }};
+const baseFinalPrice = {{ final_price }};
+
+// DOT 연식 선택
+function selectDotYear(element) {
+    if (element.classList.contains('disabled')) {
+        return;
+    }
+
+    // 기존 선택 해제
+    document.querySelectorAll('.dot-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+
+    // 새로운 선택
+    element.classList.add('selected');
+    selectedDotYear = element.dataset.year;
+
+    // 선택한 DOT의 재고에 맞게 수량 제한
+    const dotStock = parseInt(element.dataset.stock);
+    const quantityInput = document.getElementById('quantity');
+    quantityInput.max = dotStock;
+    if (parseInt(quantityInput.value) > dotStock) {
+        quantityInput.value = dotStock;
+    }
+}
+
+// 수량 증가
+function increaseQuantity() {
+    const quantityInput = document.getElementById('quantity');
+    const currentValue = parseInt(quantityInput.value);
+    const maxValue = parseInt(quantityInput.max);
+
+    if (currentValue < maxValue) {
+        quantityInput.value = currentValue + 1;
+    }
+}
+
+// 수량 감소
+function decreaseQuantity() {
+    const quantityInput = document.getElementById('quantity');
+    const currentValue = parseInt(quantityInput.value);
+
+    if (currentValue > 1) {
+        quantityInput.value = currentValue - 1;
+    }
+}
+
+// 알림 메시지 표시
+function showAlert(message, duration = 2000) {
+    const alertElement = document.getElementById('alertMessage');
+    alertElement.textContent = message;
+    alertElement.classList.add('show');
+
+    setTimeout(() => {
+        alertElement.classList.remove('show');
+    }, duration);
+}
+
+// 장바구니 담기
+async function addToCart() {
+    const quantity = parseInt(document.getElementById('quantity').value);
+
+    // DOT 필수 선택 체크 (DOT 재고가 있는 경우)
+    {% if dot_years %}
+    if (!selectedDotYear) {
+        showAlert('⚠️ DOT 연식을 선택해주세요');
+        return;
+    }
+    {% endif %}
+
+    // 재고 확인
+    if (quantity > maxStock) {
+        showAlert(`⚠️ 재고가 부족합니다 (최대 ${maxStock}개)`);
+        return;
+    }
+
+    try {
+        const response = await fetch('/mobile/api/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_code: productCode,
+                quantity: quantity,
+                selected_year: selectedDotYear
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showAlert('✅ 장바구니에 담았습니다');
+            // 2초 후 장바구니 페이지로 이동할지 물어보기
+            setTimeout(() => {
+                if (confirm('장바구니로 이동하시겠습니까?')) {
+                    window.location.href = '/mobile/cart/';
+                }
+            }, 1500);
+        } else {
+            showAlert('❌ ' + (data.error || '장바구니 담기 실패'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('❌ 네트워크 오류가 발생했습니다');
+    }
+}
+
+// 바로 구매
+async function buyNow() {
+    const quantity = parseInt(document.getElementById('quantity').value);
+
+    // DOT 필수 선택 체크
+    {% if dot_years %}
+    if (!selectedDotYear) {
+        showAlert('⚠️ DOT 연식을 선택해주세요');
+        return;
+    }
+    {% endif %}
+
+    // 재고 확인
+    if (quantity > maxStock) {
+        showAlert(`⚠️ 재고가 부족합니다 (최대 ${maxStock}개)`);
+        return;
+    }
+
+    // 장바구니에 담고 바로 주문 페이지로 이동
+    try {
+        const response = await fetch('/mobile/api/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                product_code: productCode,
+                quantity: quantity,
+                selected_year: selectedDotYear
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // 바로 주문 페이지로 이동
+            window.location.href = '/mobile/checkout/';
+        } else {
+            showAlert('❌ ' + (data.error || '구매 실패'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('❌ 네트워크 오류가 발생했습니다');
+    }
+}
+</script>
+{% endblock %}

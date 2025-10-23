@@ -688,3 +688,173 @@ def decrease_inventory(order):
                     allocation.save()
             except YearAllocation.DoesNotExist:
                 pass
+
+
+# ============================================
+# 주문 내역 API
+# ============================================
+
+@require_http_methods(["GET"])
+@login_required
+def orders_list(request):
+    """
+    주문 내역 조회
+
+    GET /mobile/api/orders
+    """
+    try:
+        # 고객 정보 조회
+        customer = Customers.objects.filter(user_id=request.user.id).first()
+        if not customer:
+            return JsonResponse({
+                'success': False,
+                'error': '고객 정보를 찾을 수 없습니다.'
+            }, status=400)
+
+        # 주문 내역 조회 (최신순)
+        orders = Order.objects.filter(
+            customer_code=customer.code
+        ).order_by('-created_at')
+
+        # 주문 데이터 직렬화
+        orders_data = []
+        for order in orders:
+            # 주문 항목 조회
+            items_data = []
+            for item in order.items.all():
+                items_data.append({
+                    'product_code': item.product_code,
+                    'product_name': item.product_name,
+                    'quantity': item.quantity,
+                    'selected_year': item.selected_year,
+                    'final_price': int(item.final_price),
+                    'discount_rate': float(item.discount_rate) if item.discount_rate else 0,
+                })
+
+            orders_data.append({
+                'id': order.id,
+                'order_number': order.order_number,
+                'order_status': order.order_status,
+                'payment_status': order.payment_status,
+                'payment_method': order.payment_method or '',
+                'final_amount': int(order.final_amount),
+                'created_at': order.created_at.isoformat(),
+                'confirmed_date': order.confirmed_date.isoformat() if order.confirmed_date else None,
+                'items': items_data,
+            })
+
+        return JsonResponse({
+            'success': True,
+            'orders': orders_data
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def order_reorder(request, order_id):
+    """
+    재주문 (주문 상품을 장바구니에 담기)
+
+    POST /mobile/api/orders/<order_id>/reorder
+    """
+    try:
+        # 고객 정보 조회
+        customer = Customers.objects.filter(user_id=request.user.id).first()
+        if not customer:
+            return JsonResponse({
+                'success': False,
+                'error': '고객 정보를 찾을 수 없습니다.'
+            }, status=400)
+
+        # 주문 조회
+        order = Order.objects.filter(
+            id=order_id,
+            customer_code=customer.code
+        ).first()
+
+        if not order:
+            return JsonResponse({
+                'success': False,
+                'error': '주문을 찾을 수 없습니다.'
+            }, status=404)
+
+        # 주문 항목을 장바구니에 추가
+        added_count = 0
+        for item in order.items.all():
+            # 재고 확인
+            try:
+                goods = Goods.objects.get(code=item.product_code)
+
+                # DOT 재고 확인 (필요 시)
+                if item.selected_year:
+                    try:
+                        allocation = YearAllocation.objects.get(goods_code=item.product_code)
+                        year_field = f'year_{item.selected_year}'
+                        if hasattr(allocation, year_field):
+                            dot_stock = getattr(allocation, year_field, 0)
+                            if dot_stock < item.quantity:
+                                continue  # 재고 부족하면 건너뛰기
+                    except YearAllocation.DoesNotExist:
+                        continue
+
+                # 전체 재고 확인
+                if goods.jaego < item.quantity:
+                    continue  # 재고 부족하면 건너뛰기
+
+                # 할인율 재계산
+                discount_rate = calculate_discount_rate(
+                    customer.code,
+                    item.product_code,
+                    item.selected_year
+                )
+
+                # 최종 가격 재계산
+                final_price = int(goods.fixp * (1 - discount_rate / 100))
+
+                # 장바구니에 추가 또는 업데이트
+                cart_item, created = ShoppingCart.objects.get_or_create(
+                    customer_code=customer.code,
+                    product_code=item.product_code,
+                    selected_year=item.selected_year or '',
+                    defaults={
+                        'product_name': goods.name,
+                        'quantity': item.quantity,
+                        'original_price': goods.fixp,
+                        'discount_rate': discount_rate,
+                        'final_price': final_price,
+                    }
+                )
+
+                if not created:
+                    # 이미 있으면 수량 증가
+                    cart_item.quantity += item.quantity
+                    cart_item.save()
+
+                added_count += 1
+
+            except Goods.DoesNotExist:
+                continue  # 상품이 없으면 건너뛰기
+
+        if added_count == 0:
+            return JsonResponse({
+                'success': False,
+                'error': '재고가 부족하거나 상품을 찾을 수 없습니다.'
+            }, status=400)
+
+        return JsonResponse({
+            'success': True,
+            'message': f'{added_count}개 상품을 장바구니에 담았습니다.'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

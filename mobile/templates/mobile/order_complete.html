@@ -1,0 +1,342 @@
+{% extends 'mobile/base.html' %}
+{% load humanize %}
+
+{% block title %}주문 완료 - TirePASS{% endblock %}
+{% block header_title %}주문 완료{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .complete-container {
+        padding: 8vw 4vw;
+        text-align: center;
+    }
+
+    .success-icon {
+        font-size: 25vw;
+        margin-bottom: 4vw;
+        animation: scaleIn 0.5s ease;
+    }
+
+    @keyframes scaleIn {
+        from {
+            transform: scale(0);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .success-title {
+        font-size: 6vw;
+        font-weight: bold;
+        color: #27ae60;
+        margin-bottom: 3vw;
+    }
+
+    .success-message {
+        font-size: 4vw;
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 6vw;
+    }
+
+    .order-info-card {
+        background: white;
+        margin: 5vw 0;
+        padding: 5vw;
+        border-radius: 3vw;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        text-align: left;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 3vw 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-size: 3.8vw;
+        color: #666;
+    }
+
+    .info-value {
+        font-size: 3.8vw;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .order-number {
+        font-family: 'Courier New', monospace;
+        color: #667eea;
+        font-weight: bold;
+    }
+
+    .order-items-section {
+        background: white;
+        margin: 5vw 0;
+        padding: 5vw;
+        border-radius: 3vw;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        text-align: left;
+    }
+
+    .section-header {
+        font-size: 4.5vw;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 4vw;
+        display: flex;
+        align-items: center;
+        gap: 2vw;
+    }
+
+    .item-card {
+        background: #f8f9fa;
+        padding: 3.5vw;
+        border-radius: 2vw;
+        margin-bottom: 2.5vw;
+    }
+
+    .item-card:last-child {
+        margin-bottom: 0;
+    }
+
+    .item-name {
+        font-size: 3.8vw;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1.5vw;
+    }
+
+    .item-detail {
+        font-size: 3.2vw;
+        color: #666;
+        margin-bottom: 0.8vw;
+    }
+
+    .item-price {
+        font-size: 4.2vw;
+        font-weight: bold;
+        color: #e74c3c;
+        margin-top: 2vw;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 3vw;
+        margin-top: 6vw;
+    }
+
+    .btn-action {
+        width: 100%;
+        padding: 4vw;
+        border-radius: 2.5vw;
+        font-size: 4.5vw;
+        font-weight: bold;
+        text-decoration: none;
+        text-align: center;
+        cursor: pointer;
+        border: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+    }
+
+    .btn-action:active {
+        transform: scale(0.98);
+    }
+
+    .delivery-info {
+        background: #e8f5e9;
+        padding: 4vw;
+        border-radius: 2.5vw;
+        margin: 5vw 0;
+        text-align: left;
+    }
+
+    .delivery-title {
+        font-size: 4vw;
+        font-weight: bold;
+        color: #27ae60;
+        margin-bottom: 2.5vw;
+        display: flex;
+        align-items: center;
+        gap: 2vw;
+    }
+
+    .delivery-text {
+        font-size: 3.5vw;
+        color: #666;
+        line-height: 1.5;
+    }
+
+    /* 태블릿 이상 */
+    @media (min-width: 768px) {
+        .complete-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .success-icon {
+            font-size: 100px;
+            margin-bottom: 20px;
+        }
+
+        .success-title {
+            font-size: 24px;
+        }
+
+        .success-message {
+            font-size: 16px;
+        }
+
+        .order-info-card, .order-items-section {
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .info-row {
+            padding: 12px 0;
+        }
+
+        .info-label, .info-value {
+            font-size: 15px;
+        }
+
+        .section-header {
+            font-size: 18px;
+        }
+
+        .item-card {
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .item-name {
+            font-size: 15px;
+        }
+
+        .item-price {
+            font-size: 17px;
+        }
+
+        .btn-action {
+            padding: 16px;
+            font-size: 18px;
+            border-radius: 12px;
+        }
+
+        .delivery-info {
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .delivery-title {
+            font-size: 16px;
+        }
+
+        .delivery-text {
+            font-size: 14px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="complete-container">
+    <!-- 성공 아이콘 -->
+    <div class="success-icon">✅</div>
+    <div class="success-title">주문이 완료되었습니다!</div>
+    <div class="success-message">
+        주문하신 상품을 신속하게 준비하여<br>
+        배송해 드리겠습니다.
+    </div>
+
+    <!-- 주문 정보 -->
+    <div class="order-info-card">
+        <div class="info-row">
+            <span class="info-label">주문번호</span>
+            <span class="info-value order-number">{{ order.order_number }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">주문일시</span>
+            <span class="info-value">{{ order.created_at|date:"Y.m.d H:i" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">결제금액</span>
+            <span class="info-value">₩{{ order.final_amount|intcomma }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">결제수단</span>
+            <span class="info-value">{{ payment.payment_method|default:"카드결제" }}</span>
+        </div>
+    </div>
+
+    <!-- 배송 안내 -->
+    <div class="delivery-info">
+        <div class="delivery-title">
+            <span>🚚</span>
+            <span>배송 안내</span>
+        </div>
+        <div class="delivery-text">
+            • 배송지: {{ shipping.address }}<br>
+            • 받는 분: {{ shipping.recipient_name }}<br>
+            • 연락처: {{ shipping.recipient_phone }}<br>
+            {% if shipping.delivery_note %}
+            • 요청사항: {{ shipping.delivery_note }}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 주문 상품 목록 -->
+    <div class="order-items-section">
+        <div class="section-header">
+            <span>📦</span>
+            <span>주문 상품 ({{ order.items.count }}건)</span>
+        </div>
+        {% for item in order.items.all %}
+        <div class="item-card">
+            <div class="item-name">{{ item.product_name }}</div>
+            <div class="item-detail">상품코드: {{ item.product_code }}</div>
+            {% if item.selected_year %}
+            <div class="item-detail">📅 DOT {{ item.selected_year }}년</div>
+            {% endif %}
+            <div class="item-detail">수량: {{ item.quantity }}개</div>
+            {% if item.discount_rate > 0 %}
+            <div class="item-detail">할인율: {{ item.discount_rate }}%</div>
+            {% endif %}
+            <div class="item-price">₩{{ item.final_price|intcomma }} × {{ item.quantity }} = ₩{{ item.total_price|intcomma }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="action-buttons">
+        <a href="{% url 'mobile_orders' %}" class="btn-action btn-primary">
+            주문 내역 보기
+        </a>
+        <a href="{% url 'mobile_index' %}" class="btn-action btn-secondary">
+            홈으로 가기
+        </a>
+    </div>
+</div>
+{% endblock %}
