@@ -50,7 +50,8 @@ os.environ['PYTHONIOENCODING'] = 'utf-8'
 
 # Application definition
 INSTALLED_APPS = [
-    # 프로젝트 앱 (템플릿 오버라이드를 위해 먼저 등록)
+    # 프로젝트 앱 (템플릿 우선순위: mobile > tire_data)
+    'mobile',  # 새로운 모바일 쇼핑몰
     'tire_data',
 
     # Django 기본 앱
