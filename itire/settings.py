@@ -256,7 +256,10 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # 브라우저 닫아도 세션 유지 
 # ============================================
 CSRF_COOKIE_SECURE = not DEBUG  # 프로덕션에서 True
 CSRF_COOKIE_HTTPONLY = False
-CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080').split(',')
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080,https://tirepass.pythonanywhere.com'
+).split(',')
 
 
 # ============================================
