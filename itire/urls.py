@@ -25,6 +25,5 @@ custom_admin_site.login_template = 'admin/login.html'
 
 urlpatterns = [
     path('admin/', custom_admin_site.urls),  # 기본 admin.site 대신 custom_admin_site 사용
-    # path('mobile/', include('mobile.urls')),  # 기존 mobile 앱 비활성화
-    path('', include('tire_data.urls')),  # admin/logout/ 오버라이드 포함
+    path('', include('tire_data.urls')),  # admin/logout/ 오버라이드 포함 (mobile URLs 포함)
 ]
