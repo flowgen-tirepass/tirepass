@@ -15,22 +15,22 @@ urlpatterns = [
     # Admin 로그아웃 오버라이드
     path('admin/logout/', admin_logout_view, name='admin_logout'),
 
-    # Mobile Web URLs
-    path('mobile/', mobile_views.mobile_intro, name='mobile_intro'),
-    path('mobile/home/', mobile_views.mobile_home, name='mobile_home'),
-    path('mobile/login/', mobile_views.mobile_login, name='mobile_login'),
-    path('mobile/register/', mobile_views.mobile_register, name='mobile_register'),
-    path('mobile/products/', mobile_views.mobile_products, name='mobile_products'),
-    path('mobile/products/<str:code>/', mobile_views.mobile_product_detail, name='mobile_product_detail'),
-    path('mobile/cart/', mobile_views.mobile_cart, name='mobile_cart'),
-    path('mobile/orders/', mobile_views.mobile_orders, name='mobile_orders'),
-    path('mobile/orders/<int:order_id>/', mobile_views.mobile_order_detail, name='mobile_order_detail'),
-    path('mobile/profile/', mobile_views.mobile_profile, name='mobile_profile'),
-    path('mobile/addresses/', mobile_views.mobile_addresses, name='mobile_addresses'),
-    path('mobile/quote/', mobile_views.mobile_quote, name='mobile_quote'),
-    path('mobile/terms/', mobile_views.mobile_terms, name='mobile_terms'),
-    path('mobile/privacy/', mobile_views.mobile_privacy, name='mobile_privacy'),
-    path('mobile/payment/success/', mobile_views.mobile_payment_success, name='mobile_payment_success'),
+    # Mobile Web URLs (구 버전 - 비활성화, 새로운 mobile 앱 사용)
+    # path('mobile/', mobile_views.mobile_intro, name='mobile_intro'),
+    # path('mobile/home/', mobile_views.mobile_home, name='mobile_home'),
+    # path('mobile/login/', mobile_views.mobile_login, name='mobile_login'),
+    # path('mobile/register/', mobile_views.mobile_register, name='mobile_register'),
+    # path('mobile/products/', mobile_views.mobile_products, name='mobile_products'),
+    # path('mobile/products/<str:code>/', mobile_views.mobile_product_detail, name='mobile_product_detail'),
+    # path('mobile/cart/', mobile_views.mobile_cart, name='mobile_cart'),
+    # path('mobile/orders/', mobile_views.mobile_orders, name='mobile_orders'),
+    # path('mobile/orders/<int:order_id>/', mobile_views.mobile_order_detail, name='mobile_order_detail'),
+    # path('mobile/profile/', mobile_views.mobile_profile, name='mobile_profile'),
+    # path('mobile/addresses/', mobile_views.mobile_addresses, name='mobile_addresses'),
+    # path('mobile/quote/', mobile_views.mobile_quote, name='mobile_quote'),
+    # path('mobile/terms/', mobile_views.mobile_terms, name='mobile_terms'),
+    # path('mobile/privacy/', mobile_views.mobile_privacy, name='mobile_privacy'),
+    # path('mobile/payment/success/', mobile_views.mobile_payment_success, name='mobile_payment_success'),
 
     # Dashboard URLs
     path('', views.index, name='index'),
