@@ -273,7 +273,8 @@ ADMIN_INDEX_TITLE = '타이어패스 관리 시스템'
 
 # 커스텀 인증 백엔드 (사업자등록번호 admin 로그인 차단)
 AUTHENTICATION_BACKENDS = [
-    'tire_data.auth_backends.AdminAuthBackend',
+    'django.contrib.auth.backends.ModelBackend',  # 일반 사용자 로그인용
+    'tire_data.auth_backends.AdminAuthBackend',  # Admin 전용
 ]
 
 # 로그인 필요 시 리다이렉트할 URL (모바일 로그인 페이지로)
