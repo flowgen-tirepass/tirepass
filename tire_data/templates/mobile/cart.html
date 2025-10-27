@@ -479,7 +479,7 @@ async function processTransferPayment() {
 
     try {
         const cartIds = cartItems.map(item => item.id);
-        const totalAmount = calculateTotal();
+        const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
 
         // 1. 결제 준비 API 호출
         const response = await fetch('/api/mobile/payment/prepare/', {
