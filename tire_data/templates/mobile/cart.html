@@ -476,14 +476,13 @@ async function processTransferPayment() {
     const selectedAddress = shippingAddresses.find(addr => addr.id === selectedAddressId);
 
     showLoading();
-    closePaymentModal();
-    closeCheckoutModal();
 
     try {
         const cartIds = cartItems.map(item => item.id);
+        const totalAmount = calculateTotal();
 
-        // 주문 생성 API 호출
-        const response = await fetch('/api/mobile/orders/create/', {
+        // 1. 결제 준비 API 호출
+        const response = await fetch('/api/mobile/payment/prepare/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -493,22 +492,36 @@ async function processTransferPayment() {
                 cart_ids: cartIds,
                 shipping_address: selectedAddress ? selectedAddress.full_address : '',
                 shipping_memo: shippingMemo || '',
-                payment_method: 'transfer'
+                payment_method: 'transfer',
+                amount: totalAmount
             })
         });
 
         const data = await response.json();
         hideLoading();
 
-        if (data.success) {
-            showAlert('주문이 완료되었습니다!', 'success');
-            // 주문 목록 페이지로 이동
-            setTimeout(() => {
-                location.href = '/mobile/orders/';
-            }, 1000);
-        } else {
-            showAlert(data.message || '주문 생성 실패', 'error');
+        if (!data.success) {
+            showAlert(data.message || '결제 준비 실패', 'error');
+            return;
         }
+
+        closePaymentModal();
+        closeCheckoutModal();
+
+        // 2. 토스페이먼츠 결제창 호출 (계좌이체)
+        const clientKey = data.data.client_key || 'live_gck_Ba5PzR0ArnEjRXbE5kBNVvmYnNeD';
+        const tossPayments = TossPayments(clientKey);
+
+        // 계좌이체 결제 요청
+        await tossPayments.requestPayment('계좌이체', {
+            amount: totalAmount,
+            orderId: data.data.order_number,
+            orderName: `타이어 ${cartItems.length}개`,
+            customerName: selectedAddress ? selectedAddress.recipient_name : '',
+            successUrl: window.location.origin + '/mobile/payment/success/',
+            failUrl: window.location.origin + '/mobile/cart/?payment=failed',
+        });
+
     } catch (error) {
         hideLoading();
         console.error('주문 오류:', error);
