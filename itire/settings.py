@@ -243,7 +243,7 @@ LOGGING = {
 # Session 설정 (PG사/카드사 가맹 승인을 위한 보안 강화)
 # ============================================
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 3600  # 1시간 (금융거래 보안 강화)
+SESSION_COOKIE_AGE = 86400  # 24시간 (1일)
 SESSION_SAVE_EVERY_REQUEST = True  # 매 요청마다 세션 갱신 (활동 시 자동 연장)
 SESSION_COOKIE_SECURE = not DEBUG  # 프로덕션에서 HTTPS only
 SESSION_COOKIE_HTTPONLY = True  # JavaScript 접근 차단 (XSS 방지)
@@ -254,6 +254,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # 브라우저 닫아도 세션 유지 
 # ============================================
 # CSRF 설정
 # ============================================
+CSRF_COOKIE_AGE = 86400  # 24시간 (1일)
 CSRF_COOKIE_SECURE = not DEBUG  # 프로덕션에서 True
 CSRF_COOKIE_HTTPONLY = False
 CSRF_TRUSTED_ORIGINS = os.environ.get(
