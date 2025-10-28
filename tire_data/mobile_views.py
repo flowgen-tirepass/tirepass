@@ -2,10 +2,13 @@
 모바일 웹 뷰
 """
 from django.shortcuts import render
-from django.http import HttpResponse
-from .models import Goods
+from django.http import HttpResponse, JsonResponse
+from django.conf import settings
+from .models import Goods, Order, Payment, ShoppingCart
 from .erp_api_client import ERPAPIClient
 import logging
+import requests
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -77,4 +80,92 @@ def mobile_privacy(request):
 
 def mobile_payment_success(request):
     """결제 성공 페이지 (토스페이먼츠 리다이렉트)"""
-    return render(request, 'mobile/payment_success.html')
+    # 토스페이먼츠에서 전달하는 쿼리 파라미터
+    payment_key = request.GET.get('paymentKey')
+    order_id = request.GET.get('orderId')
+    amount = request.GET.get('amount')
+
+    if not all([payment_key, order_id, amount]):
+        logger.error("결제 성공 콜백: 필수 파라미터 누락")
+        return render(request, 'mobile/payment_success.html', {
+            'success': False,
+            'message': '결제 정보가 올바르지 않습니다.'
+        })
+
+    try:
+        # 1. 주문 확인
+        order = Order.objects.get(order_number=order_id)
+        payment = Payment.objects.get(order=order)
+
+        # 2. 토스페이먼츠 승인 API 호출
+        secret_key = settings.TOSS_PAYMENTS_SECRET_KEY
+        encoded_key = base64.b64encode(f"{secret_key}:".encode()).decode()
+
+        response = requests.post(
+            f"{settings.TOSS_PAYMENTS_API_URL}/payments/confirm",
+            headers={
+                "Authorization": f"Basic {encoded_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "paymentKey": payment_key,
+                "orderId": order_id,
+                "amount": int(amount)
+            },
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+
+            # 3. Payment 업데이트
+            payment.payment_key = payment_key
+            payment.payment_status = 'completed'
+            payment.pg_transaction_id = result.get('transactionKey', '')
+            payment.save()
+
+            # 4. Order 상태 업데이트
+            order.payment_status = 'paid'
+            order.order_status = 'confirmed'
+            order.save()
+
+            # 5. 장바구니 삭제 (주문한 상품과 일치하는 장바구니 항목)
+            order_product_codes = order.orderitem_set.values_list('product_code', flat=True)
+            deleted_count = ShoppingCart.objects.filter(
+                customer_code=order.customer_code,
+                product_code__in=order_product_codes
+            ).delete()[0]
+
+            logger.info(f"장바구니 {deleted_count}개 항목 삭제")
+
+            logger.info(f"결제 승인 성공: {order_id}, paymentKey: {payment_key}")
+
+            return render(request, 'mobile/payment_success.html', {
+                'success': True,
+                'order': order,
+                'payment': payment
+            })
+        else:
+            error_data = response.json()
+            logger.error(f"토스 승인 실패: {error_data}")
+
+            payment.payment_status = 'failed'
+            payment.save()
+
+            return render(request, 'mobile/payment_success.html', {
+                'success': False,
+                'message': error_data.get('message', '결제 승인에 실패했습니다.')
+            })
+
+    except Order.DoesNotExist:
+        logger.error(f"주문을 찾을 수 없음: {order_id}")
+        return render(request, 'mobile/payment_success.html', {
+            'success': False,
+            'message': '주문 정보를 찾을 수 없습니다.'
+        })
+    except Exception as e:
+        logger.error(f"결제 승인 처리 오류: {str(e)}")
+        return render(request, 'mobile/payment_success.html', {
+            'success': False,
+            'message': '결제 처리 중 오류가 발생했습니다.'
+        })
