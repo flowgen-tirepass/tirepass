@@ -254,9 +254,11 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # 브라우저 닫아도 세션 유지 
 # ============================================
 # CSRF 설정
 # ============================================
-CSRF_COOKIE_AGE = 86400  # 24시간 (1일)
+CSRF_COOKIE_AGE = 31536000  # 1년 (365일) - 만료 문제 완전 방지
 CSRF_COOKIE_SECURE = not DEBUG  # 프로덕션에서 True
 CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'  # CSRF 보호 강화
+CSRF_USE_SESSIONS = False  # 쿠키 기반 (세션 독립적)
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     'CSRF_TRUSTED_ORIGINS',
     'http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080,https://tirepass.pythonanywhere.com'
