@@ -476,7 +476,7 @@ async function processCardPayment() {
             amount: totalAmount,
             orderId: data.data.order_number,
             orderName: `타이어 ${cartItems.length}개`,
-            customerName: selectedAddress ? selectedAddress.recipient_name : '',
+            customerName: data.data.customer_name,
             successUrl: window.location.origin + '/mobile/payment/success/',
             failUrl: window.location.origin + '/mobile/cart/?payment=failed',
         });
@@ -535,7 +535,7 @@ async function processTransferPayment() {
             amount: totalAmount,
             orderId: data.data.order_number,
             orderName: `타이어 ${cartItems.length}개`,
-            customerName: selectedAddress ? selectedAddress.recipient_name : '',
+            customerName: data.data.customer_name,
             successUrl: window.location.origin + '/mobile/payment/success/',
             failUrl: window.location.origin + '/mobile/cart/?payment=failed',
         });
