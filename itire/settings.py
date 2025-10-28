@@ -296,18 +296,7 @@ LOGOUT_REDIRECT_URL = '/admin/login/'
 
 
 # ============================================
-# 토스페이먼츠 설정
+# 토스페이먼츠 설정 (중복 제거)
 # ============================================
-
-import os
-
-# 테스트 키 (개발 환경)
-TOSS_CLIENT_KEY = os.getenv('TOSS_CLIENT_KEY', 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq')
-TOSS_SECRET_KEY = os.getenv('TOSS_SECRET_KEY', 'test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R')
-
-# 실제 운영 키는 환경변수로 설정
-# export TOSS_CLIENT_KEY='live_ck_...'
-# export TOSS_SECRET_KEY='live_sk_...'
-
-# 토스 API URL
-TOSS_API_URL = 'https://api.tosspayments.com/v1/payments'
+# 위에 TOSS_PAYMENTS_CLIENT_KEY, TOSS_PAYMENTS_SECRET_KEY, TOSS_PAYMENTS_API_URL이 이미 설정됨
+# 중복 설정 제거됨 (라인 23-26 사용)
