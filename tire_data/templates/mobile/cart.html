@@ -542,7 +542,15 @@ async function processCardPayment() {
 
         // 2. 토스페이먼츠 결제창 호출 (테스트 키)
         const clientKey = data.data.client_key || 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
+        console.log('Client Key:', clientKey);
+
+        // TossPayments SDK 로드 확인
+        if (typeof TossPayments === 'undefined') {
+            throw new Error('TossPayments SDK가 로드되지 않았습니다');
+        }
+
         const tossPayments = TossPayments(clientKey);
+        console.log('TossPayments 인스턴스 생성 완료');
 
         // 결제 요청
         await tossPayments.requestPayment('카드', {
