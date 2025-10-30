@@ -557,7 +557,7 @@ async function processCardPayment() {
     } catch (error) {
         hideLoading();
         console.error('카드결제 오류:', error);
-        showAlert('결제 처리 중 오류가 발생했습니다.', 'error');
+        showAlert('결제 처리 중 오류: ' + (error.message || error.toString()), 'error');
     }
 }
 
@@ -616,7 +616,7 @@ async function processTransferPayment() {
     } catch (error) {
         hideLoading();
         console.error('주문 오류:', error);
-        showAlert('주문 처리 중 오류가 발생했습니다.', 'error');
+        showAlert('주문 처리 중 오류: ' + (error.message || error.toString()), 'error');
     }
 }
 
