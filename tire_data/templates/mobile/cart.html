@@ -540,8 +540,8 @@ async function processCardPayment() {
         closePaymentModal();
         closeCheckoutModal();
 
-        // 2. 토스페이먼츠 결제창 호출 (실제 운영 키)
-        const clientKey = data.data.client_key || 'live_gck_Ba5PzR0ArnEjRXbE5kBNVvmYnNeD';
+        // 2. 토스페이먼츠 결제창 호출 (테스트 키)
+        const clientKey = data.data.client_key || 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
         const tossPayments = TossPayments(clientKey);
 
         // 결제 요청
@@ -599,8 +599,8 @@ async function processTransferPayment() {
         closePaymentModal();
         closeCheckoutModal();
 
-        // 2. 토스페이먼츠 결제창 호출 (계좌이체)
-        const clientKey = data.data.client_key || 'live_gck_Ba5PzR0ArnEjRXbE5kBNVvmYnNeD';
+        // 2. 토스페이먼츠 결제창 호출 (계좌이체 테스트)
+        const clientKey = data.data.client_key || 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
         const tossPayments = TossPayments(clientKey);
 
         // 계좌이체 결제 요청
