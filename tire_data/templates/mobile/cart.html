@@ -540,8 +540,8 @@ async function processCardPayment() {
         closePaymentModal();
         closeCheckoutModal();
 
-        // 2. 토스페이먼츠 결제창 호출 (테스트 키)
-        const clientKey = data.data.client_key || 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
+        // 2. 토스페이먼츠 결제창 호출 (최신 테스트 키)
+        const clientKey = data.data.client_key || 'test_ck_vZnjEJeQVxGKkW9qMDDb3PmOoBN0';
         console.log('Client Key:', clientKey);
 
         // TossPayments SDK 로드 확인
@@ -607,8 +607,8 @@ async function processTransferPayment() {
         closePaymentModal();
         closeCheckoutModal();
 
-        // 2. 토스페이먼츠 결제창 호출 (계좌이체 테스트)
-        const clientKey = data.data.client_key || 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm';
+        // 2. 토스페이먼츠 결제창 호출 (계좌이체 최신 테스트)
+        const clientKey = data.data.client_key || 'test_ck_vZnjEJeQVxGKkW9qMDDb3PmOoBN0';
         const tossPayments = TossPayments(clientKey);
 
         // 계좌이체 결제 요청
