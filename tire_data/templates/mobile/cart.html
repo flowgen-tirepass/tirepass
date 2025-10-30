@@ -169,6 +169,49 @@ async function updateQuantity(cartId, newQuantity, availableStock) {
     }
 }
 
+async function updateQuantityInModal(cartId, newQuantity, availableStock) {
+    if (newQuantity < 1) return;
+
+    // 재고 확인 (수량 증가 시)
+    if (availableStock > 0 && newQuantity > availableStock) {
+        showAlert(`재고가 부족합니다.\n현재 재고: ${availableStock}개\n요청 수량: ${newQuantity}개`, 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/cart/${cartId}/update/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({quantity: newQuantity})
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            // 장바구니 데이터 새로고침
+            const customerCode = getCustomerCode();
+            const cartResponse = await fetch(`/api/mobile/cart/?customer_code=${customerCode}`);
+            const cartData = await cartResponse.json();
+
+            if (cartData.success) {
+                cartItems = cartData.data.items;
+
+                // 모달 닫고 다시 열기
+                closePaymentModal();
+                showPaymentMethodModal();
+            }
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('오류가 발생했습니다', 'error');
+    }
+}
+
 async function removeFromCart(cartId) {
     if (!confirm('삭제하시겠습니까?')) return;
 
@@ -341,13 +384,43 @@ function showPaymentMethodModal() {
     const modalHtml = `
         <div id="paymentModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 1001; overflow-y: auto;">
             <div style="background: white; margin: 50px 20px; border-radius: 8px; padding: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
-                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">결제 수단 선택</h3>
+                <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">주문 / 결제</h3>
 
                 <!-- 배송지 요약 -->
                 <div style="padding: 15px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 20px;">
                     <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">배송지</div>
                     <div style="font-weight: 600; margin-bottom: 3px;">${selectedAddress.recipient_name}</div>
                     <div style="font-size: 13px; color: #6b7280;">${selectedAddress.full_address}</div>
+                </div>
+
+                <!-- 주문 상품 목록 -->
+                <div style="margin-bottom: 20px;">
+                    <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 10px;">주문 상품</h4>
+                    <div id="orderItemsList">
+                        ${cartItems.map(item => `
+                            <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 3px;">${item.product_name}</div>
+                                        <div style="font-size: 12px; color: #6b7280;">제조년도: ${item.selected_year}년</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="font-size: 14px; color: #2563eb; font-weight: 600;">
+                                        ${item.discounted_price.toLocaleString()}원 × ${item.quantity}개
+                                    </div>
+                                    <div style="display: flex; gap: 5px; align-items: center;">
+                                        <button onclick="updateQuantityInModal(${item.id}, ${item.quantity - 1}, ${item.available_stock})" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">-</button>
+                                        <span style="padding: 0 8px; font-weight: 600; min-width: 30px; text-align: center;">${item.quantity}</span>
+                                        <button onclick="updateQuantityInModal(${item.id}, ${item.quantity + 1}, ${item.available_stock})" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">+</button>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; margin-top: 5px; font-size: 13px; font-weight: 600;">
+                                    = ${item.final_price.toLocaleString()}원
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
 
                 <!-- 결제 수단 선택 -->
