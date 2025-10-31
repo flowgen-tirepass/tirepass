@@ -193,6 +193,18 @@ class GoodsAdmin(admin.ModelAdmin):
         import logging
         logger = logging.getLogger(__name__)
 
+        # POST 요청이고 action이 있으면 먼저 처리
+        if request.method == 'POST' and 'action' in request.POST:
+            action = request.POST.get('action')
+            if action:  # action이 빈 문자열이 아닌 경우
+                # action 메서드 찾기
+                func = getattr(self, action, None)
+                if func:
+                    # queryset은 사용하지 않으므로 None 전달
+                    response = func(request, None)
+                    if response:
+                        return response
+
         extra_context = extra_context or {}
 
         # 페이지네이션 파라미터
