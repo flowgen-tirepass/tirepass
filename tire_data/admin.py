@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils.html import format_html
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 import re
 from .models import (
     Goods, GoodsDisplayName, ExcludedGoods, CustomersFull, Customers, YearAllocation, BrandGroup,
@@ -81,7 +81,7 @@ class GoodsAdmin(admin.ModelAdmin):
     readonly_fields = ['code']  # 상품코드는 읽기 전용
     list_per_page = 50
     change_list_template = 'admin/goods_changelist.html'
-    actions = ['set_custom_discount', 'set_discount_22', 'set_discount_25', 'set_discount_30']  # 할인율 일괄 적용 액션
+    actions = ['set_custom_discount']  # 할인율 일괄 적용 액션
 
     fieldsets = (
         ('기본 정보', {
@@ -694,67 +694,10 @@ class GoodsAdmin(admin.ModelAdmin):
         message = f"{discount_rate}% 적용 완료: " + ", ".join(message_parts) + f" (총 {total}개)"
         self.message_user(request, message, messages.SUCCESS)
 
+        # 상품 목록 페이지로 리다이렉트
+        return redirect('admin:tire_data_goods_changelist')
+
     set_custom_discount.short_description = "선택한 상품의 할인율을 사용자 지정 값으로 설정"
-
-    def set_discount_22(self, request, queryset):
-        """선택한 상품의 기본 할인율을 22%로 설정"""
-        return self._set_discount_rate(request, 22.00, "22%%")
-    set_discount_22.short_description = "선택한 상품의 할인율을 22%%로 설정"
-
-    def set_discount_25(self, request, queryset):
-        """선택한 상품의 기본 할인율을 25%로 설정"""
-        return self._set_discount_rate(request, 25.00, "25%%")
-    set_discount_25.short_description = "선택한 상품의 할인율을 25%%로 설정"
-
-    def set_discount_30(self, request, queryset):
-        """선택한 상품의 기본 할인율을 30%로 설정"""
-        return self._set_discount_rate(request, 30.00, "30%%")
-    set_discount_30.short_description = "선택한 상품의 할인율을 30%%로 설정"
-
-    def _set_discount_rate(self, request, discount_rate, label):
-        """
-        선택한 상품들의 할인율 일괄 설정 (내부 헬퍼 함수)
-
-        ERP API 기반 Admin이므로 request.POST에서 직접 선택된 상품 코드를 가져옴
-        """
-        from django.contrib import messages
-        from decimal import Decimal
-
-        # POST 데이터에서 선택된 상품 코드 추출
-        selected_codes = request.POST.getlist('_selected_action')
-
-        if not selected_codes:
-            self.message_user(request, "선택된 상품이 없습니다.", messages.WARNING)
-            return
-
-        updated_count = 0
-        created_count = 0
-
-        for goods_code in selected_codes:
-            # YearAllocation 레코드 가져오기 또는 생성
-            year_allocation, created = YearAllocation.objects.get_or_create(
-                goods_code=goods_code,
-                defaults={'base_discount': Decimal(str(discount_rate))}
-            )
-
-            if created:
-                created_count += 1
-            else:
-                # 기존 레코드 업데이트
-                year_allocation.base_discount = Decimal(str(discount_rate))
-                year_allocation.save()
-                updated_count += 1
-
-        # 결과 메시지
-        total = created_count + updated_count
-        message_parts = []
-        if created_count > 0:
-            message_parts.append(f"{created_count}개 상품 할인율 신규 설정")
-        if updated_count > 0:
-            message_parts.append(f"{updated_count}개 상품 할인율 업데이트")
-
-        message = f"{label} 적용 완료: " + ", ".join(message_parts) + f" (총 {total}개)"
-        self.message_user(request, message, messages.SUCCESS)
 
 # CustomersFull은 ERP의 customers 테이블을 참조하는데,
 # 현재 데이터베이스에 해당 테이블이 없어서 임시로 비활성화
