@@ -20,8 +20,8 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*,localhost,127.0.0.1').split('
 # ============================================
 # Toss Payments 설정 (실제 운영 키)
 # ============================================
-TOSS_PAYMENTS_CLIENT_KEY = os.environ.get('TOSS_PAYMENTS_CLIENT_KEY', 'test_ck_vZnjEJeQVxGKkW9qMDDb3PmOoBN0')
-TOSS_PAYMENTS_SECRET_KEY = os.environ.get('TOSS_PAYMENTS_SECRET_KEY', 'test_sk_ma60RZblrqNYNA9ZlxQ58wzYWBn1')
+TOSS_PAYMENTS_CLIENT_KEY = os.environ.get('TOSS_PAYMENTS_CLIENT_KEY', 'live_ck_jExPeJWYVQ1zDYG7N7PEV49R5gvN')
+TOSS_PAYMENTS_SECRET_KEY = os.environ.get('TOSS_PAYMENTS_SECRET_KEY', 'live_sk_ex6BJGQOVDxgWD1LEMnaVW4w2zNb')
 TOSS_PAYMENTS_SECURITY_KEY = os.environ.get('TOSS_PAYMENTS_SECURITY_KEY', 'bddf753aff5f8aadb8aec10a1da97cae1cf5b06494ae82d18683e9a339e56971')
 TOSS_PAYMENTS_API_URL = 'https://api.tosspayments.com/v1'
 
