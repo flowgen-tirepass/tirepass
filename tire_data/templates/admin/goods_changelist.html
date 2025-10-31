@@ -14,18 +14,14 @@
 <form action="" method="post" id="changelist-form">
 {% csrf_token %}
 
-<!-- 일괄 할인율 적용 박스 숨김 처리 -->
-<!--
+<!-- Django 기본 Admin Actions 사용 -->
+{% load admin_list %}
+{% if action_form and cl.show_admin_actions %}
 <div style="background: #e8f5e9; border: 2px solid #4caf50; padding: 15px; margin-bottom: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
     <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <label for="action" style="font-weight: bold; font-size: 15px; color: #2e7d32;">✅ 일괄 할인율 적용</label>
-            <select name="action" id="action" style="padding: 8px 12px; min-width: 250px; border: 2px solid #4caf50; border-radius: 4px; font-size: 14px; font-weight: 600;">
-                <option value="">할인율 선택...</option>
-                <option value="set_discount_22">📊 22퍼센트 할인율로 설정</option>
-                <option value="set_discount_25">📊 25퍼센트 할인율로 설정</option>
-                <option value="set_discount_30">📊 30퍼센트 할인율로 설정</option>
-            </select>
+            <label for="action" style="font-weight: bold; font-size: 15px; color: #2e7d32;">✅ 일괄 작업</label>
+            {{ action_form.action }}
         </div>
         <button type="submit" name="index" value="0" class="button" style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
             ▶ 실행
@@ -37,7 +33,7 @@
         </div>
     </div>
 </div>
--->
+{% endif %}
 
 <!-- ERP 상태 및 필터 -->
 <div style="background: #f8f8f8; border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
@@ -250,6 +246,18 @@
 
 {% block extrahead %}
 {{ block.super }}
+<style>
+/* Action 드롭다운 스타일 */
+#changelist-form select[name="action"] {
+    padding: 8px 12px;
+    min-width: 350px;
+    border: 2px solid #4caf50;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: white;
+}
+</style>
 <script>
 function saveDiscount(input) {
     const goodsCode = input.dataset.goodsCode;
