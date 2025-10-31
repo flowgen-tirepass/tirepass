@@ -23,7 +23,7 @@
             <label for="action" style="font-weight: bold; font-size: 15px; color: #2e7d32;">✅ 일괄 작업</label>
             {{ action_form.action }}
         </div>
-        <button type="submit" name="index" value="0" class="button" style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+        <button type="submit" class="button" title="선택한 작업 실행" style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
             ▶ 실행
         </button>
         <div style="margin-left: auto; padding: 8px 15px; background: white; border: 2px solid #4caf50; border-radius: 6px;">
@@ -249,7 +249,7 @@
 <style>
 /* Action 드롭다운 스타일 */
 #changelist-form select[name="action"] {
-    padding: 8px 12px;
+    padding: 10px 12px;
     width: 100%;
     max-width: 700px;
     border: 2px solid #4caf50;
@@ -257,11 +257,14 @@
     font-size: 14px;
     font-weight: 600;
     background-color: white;
+    height: 44px;
+    line-height: 24px;
 }
 
 /* 드롭다운 옵션 텍스트 전체 표시 */
 #changelist-form select[name="action"] option {
-    padding: 8px;
+    padding: 10px 8px;
+    line-height: 24px;
 }
 </style>
 <script>
