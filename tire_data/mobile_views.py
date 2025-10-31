@@ -176,7 +176,7 @@ def mobile_payment_success(request):
         order.save()
 
         # 5. 장바구니 삭제 (주문한 상품과 일치하는 장바구니 항목)
-        order_product_codes = order.orderitem_set.values_list('product_code', flat=True)
+        order_product_codes = order.items.values_list('product_code', flat=True)
         deleted_count = ShoppingCart.objects.filter(
             customer_code=order.customer_code,
             product_code__in=order_product_codes
