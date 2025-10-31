@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.contrib.admin import SimpleListFilter
+from django.contrib.admin import SimpleListFilter, helpers
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -651,7 +651,7 @@ class GoodsAdmin(admin.ModelAdmin):
             context = {
                 'products': products,
                 'form': form,
-                'action_checkbox_name': admin.ACTION_CHECKBOX_NAME,
+                'action_checkbox_name': helpers.ACTION_CHECKBOX_NAME,
                 'opts': self.model._meta,
                 'site_title': admin.site.site_title,
                 'site_header': admin.site.site_header,
