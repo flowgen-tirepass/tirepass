@@ -117,45 +117,79 @@ def mobile_payment_success(request):
 
         if response.status_code == 200:
             result = response.json()
+        elif response.status_code == 400:
+            # ALREADY_PROCESSED_PAYMENT 에러 처리
+            error_data = response.json()
+            if error_data.get('code') == 'ALREADY_PROCESSED_PAYMENT':
+                logger.info(f"이미 승인된 결제, 조회 API로 확인: {order_id}")
 
-            # 3. Payment 업데이트
-            payment.payment_key = payment_key
-            payment.payment_status = 'completed'
-            payment.pg_transaction_id = result.get('transactionKey', '')
-            payment.save()
+                # orderId로 결제 조회
+                check_response = requests.get(
+                    f"{settings.TOSS_PAYMENTS_API_URL}/payments/orders/{order_id}",
+                    headers={"Authorization": f"Basic {encoded_key}"},
+                    timeout=10
+                )
 
-            # 4. Order 상태 업데이트
-            order.payment_status = 'paid'
-            order.order_status = 'confirmed'
-            order.save()
-
-            # 5. 장바구니 삭제 (주문한 상품과 일치하는 장바구니 항목)
-            order_product_codes = order.orderitem_set.values_list('product_code', flat=True)
-            deleted_count = ShoppingCart.objects.filter(
-                customer_code=order.customer_code,
-                product_code__in=order_product_codes
-            ).delete()[0]
-
-            logger.info(f"장바구니 {deleted_count}개 항목 삭제")
-
-            logger.info(f"결제 승인 성공: {order_id}, paymentKey: {payment_key}")
-
-            return render(request, 'mobile/payment_success.html', {
-                'success': True,
-                'order': order,
-                'payment': payment
-            })
+                if check_response.status_code == 200:
+                    result = check_response.json()
+                    if result.get('status') == 'DONE':
+                        logger.info(f"이미 승인 완료된 결제 확인: {order_id}")
+                    else:
+                        logger.error(f"결제 상태가 DONE이 아님: {result.get('status')}")
+                        return render(request, 'mobile/payment_success.html', {
+                            'success': False,
+                            'message': '결제가 정상적으로 완료되지 않았습니다.'
+                        })
+                else:
+                    logger.error(f"결제 조회 실패: {check_response.status_code}")
+                    return render(request, 'mobile/payment_success.html', {
+                        'success': False,
+                        'message': '결제 확인에 실패했습니다.'
+                    })
+            else:
+                logger.error(f"토스 승인 실패: {error_data}")
+                payment.payment_status = 'failed'
+                payment.save()
+                return render(request, 'mobile/payment_success.html', {
+                    'success': False,
+                    'message': error_data.get('message', '결제 승인에 실패했습니다.')
+                })
         else:
             error_data = response.json()
             logger.error(f"토스 승인 실패: {error_data}")
-
             payment.payment_status = 'failed'
             payment.save()
-
             return render(request, 'mobile/payment_success.html', {
                 'success': False,
                 'message': error_data.get('message', '결제 승인에 실패했습니다.')
             })
+
+        # 3. Payment 업데이트
+        payment.payment_key = payment_key
+        payment.payment_status = 'completed'
+        payment.pg_transaction_id = result.get('transactionKey', '')
+        payment.save()
+
+        # 4. Order 상태 업데이트
+        order.payment_status = 'paid'
+        order.order_status = 'confirmed'
+        order.save()
+
+        # 5. 장바구니 삭제 (주문한 상품과 일치하는 장바구니 항목)
+        order_product_codes = order.orderitem_set.values_list('product_code', flat=True)
+        deleted_count = ShoppingCart.objects.filter(
+            customer_code=order.customer_code,
+            product_code__in=order_product_codes
+        ).delete()[0]
+
+        logger.info(f"장바구니 {deleted_count}개 항목 삭제")
+        logger.info(f"결제 승인 성공: {order_id}, paymentKey: {payment_key}")
+
+        return render(request, 'mobile/payment_success.html', {
+            'success': True,
+            'order': order,
+            'payment': payment
+        })
 
     except Order.DoesNotExist:
         logger.error(f"주문을 찾을 수 없음: {order_id}")
