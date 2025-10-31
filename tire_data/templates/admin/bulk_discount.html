@@ -185,6 +185,9 @@
     <form method="post">
         {% csrf_token %}
 
+        <!-- action 파라미터 전달 (필수!) -->
+        <input type="hidden" name="action" value="set_custom_discount">
+
         <!-- 선택된 상품 코드를 hidden field로 전달 -->
         {% for product in products %}
         <input type="hidden" name="{{ action_checkbox_name }}" value="{{ product.code }}">
