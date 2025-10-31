@@ -697,7 +697,7 @@ class GoodsAdmin(admin.ModelAdmin):
         # 상품 목록 페이지로 리다이렉트
         return redirect('admin:tire_data_goods_changelist')
 
-    set_custom_discount.short_description = "선택한 상품의 할인율을 사용자 지정 값으로 설정"
+    set_custom_discount.short_description = "💰 할인율 일괄 적용 (사용자 지정)"
 
 # CustomersFull은 ERP의 customers 테이블을 참조하는데,
 # 현재 데이터베이스에 해당 테이블이 없어서 임시로 비활성화

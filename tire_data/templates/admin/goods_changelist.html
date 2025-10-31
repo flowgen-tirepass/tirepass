@@ -250,13 +250,18 @@
 /* Action 드롭다운 스타일 */
 #changelist-form select[name="action"] {
     padding: 8px 12px;
-    min-width: 500px;
-    max-width: 600px;
+    width: 100%;
+    max-width: 700px;
     border: 2px solid #4caf50;
     border-radius: 4px;
     font-size: 14px;
     font-weight: 600;
     background-color: white;
+}
+
+/* 드롭다운 옵션 텍스트 전체 표시 */
+#changelist-form select[name="action"] option {
+    padding: 8px;
 }
 </style>
 <script>
