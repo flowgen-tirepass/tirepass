@@ -4,6 +4,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils.html import format_html
+from django.shortcuts import render
 import re
 from .models import (
     Goods, GoodsDisplayName, ExcludedGoods, CustomersFull, Customers, YearAllocation, BrandGroup,
@@ -13,6 +14,7 @@ from .models import (
     ERPSnapshot, GoodsRealtimeSnapshot
 )
 from .erp_api_client import ERPAPIClient
+from .forms import BulkDiscountForm
 
 
 class TireOnlyFilter(SimpleListFilter):
@@ -79,7 +81,7 @@ class GoodsAdmin(admin.ModelAdmin):
     readonly_fields = ['code']  # 상품코드는 읽기 전용
     list_per_page = 50
     change_list_template = 'admin/goods_changelist.html'
-    actions = ['set_discount_22', 'set_discount_25', 'set_discount_30']  # 할인율 일괄 적용 액션
+    actions = ['set_custom_discount', 'set_discount_22', 'set_discount_25', 'set_discount_30']  # 할인율 일괄 적용 액션
 
     fieldsets = (
         ('기본 정보', {
@@ -621,6 +623,78 @@ class GoodsAdmin(admin.ModelAdmin):
         return queryset, use_distinct
 
     # ===== 할인율 일괄 적용 Admin Actions =====
+
+    def set_custom_discount(self, request, queryset):
+        """선택한 상품의 기본 할인율을 사용자 지정 값으로 설정"""
+        from django.contrib import messages
+        from decimal import Decimal
+
+        # POST 데이터에서 선택된 상품 코드 추출
+        selected_codes = request.POST.getlist('_selected_action')
+
+        if not selected_codes:
+            self.message_user(request, "선택된 상품이 없습니다.", messages.WARNING)
+            return
+
+        # GET 요청: 할인율 입력 폼 표시
+        if 'apply' not in request.POST:
+            # 선택된 상품 정보 가져오기
+            products = []
+            for code in selected_codes:
+                try:
+                    goods = Goods.objects.get(code=code)
+                    products.append(goods)
+                except Goods.DoesNotExist:
+                    pass
+
+            form = BulkDiscountForm()
+            context = {
+                'products': products,
+                'form': form,
+                'action_checkbox_name': admin.ACTION_CHECKBOX_NAME,
+                'opts': self.model._meta,
+                'site_title': admin.site.site_title,
+                'site_header': admin.site.site_header,
+            }
+            return render(request, 'admin/bulk_discount.html', context)
+
+        # POST 요청: 할인율 적용
+        form = BulkDiscountForm(request.POST)
+        if not form.is_valid():
+            self.message_user(request, "입력한 할인율이 유효하지 않습니다.", messages.ERROR)
+            return
+
+        discount_rate = form.cleaned_data['discount_rate']
+        updated_count = 0
+        created_count = 0
+
+        for goods_code in selected_codes:
+            # YearAllocation 레코드 가져오기 또는 생성
+            year_allocation, created = YearAllocation.objects.get_or_create(
+                goods_code=goods_code,
+                defaults={'base_discount': Decimal(str(discount_rate))}
+            )
+
+            if created:
+                created_count += 1
+            else:
+                # 기존 레코드 업데이트
+                year_allocation.base_discount = Decimal(str(discount_rate))
+                year_allocation.save()
+                updated_count += 1
+
+        # 결과 메시지
+        total = created_count + updated_count
+        message_parts = []
+        if created_count > 0:
+            message_parts.append(f"{created_count}개 상품 할인율 신규 설정")
+        if updated_count > 0:
+            message_parts.append(f"{updated_count}개 상품 할인율 업데이트")
+
+        message = f"{discount_rate}% 적용 완료: " + ", ".join(message_parts) + f" (총 {total}개)"
+        self.message_user(request, message, messages.SUCCESS)
+
+    set_custom_discount.short_description = "선택한 상품의 할인율을 사용자 지정 값으로 설정"
 
     def set_discount_22(self, request, queryset):
         """선택한 상품의 기본 할인율을 22%로 설정"""
