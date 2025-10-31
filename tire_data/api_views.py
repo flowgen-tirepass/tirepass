@@ -194,25 +194,38 @@ def api_products_list(request):
 
         # 숫자만 추출하여 타이어 사이즈 패턴 검색
         numeric_only = re.sub(r'[^0-9]', '', search)
-        if len(numeric_only) >= 6:
-            # 타이어 사이즈 패턴 생성 (예: 2055516 -> 205/55R16)
-            width = numeric_only[:3]
-            aspect = numeric_only[3:5]
+        if len(numeric_only) >= 5:
+            patterns = []
 
-            # 나머지 숫자를 인치로 사용
-            if len(numeric_only) >= 7:
-                rim = numeric_only[5:7]
+            if len(numeric_only) == 5:
+                # 5자리: 145R13 형식 (width 3자리 + rim 2자리, aspect ratio 없음)
+                width = numeric_only[:3]
+                rim = numeric_only[3:5]
+                patterns = [
+                    f"{width}R{rim}",
+                    f"{width}r{rim}",
+                    f"{width}/{rim}",
+                    f"{width}-{rim}",
+                    f"{width} {rim}",
+                ]
             else:
-                rim = numeric_only[5:]
+                # 6자리 이상: 205/55R16 형식 (width 3자리 + aspect 2자리 + rim)
+                width = numeric_only[:3]
+                aspect = numeric_only[3:5]
 
-            # 다양한 패턴으로 검색
-            patterns = [
-                f"{width}/{aspect}R{rim}",
-                f"{width}/{aspect}/{rim}",
-                f"{width}-{aspect}-{rim}",
-                f"{width} {aspect} {rim}",
-                f"{width}/{aspect}r{rim}",  # 소문자 r
-            ]
+                # 나머지 숫자를 인치로 사용
+                if len(numeric_only) >= 7:
+                    rim = numeric_only[5:7]
+                else:
+                    rim = numeric_only[5:]
+
+                patterns = [
+                    f"{width}/{aspect}R{rim}",
+                    f"{width}/{aspect}/{rim}",
+                    f"{width}-{aspect}-{rim}",
+                    f"{width} {aspect} {rim}",
+                    f"{width}/{aspect}r{rim}",  # 소문자 r
+                ]
 
             # 패턴 추가
             for pattern in patterns:
