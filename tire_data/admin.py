@@ -193,17 +193,33 @@ class GoodsAdmin(admin.ModelAdmin):
         import logging
         logger = logging.getLogger(__name__)
 
+        # 디버깅: 요청 메서드 로그
+        logger.info(f"🔍 changelist_view - Method: {request.method}, POST data: {dict(request.POST)}")
+
         # POST 요청이고 action이 있으면 먼저 처리
         if request.method == 'POST' and 'action' in request.POST:
             action = request.POST.get('action')
+            logger.info(f"✅ Action detected: {action}")
             if action:  # action이 빈 문자열이 아닌 경우
                 # action 메서드 찾기
                 func = getattr(self, action, None)
+                logger.info(f"🔧 Action function: {func}")
                 if func:
                     # queryset은 사용하지 않으므로 None 전달
+                    logger.info(f"▶️ Executing action: {action}")
                     response = func(request, None)
+                    logger.info(f"📤 Action response: {response}")
                     if response:
                         return response
+                else:
+                    logger.warning(f"⚠️ Action function not found: {action}")
+            else:
+                logger.warning("⚠️ Action is empty string")
+        else:
+            if request.method == 'POST':
+                logger.warning("⚠️ POST request but no action in POST data")
+            else:
+                logger.info("ℹ️ GET request (normal page view)")
 
         extra_context = extra_context or {}
 
