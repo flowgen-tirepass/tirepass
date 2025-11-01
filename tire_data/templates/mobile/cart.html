@@ -19,6 +19,8 @@
 {% block extra_js %}
 <script>
 let cartItems = [];
+let paymentMethods = [];
+let selectedPaymentMethodId = null;
 
 // CSRF 토큰 가져오기
 function getCookie(name) {
@@ -290,15 +292,18 @@ function showAddressSelectModal() {
         addressOptions = '<p style="color: #6b7280; text-align: center; padding: 20px;">등록된 배송지가 없습니다</p>';
     } else {
         addressOptions = shippingAddresses.map(addr => `
-            <label style="display: block; padding: 15px; border: 2px solid ${selectedAddressId === addr.id ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer;">
+            <label style="display: block; padding: 15px; border: 2px solid ${selectedAddressId === addr.id ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer; position: relative;">
                 <input type="radio" name="address" value="${addr.id}" ${selectedAddressId === addr.id ? 'checked' : ''} onchange="selectedAddressId = ${addr.id}; updateAddressSelection();" style="margin-right: 10px;">
-                <div style="display: inline-block; vertical-align: top;">
+                <div style="display: inline-block; vertical-align: top; width: calc(100% - 80px);">
                     <div style="font-weight: 600; margin-bottom: 5px;">
-                        ${addr.recipient_name} ${addr.is_default ? '<span class="badge badge-blue">기본</span>' : ''}
+                        ${addr.recipient_name} ${addr.is_default ? '<span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">기본</span>' : ''}
                     </div>
                     <div style="font-size: 13px; color: #6b7280; margin-bottom: 3px;">${addr.phone_number}</div>
                     <div style="font-size: 13px; color: #333;">${addr.full_address}</div>
                 </div>
+                <button onclick="event.stopPropagation(); editAddress(${addr.id});" style="position: absolute; top: 15px; right: 15px; background: #f3f4f6; border: 1px solid #d1d5db; color: #374151; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+                    변경
+                </button>
             </label>
         `).join('');
     }
@@ -308,15 +313,48 @@ function showAddressSelectModal() {
             <div style="background: white; margin: 50px 20px; border-radius: 8px; padding: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
                 <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 15px;">배송지 선택</h3>
 
-                <div id="addressList" style="margin-bottom: 20px;">
+                <div id="addressList" style="margin-bottom: 15px;">
                     ${addressOptions}
                 </div>
 
-                ${shippingAddresses.length === 0 ? `
-                    <button onclick="location.href='/mobile/addresses/'" class="btn btn-secondary btn-block" style="margin-bottom: 15px;">
-                        새 배송지 추가
-                    </button>
-                ` : ''}
+                <!-- 새 배송지 추가 버튼 (항상 표시) -->
+                <button onclick="showAddAddressForm()" class="btn btn-secondary btn-block" style="margin-bottom: 15px;">
+                    + 새 배송지 추가
+                </button>
+
+                <!-- 배송지 추가/수정 폼 (처음에는 숨김) -->
+                <div id="addressForm" style="display: none; background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 id="addressFormTitle" style="font-size: 16px; font-weight: 600; margin-bottom: 15px; color: #111827;">새 배송지 추가</h4>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 13px; font-weight: 500; color: #374151;">받는 분</label>
+                        <input type="text" id="addr_recipient_name" class="form-input" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" required>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 13px; font-weight: 500; color: #374151;">전화번호</label>
+                        <input type="tel" id="addr_phone_number" class="form-input" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" placeholder="010-1234-5678" required>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 13px; font-weight: 500; color: #374151;">주소</label>
+                        <input type="text" id="addr_full_address" class="form-input" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" required>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="addr_is_default" style="width: 18px; height: 18px;">
+                            <span style="font-size: 14px; color: #374151;">기본 배송지로 설정</span>
+                        </label>
+                    </div>
+
+                    <input type="hidden" id="addr_edit_id" value="">
+
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="cancelAddressForm()" class="btn btn-secondary" style="flex: 1;">취소</button>
+                        <button onclick="saveAddress()" class="btn btn-primary" style="flex: 1;">저장</button>
+                    </div>
+                </div>
 
                 <!-- 배송 메모 입력 -->
                 <div style="margin-bottom: 20px;">
@@ -425,21 +463,41 @@ function showPaymentMethodModal() {
 
                 <!-- 결제 수단 선택 -->
                 <div style="margin-bottom: 20px;">
-                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentCard">
-                        <input type="radio" name="payment_method" value="card" checked onchange="updatePaymentMethodSelection();" style="margin-right: 10px;">
+                    <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 10px;">결제 수단</h4>
+
+                    ${paymentMethods.length > 0 ? paymentMethods.map((method, index) => `
+                        <label style="display: block; padding: 15px; border: 2px solid ${selectedPaymentMethodId === method.id ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer; position: relative;" id="paymentMethod${method.id}">
+                            <input type="radio" name="payment_method" value="saved_${method.id}" ${selectedPaymentMethodId === method.id ? 'checked' : ''} onchange="selectedPaymentMethodId = ${method.id}; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                            <div style="display: inline-block; vertical-align: top; width: calc(100% - 90px);">
+                                <div style="font-weight: 600; margin-bottom: 3px;">
+                                    ${method.payment_type === 'CARD' ? '💳' : '🏦'} ${method.masked_info}
+                                    ${method.is_default ? '<span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 5px;">기본</span>' : ''}
+                                </div>
+                                ${method.nickname ? `<div style="font-size: 13px; color: #6b7280;">${method.nickname}</div>` : ''}
+                            </div>
+                            <button onclick="event.stopPropagation(); setDefaultPaymentMethod(${method.id});" style="position: absolute; top: 15px; right: 15px; background: #f3f4f6; border: 1px solid #d1d5db; color: #374151; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; ${method.is_default ? 'display: none;' : ''}">
+                                기본
+                            </button>
+                        </label>
+                    `).join('') : ''}
+
+                    <!-- 새 결제 수단으로 결제 -->
+                    <label style="display: block; padding: 15px; border: 2px solid ${!selectedPaymentMethodId ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentNew">
+                        <input type="radio" name="payment_method" value="new_card" ${!selectedPaymentMethodId ? 'checked' : ''} onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
                         <div style="display: inline-block; vertical-align: top;">
-                            <div style="font-weight: 600; margin-bottom: 3px;">💳 카드결제</div>
+                            <div style="font-weight: 600; margin-bottom: 3px;">💳 새 카드로 결제</div>
                             <div style="font-size: 13px; color: #6b7280;">토스페이먼츠로 안전하게 결제</div>
                         </div>
                     </label>
 
-                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer;" id="paymentTransfer">
-                        <input type="radio" name="payment_method" value="transfer" onchange="updatePaymentMethodSelection();" style="margin-right: 10px;">
-                        <div style="display: inline-block; vertical-align: top;">
-                            <div style="font-weight: 600; margin-bottom: 3px;">🏦 계좌이체</div>
-                            <div style="font-size: 13px; color: #6b7280;">주문 후 계좌번호 안내</div>
+                    ${paymentMethods.length === 0 ? `
+                        <div style="padding: 15px; background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="font-size: 13px; color: #92400e; line-height: 1.6;">
+                                💡 <strong>결제 수단을 등록하면 더 빠르게 주문할 수 있습니다!</strong><br>
+                                프로필 페이지에서 카드/계좌를 미리 등록하세요.
+                            </div>
                         </div>
-                    </label>
+                    ` : ''}
                 </div>
 
                 <!-- 결제 금액 -->
@@ -467,8 +525,6 @@ function showPaymentMethodModal() {
 }
 
 function updatePaymentMethodSelection() {
-    const cardLabel = document.getElementById('paymentCard');
-    const transferLabel = document.getElementById('paymentTransfer');
     const radios = document.querySelectorAll('input[name="payment_method"]');
 
     radios.forEach(radio => {
@@ -483,6 +539,39 @@ function updatePaymentMethodSelection() {
     });
 }
 
+async function setDefaultPaymentMethod(methodId) {
+    if (!confirm('이 결제 수단을 기본으로 설정하시겠습니까?')) {
+        return;
+    }
+
+    showLoading();
+
+    try {
+        // 모든 결제 수단의 is_default를 false로 설정하고, 선택한 것만 true로
+        // 실제로는 서버에서 처리해야 하지만, 현재는 프론트엔드에서만 업데이트
+        paymentMethods.forEach(m => {
+            m.is_default = (m.id === methodId);
+        });
+
+        // 선택된 결제 수단을 기본으로 설정
+        selectedPaymentMethodId = methodId;
+
+        hideLoading();
+        showAlert('기본 결제 수단으로 설정되었습니다.', 'success');
+
+        // 모달 닫고 다시 열기 (UI 업데이트)
+        closePaymentModal();
+        setTimeout(() => {
+            showPaymentMethodModal();
+        }, 300);
+
+    } catch (error) {
+        hideLoading();
+        console.error('기본 결제 수단 설정 오류:', error);
+        showAlert('설정 중 오류가 발생했습니다.', 'error');
+    }
+}
+
 function closePaymentModal() {
     const modal = document.getElementById('paymentModal');
     if (modal) {
@@ -491,14 +580,78 @@ function closePaymentModal() {
 }
 
 async function processPayment() {
-    const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+    const paymentMethodValue = document.querySelector('input[name="payment_method"]:checked').value;
 
-    if (paymentMethod === 'card') {
-        // 토스페이먼츠 결제창 호출
+    if (paymentMethodValue.startsWith('saved_')) {
+        // 등록된 결제 수단으로 결제
+        const methodId = parseInt(paymentMethodValue.replace('saved_', ''));
+        await processSavedPaymentMethod(methodId);
+    } else if (paymentMethodValue === 'new_card') {
+        // 새 카드로 결제 (토스페이먼츠 결제창)
         await processCardPayment();
-    } else {
-        // 계좌이체 - 바로 주문 생성
-        await processTransferPayment();
+    }
+}
+
+async function processSavedPaymentMethod(methodId) {
+    const selectedMethod = paymentMethods.find(m => m.id === methodId);
+    if (!selectedMethod) {
+        showAlert('결제 수단을 찾을 수 없습니다.', 'error');
+        return;
+    }
+
+    if (!confirm(`${selectedMethod.masked_info}로 결제하시겠습니까?`)) {
+        return;
+    }
+
+    const customerCode = getCustomerCode();
+    const selectedAddress = shippingAddresses.find(addr => addr.id === selectedAddressId);
+    const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
+
+    showLoading();
+
+    try {
+        const cartIds = cartItems.map(item => item.id);
+
+        // TODO: 빌링키를 사용한 자동 결제 API 호출
+        // 현재는 주문만 생성하고, 실제 빌링키 결제는 추후 구현
+        const response = await fetch('/api/mobile/orders/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                customer_code: customerCode,
+                cart_ids: cartIds,
+                shipping_address: selectedAddress ? selectedAddress.full_address : '',
+                shipping_memo: shippingMemo || '',
+                payment_method_id: methodId,
+                payment_method: selectedMethod.payment_type === 'CARD' ? 'card' : 'account',
+                amount: totalAmount,
+                use_saved_method: true
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('주문이 완료되었습니다!', 'success');
+
+            closePaymentModal();
+            closeCheckoutModal();
+
+            // 주문 완료 페이지로 이동
+            setTimeout(() => {
+                location.href = `/mobile/orders/${data.data.order_id}/`;
+            }, 1500);
+        } else {
+            showAlert(data.message || '주문 실패', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('주문 오류:', error);
+        showAlert('주문 처리 중 오류가 발생했습니다.', 'error');
     }
 }
 
@@ -628,6 +781,144 @@ async function processTransferPayment() {
     }
 }
 
+// ========================================
+// 결제 수단 로딩 함수
+// ========================================
+
+async function loadPaymentMethods() {
+    const customerCode = getCustomerCode();
+    if (!customerCode) return;
+
+    try {
+        const response = await fetch(`/api/mobile/payment-methods/?customer_code=${customerCode}`);
+        const data = await response.json();
+
+        if (data.success) {
+            paymentMethods = data.data;
+
+            // 기본 결제 수단 자동 선택
+            const defaultMethod = paymentMethods.find(m => m.is_default);
+            if (defaultMethod) {
+                selectedPaymentMethodId = defaultMethod.id;
+            } else if (paymentMethods.length > 0) {
+                selectedPaymentMethodId = paymentMethods[0].id;
+            }
+        }
+    } catch (error) {
+        console.error('결제 수단 로드 오류:', error);
+    }
+}
+
+// ========================================
+// 배송지 추가/수정 관련 함수
+// ========================================
+
+function showAddAddressForm() {
+    document.getElementById('addressFormTitle').textContent = '새 배송지 추가';
+    document.getElementById('addr_recipient_name').value = '';
+    document.getElementById('addr_phone_number').value = '';
+    document.getElementById('addr_full_address').value = '';
+    document.getElementById('addr_is_default').checked = false;
+    document.getElementById('addr_edit_id').value = '';
+    document.getElementById('addressForm').style.display = 'block';
+
+    // 폼 위치로 스크롤
+    setTimeout(() => {
+        document.getElementById('addressForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+}
+
+function editAddress(addressId) {
+    const address = shippingAddresses.find(addr => addr.id === addressId);
+    if (!address) {
+        showAlert('배송지를 찾을 수 없습니다.', 'error');
+        return;
+    }
+
+    document.getElementById('addressFormTitle').textContent = '배송지 수정';
+    document.getElementById('addr_recipient_name').value = address.recipient_name;
+    document.getElementById('addr_phone_number').value = address.phone_number;
+    document.getElementById('addr_full_address').value = address.full_address;
+    document.getElementById('addr_is_default').checked = address.is_default;
+    document.getElementById('addr_edit_id').value = addressId;
+    document.getElementById('addressForm').style.display = 'block';
+
+    // 폼 위치로 스크롤
+    setTimeout(() => {
+        document.getElementById('addressForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+}
+
+function cancelAddressForm() {
+    document.getElementById('addressForm').style.display = 'none';
+    document.getElementById('addr_recipient_name').value = '';
+    document.getElementById('addr_phone_number').value = '';
+    document.getElementById('addr_full_address').value = '';
+    document.getElementById('addr_is_default').checked = false;
+    document.getElementById('addr_edit_id').value = '';
+}
+
+async function saveAddress() {
+    const recipientName = document.getElementById('addr_recipient_name').value.trim();
+    const phoneNumber = document.getElementById('addr_phone_number').value.trim();
+    const fullAddress = document.getElementById('addr_full_address').value.trim();
+    const isDefault = document.getElementById('addr_is_default').checked;
+    const editId = document.getElementById('addr_edit_id').value;
+
+    if (!recipientName || !phoneNumber || !fullAddress) {
+        showAlert('모든 필수 정보를 입력해주세요.', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const customerCode = getCustomerCode();
+        const url = editId
+            ? `/api/mobile/shipping-addresses/${editId}/update/`
+            : '/api/mobile/shipping-addresses/add/';
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                customer_code: customerCode,
+                recipient_name: recipientName,
+                phone_number: phoneNumber,
+                full_address: fullAddress,
+                is_default: isDefault
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert(editId ? '배송지가 수정되었습니다.' : '배송지가 추가되었습니다.', 'success');
+            cancelAddressForm();
+
+            // 배송지 목록 다시 로드
+            await loadShippingAddresses();
+
+            // 모달 닫고 다시 열기
+            closeCheckoutModal();
+            setTimeout(() => {
+                showAddressSelectModal();
+            }, 300);
+        } else {
+            showAlert(data.message || '배송지 저장에 실패했습니다.', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('배송지 저장 오류:', error);
+        showAlert('배송지 저장 중 오류가 발생했습니다.', 'error');
+    }
+}
+
 loadCart();
+loadPaymentMethods();
 </script>
 {% endblock %}
