@@ -60,7 +60,9 @@ def mobile_order_detail(request, order_id):
 
 def mobile_profile(request):
     """프로필 페이지"""
-    return render(request, 'mobile/profile.html')
+    return render(request, 'mobile/profile.html', {
+        'settings': settings
+    })
 
 def mobile_quote(request):
     """견적서 작성 페이지"""

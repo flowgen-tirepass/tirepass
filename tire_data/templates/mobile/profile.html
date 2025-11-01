@@ -43,6 +43,100 @@
     <button onclick="showChangePassword()" class="btn btn-secondary btn-block" style="margin-top: 10px;">비밀번호 변경</button>
     <button onclick="logout()" class="btn btn-danger btn-block" style="margin-top: 10px;">로그아웃</button>
 </div>
+
+<!-- 결제 수단 등록 모달 -->
+<div id="paymentMethodModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; overflow-y: auto;">
+    <div style="min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; border-radius: 16px; width: 100%; max-width: 500px; padding: 24px; position: relative;">
+            <button onclick="hidePaymentMethodModal()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: #9ca3af;">×</button>
+
+            <h3 style="margin-bottom: 20px; font-size: 20px; font-weight: 600; color: #111827;">💳 결제 수단 등록</h3>
+
+            <!-- 결제 수단 선택 탭 -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb;">
+                <button id="tabCard" onclick="switchTab('card')" style="flex: 1; padding: 12px; border: none; background: none; font-weight: 600; color: #3b82f6; border-bottom: 2px solid #3b82f6; margin-bottom: -2px; cursor: pointer;">
+                    카드 등록
+                </button>
+                <button id="tabAccount" onclick="switchTab('account')" style="flex: 1; padding: 12px; border: none; background: none; font-weight: 600; color: #6b7280; cursor: pointer;">
+                    계좌 등록
+                </button>
+            </div>
+
+            <!-- 카드 등록 폼 -->
+            <div id="cardForm" style="display: block;">
+                <div style="background: #f0f9ff; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
+                    <p style="font-size: 13px; color: #1e40af; line-height: 1.6;">
+                        📸 <strong>카드 OCR 스캔</strong>을 지원합니다<br>
+                        카드를 카메라에 비추면 자동으로 입력됩니다
+                    </p>
+                </div>
+
+                <div id="toss-billing-widget" style="margin-bottom: 20px;"></div>
+
+                <div class="form-group">
+                    <label class="form-label">별칭 (선택)</label>
+                    <input type="text" class="form-input" id="card_nickname" placeholder="예: 회사 법인카드">
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="card_is_default" style="width: 20px; height: 20px;">
+                    <label for="card_is_default" style="margin: 0; font-size: 14px; color: #374151;">기본 결제 수단으로 설정</label>
+                </div>
+
+                <button onclick="submitCard()" class="btn btn-primary btn-block">카드 등록</button>
+            </div>
+
+            <!-- 계좌 등록 폼 -->
+            <div id="accountForm" style="display: none;">
+                <div style="background: #fffbeb; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+                    <p style="font-size: 13px; color: #92400e; line-height: 1.6;">
+                        ⚠️ 계좌번호는 암호화되어 안전하게 저장됩니다<br>
+                        계좌이체 결제 시 사용됩니다
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">은행</label>
+                    <select class="form-input" id="account_bank" required>
+                        <option value="">은행 선택</option>
+                        <option value="KB국민">KB국민</option>
+                        <option value="신한">신한</option>
+                        <option value="우리">우리</option>
+                        <option value="하나">하나</option>
+                        <option value="NH농협">NH농협</option>
+                        <option value="IBK기업">IBK기업</option>
+                        <option value="SC제일">SC제일</option>
+                        <option value="씨티">씨티</option>
+                        <option value="카카오뱅크">카카오뱅크</option>
+                        <option value="토스뱅크">토스뱅크</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">계좌번호</label>
+                    <input type="text" class="form-input" id="account_number" placeholder="숫자만 입력 (하이픈 제외)" pattern="[0-9]+" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">예금주</label>
+                    <input type="text" class="form-input" id="account_holder" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">별칭 (선택)</label>
+                    <input type="text" class="form-input" id="account_nickname" placeholder="예: 회사 법인계좌">
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="account_is_default" style="width: 20px; height: 20px;">
+                    <label for="account_is_default" style="margin: 0; font-size: 14px; color: #374151;">기본 결제 수단으로 설정</label>
+                </div>
+
+                <button onclick="submitAccount()" class="btn btn-primary btn-block">계좌 등록</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -249,8 +343,179 @@ function renderPaymentMethods(methods) {
     container.innerHTML = html;
 }
 
+// Toss 위젯 변수
+let tossWidget = null;
+let tossAuthKey = null;
+
 function showAddPaymentMethod() {
-    showAlert('결제 수단 등록 기능은 준비 중입니다', 'info');
+    document.getElementById('paymentMethodModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Toss 위젯 초기화
+    if (!tossWidget) {
+        loadTossWidget();
+    }
+}
+
+function hidePaymentMethodModal() {
+    document.getElementById('paymentMethodModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+
+    // 폼 초기화
+    document.getElementById('card_nickname').value = '';
+    document.getElementById('card_is_default').checked = false;
+    document.getElementById('account_bank').value = '';
+    document.getElementById('account_number').value = '';
+    document.getElementById('account_holder').value = '';
+    document.getElementById('account_nickname').value = '';
+    document.getElementById('account_is_default').checked = false;
+}
+
+function switchTab(tab) {
+    if (tab === 'card') {
+        document.getElementById('tabCard').style.color = '#3b82f6';
+        document.getElementById('tabCard').style.borderBottom = '2px solid #3b82f6';
+        document.getElementById('tabAccount').style.color = '#6b7280';
+        document.getElementById('tabAccount').style.borderBottom = 'none';
+        document.getElementById('cardForm').style.display = 'block';
+        document.getElementById('accountForm').style.display = 'none';
+    } else {
+        document.getElementById('tabAccount').style.color = '#3b82f6';
+        document.getElementById('tabAccount').style.borderBottom = '2px solid #3b82f6';
+        document.getElementById('tabCard').style.color = '#6b7280';
+        document.getElementById('tabCard').style.borderBottom = 'none';
+        document.getElementById('cardForm').style.display = 'none';
+        document.getElementById('accountForm').style.display = 'block';
+    }
+}
+
+async function loadTossWidget() {
+    // Toss Payments SDK 로드
+    const script = document.createElement('script');
+    script.src = 'https://js.tosspayments.com/v1/payment-widget';
+    script.onload = async () => {
+        try {
+            const clientKey = '{{ settings.TOSS_PAYMENTS_CLIENT_KEY }}';
+            const customerKey = getCustomerCode();
+
+            // Payment Widget 초기화 대신 Billing Widget 사용
+            const { loadBillingWidget } = window.TossPayments;
+            tossWidget = await loadBillingWidget(clientKey, customerKey);
+
+            // 위젯 렌더링
+            tossWidget.renderCardForm('#toss-billing-widget', {
+                cardNumberInputLabel: '카드번호',
+                expiryInputLabel: '유효기간 (MM/YY)',
+                cvcInputLabel: 'CVC (보안코드)',
+                focusOnFirstInput: true
+            });
+
+            // 카드 정보 입력 완료 시 authKey 받기
+            tossWidget.on('complete', (authKey) => {
+                tossAuthKey = authKey;
+            });
+        } catch (error) {
+            console.error('Toss 위젯 로드 오류:', error);
+            showAlert('카드 입력 위젯 로드에 실패했습니다', 'error');
+        }
+    };
+    document.head.appendChild(script);
+}
+
+async function submitCard() {
+    const nickname = document.getElementById('card_nickname').value;
+    const isDefault = document.getElementById('card_is_default').checked;
+
+    if (!tossAuthKey) {
+        showAlert('카드 정보를 입력해주세요', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch('/api/mobile/payment-methods/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_code: getCustomerCode(),
+                payment_type: 'CARD',
+                auth_key: tossAuthKey,
+                nickname: nickname,
+                is_default: isDefault
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('카드가 등록되었습니다', 'success');
+            hidePaymentMethodModal();
+            loadPaymentMethods();
+            tossAuthKey = null;
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('카드 등록 중 오류가 발생했습니다', 'error');
+    }
+}
+
+async function submitAccount() {
+    const bank = document.getElementById('account_bank').value;
+    const number = document.getElementById('account_number').value;
+    const holder = document.getElementById('account_holder').value;
+    const nickname = document.getElementById('account_nickname').value;
+    const isDefault = document.getElementById('account_is_default').checked;
+
+    if (!bank || !number || !holder) {
+        showAlert('모든 필수 정보를 입력해주세요', 'error');
+        return;
+    }
+
+    // 숫자만 입력 확인
+    if (!/^\d+$/.test(number)) {
+        showAlert('계좌번호는 숫자만 입력해주세요', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch('/api/mobile/payment-methods/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_code: getCustomerCode(),
+                payment_type: 'ACCOUNT',
+                account_bank: bank,
+                account_number: number,
+                account_holder: holder,
+                nickname: nickname,
+                is_default: isDefault
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('계좌가 등록되었습니다', 'success');
+            hidePaymentMethodModal();
+            loadPaymentMethods();
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showAlert('계좌 등록 중 오류가 발생했습니다', 'error');
+    }
 }
 
 async function deletePaymentMethod(methodId) {

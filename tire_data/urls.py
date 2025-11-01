@@ -85,6 +85,7 @@ urlpatterns = [
 
     # 결제 수단 API
     path('api/mobile/payment-methods/', api_views_mobile.api_payment_methods_list, name='api_payment_methods_list'),
+    path('api/mobile/payment-methods/add/', api_views_mobile.api_payment_method_add, name='api_payment_method_add'),
     path('api/mobile/payment-methods/<int:method_id>/', api_views_mobile.api_payment_method_delete, name='api_payment_method_delete'),
 
     # ERP 실시간 동기화 API

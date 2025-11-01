@@ -4,10 +4,13 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.conf import settings
 from .erp_api_client import ERPAPIClient
 from .models import YearAllocation, ShoppingCart, Customers, PaymentMethod
 import json
 import logging
+import requests
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -390,5 +393,154 @@ def api_payment_method_delete(request, method_id):
         return JsonResponse({
             'success': False,
             'message': '삭제 중 오류가 발생했습니다',
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_payment_method_add(request):
+    """결제 수단 등록 (카드/계좌)"""
+    try:
+        data = json.loads(request.body)
+        customer_code = data.get('customer_code')
+        payment_type = data.get('payment_type')  # 'CARD' or 'ACCOUNT'
+
+        if not customer_code or not payment_type:
+            return JsonResponse({
+                'success': False,
+                'message': '필수 파라미터가 누락되었습니다'
+            }, status=400)
+
+        # 고객 확인
+        try:
+            customer = Customers.objects.get(code=customer_code)
+        except Customers.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': '고객을 찾을 수 없습니다'
+            }, status=404)
+
+        if payment_type == 'CARD':
+            # 카드 등록 (토스 빌링키 사용)
+            billing_key = data.get('billing_key')
+            auth_key = data.get('auth_key')  # 카드 인증키 (토스 위젯에서 받은)
+
+            if not auth_key:
+                return JsonResponse({
+                    'success': False,
+                    'message': '카드 인증키가 필요합니다'
+                }, status=400)
+
+            # 토스 빌링키 발급 API 호출
+            toss_secret = settings.TOSS_PAYMENTS_SECRET_KEY
+            auth_header = base64.b64encode(f"{toss_secret}:".encode()).decode()
+
+            try:
+                # 빌링키 발급 요청
+                response = requests.post(
+                    f"{settings.TOSS_PAYMENTS_API_URL}/billing/authorizations/issue",
+                    headers={
+                        'Authorization': f'Basic {auth_header}',
+                        'Content-Type': 'application/json'
+                    },
+                    json={
+                        'authKey': auth_key,
+                        'customerKey': customer_code
+                    },
+                    timeout=10
+                )
+
+                if response.status_code != 200:
+                    logger.error(f"토스 빌링키 발급 실패: {response.text}")
+                    return JsonResponse({
+                        'success': False,
+                        'message': '카드 등록에 실패했습니다. 카드 정보를 확인해주세요.'
+                    }, status=400)
+
+                toss_data = response.json()
+                billing_key = toss_data.get('billingKey')
+                card_info = toss_data.get('card', {})
+
+                # PaymentMethod 생성
+                method = PaymentMethod.objects.create(
+                    customer_code=customer_code,
+                    payment_type='CARD',
+                    billing_key=billing_key,
+                    card_company=card_info.get('issuerCode', ''),
+                    card_last4=card_info.get('number', '')[-4:] if card_info.get('number') else '',
+                    card_type=card_info.get('cardType', ''),
+                    nickname=data.get('nickname', ''),
+                    is_default=data.get('is_default', False)
+                )
+
+                return JsonResponse({
+                    'success': True,
+                    'message': '카드가 등록되었습니다',
+                    'data': {
+                        'id': method.id,
+                        'masked_info': method.masked_info,
+                        'is_default': method.is_default
+                    }
+                })
+
+            except requests.RequestException as e:
+                logger.error(f"토스 API 호출 오류: {str(e)}")
+                return JsonResponse({
+                    'success': False,
+                    'message': '카드 등록 중 오류가 발생했습니다'
+                }, status=500)
+
+        elif payment_type == 'ACCOUNT':
+            # 계좌 등록
+            account_bank = data.get('account_bank')
+            account_number = data.get('account_number')
+            account_holder = data.get('account_holder')
+
+            if not all([account_bank, account_number, account_holder]):
+                return JsonResponse({
+                    'success': False,
+                    'message': '계좌 정보가 누락되었습니다'
+                }, status=400)
+
+            # 계좌번호 암호화 (간단히 마지막 4자리만 저장, 전체는 암호화)
+            # TODO: 실제 운영에서는 암호화 라이브러리 사용
+            from django.contrib.auth.hashers import make_password
+            account_encrypted = make_password(account_number)
+            account_last4 = account_number[-4:]
+
+            # PaymentMethod 생성
+            method = PaymentMethod.objects.create(
+                customer_code=customer_code,
+                payment_type='ACCOUNT',
+                account_bank=account_bank,
+                account_number_encrypted=account_encrypted,
+                account_last4=account_last4,
+                account_holder=account_holder,
+                nickname=data.get('nickname', ''),
+                is_default=data.get('is_default', False)
+            )
+
+            return JsonResponse({
+                'success': True,
+                'message': '계좌가 등록되었습니다',
+                'data': {
+                    'id': method.id,
+                    'masked_info': method.masked_info,
+                    'is_default': method.is_default
+                }
+            })
+
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': '지원하지 않는 결제 수단입니다'
+            }, status=400)
+
+    except Exception as e:
+        logger.error(f"결제 수단 등록 오류: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': '등록 중 오류가 발생했습니다',
             'error': str(e)
         }, status=500)
