@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from .erp_api_client import ERPAPIClient
-from .models import YearAllocation, ShoppingCart, Customers
+from .models import YearAllocation, ShoppingCart, Customers, PaymentMethod
 import json
 import logging
 
@@ -244,15 +244,15 @@ def api_cart_add_simple(request):
 @require_http_methods(["POST"])
 def api_payment_prepare_toss(request):
     """
-    Åä½ºÆäÀÌ¸ÕÃ÷ °áÁ¦ ÁØºñ
+    ï¿½ä½ºï¿½ï¿½ï¿½Ì¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Øºï¿½
     """
     try:
         data = json.loads(request.body)
         customer_code = data.get('customer_code')
         amount = int(data.get('amount'))
-        order_name = data.get('order_name', 'Å¸ÀÌ¾î ÁÖ¹®')
+        order_name = data.get('order_name', 'Å¸ï¿½Ì¾ï¿½ ï¿½Ö¹ï¿½')
 
-        # ÁÖ¹®¹øÈ£ »ı¼º
+        # ï¿½Ö¹ï¿½ï¿½ï¿½È£ ï¿½ï¿½ï¿½ï¿½
         import uuid
         order_id = f"ORDER_{uuid.uuid4().hex[:12].upper()}"
 
@@ -267,7 +267,7 @@ def api_payment_prepare_toss(request):
         })
 
     except Exception as e:
-        logger.error(f"°áÁ¦ ÁØºñ ¿À·ù: {str(e)}")
+        logger.error(f"ï¿½ï¿½ï¿½ï¿½ ï¿½Øºï¿½ ï¿½ï¿½ï¿½ï¿½: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)
@@ -278,7 +278,7 @@ def api_payment_prepare_toss(request):
 @require_http_methods(["POST"])
 def api_payment_confirm_toss(request):
     """
-    Åä½ºÆäÀÌ¸ÕÃ÷ °áÁ¦ ½ÂÀÎ
+    ï¿½ä½ºï¿½ï¿½ï¿½Ì¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     """
     try:
         data = json.loads(request.body)
@@ -286,12 +286,12 @@ def api_payment_confirm_toss(request):
         order_id = data.get('orderId')
         amount = int(data.get('amount'))
 
-        # ½ÇÁ¦·Î´Â Åä½ºÆäÀÌ¸ÕÃ÷ API·Î ½ÂÀÎ ¿äÃ»
-        # Å×½ºÆ® È¯°æ¿¡¼­´Â ¹Ù·Î ¼º°ø ¹İÈ¯
+        # ï¿½ï¿½ï¿½ï¿½ï¿½Î´ï¿½ ï¿½ä½ºï¿½ï¿½ï¿½Ì¸ï¿½ï¿½ï¿½ APIï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã»
+        # ï¿½×½ï¿½Æ® È¯ï¿½æ¿¡ï¿½ï¿½ï¿½ï¿½ ï¿½Ù·ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯
         
         return JsonResponse({
             'success': True,
-            'message': '°áÁ¦°¡ ½ÂÀÎµÇ¾ú½À´Ï´Ù.',
+            'message': 'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ÎµÇ¾ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.',
             'data': {
                 'payment_key': payment_key,
                 'order_id': order_id,
@@ -301,8 +301,94 @@ def api_payment_confirm_toss(request):
         })
 
     except Exception as e:
-        logger.error(f"°áÁ¦ ½ÂÀÎ ¿À·ù: {str(e)}")
+        logger.error(f"ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: {str(e)}")
         return JsonResponse({
             'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@require_http_methods(["GET"])
+def api_payment_methods_list(request):
+    """ê²°ì œ ìˆ˜ë‹¨ ëª©ë¡ ì¡°íšŒ"""
+    try:
+        customer_code = request.GET.get('customer_code')
+        if not customer_code:
+            return JsonResponse({
+                'success': False,
+                'message': 'ê³ ê°ì½”ë“œê°€ í•„ìš”í•©ë‹ˆë‹¤'
+            }, status=400)
+
+        methods = PaymentMethod.objects.filter(
+            customer_code=customer_code,
+            is_active=True
+        ).order_by('-is_default', '-created_at')
+
+        data = []
+        for method in methods:
+            data.append({
+                'id': method.id,
+                'payment_type': method.payment_type,
+                'masked_info': method.masked_info,
+                'nickname': method.nickname,
+                'is_default': method.is_default,
+                'card_company': method.card_company,
+                'card_last4': method.card_last4,
+                'account_bank': method.account_bank,
+                'account_last4': method.account_last4,
+                'created_at': method.created_at.strftime('%Y-%m-%d %H:%M:%S') if method.created_at else None
+            })
+
+        return JsonResponse({
+            'success': True,
+            'data': data
+        })
+
+    except Exception as e:
+        logger.error(f"ê²°ì œ ìˆ˜ë‹¨ ì¡°íšŒ ì˜¤ë¥˜: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': 'ì¡°íšŒ ì¤‘ ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤',
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def api_payment_method_delete(request, method_id):
+    """ê²°ì œ ìˆ˜ë‹¨ ì‚­ì œ"""
+    try:
+        data = json.loads(request.body)
+        customer_code = data.get('customer_code')
+
+        if not customer_code:
+            return JsonResponse({
+                'success': False,
+                'message': 'ê³ ê°ì½”ë“œê°€ í•„ìš”í•©ë‹ˆë‹¤'
+            }, status=400)
+
+        method = PaymentMethod.objects.filter(
+            id=method_id,
+            customer_code=customer_code
+        ).first()
+
+        if not method:
+            return JsonResponse({
+                'success': False,
+                'message': 'ê²°ì œ ìˆ˜ë‹¨ì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤'
+            }, status=404)
+
+        method.delete()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'ê²°ì œ ìˆ˜ë‹¨ì´ ì‚­ì œë˜ì—ˆìŠµë‹ˆë‹¤'
+        })
+
+    except Exception as e:
+        logger.error(f"ê²°ì œ ìˆ˜ë‹¨ ì‚­ì œ ì˜¤ë¥˜: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': 'ì‚­ì œ ì¤‘ ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤',
             'error': str(e)
         }, status=500)

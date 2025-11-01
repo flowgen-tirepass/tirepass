@@ -1,8 +1,7 @@
 from django.urls import path
 from django.contrib.auth import logout as auth_logout
 from django.shortcuts import redirect
-from . import views, api_views, mobile_views, views_sync_api
-# from . import api_views_mobile  # 임시 비활성화 (인코딩 이슈)
+from . import views, api_views, mobile_views, views_sync_api, api_views_mobile
 
 
 def admin_logout_view(request):
@@ -83,6 +82,10 @@ urlpatterns = [
     path('api/mobile/shipping-addresses/<int:address_id>/update/', api_views.api_shipping_address_update, name='api_shipping_address_update'),
     path('api/mobile/shipping-addresses/<int:address_id>/delete/', api_views.api_shipping_address_delete, name='api_shipping_address_delete'),
     path('api/mobile/shipping-addresses/<int:address_id>/set-default/', api_views.api_shipping_address_set_default, name='api_shipping_address_set_default'),
+
+    # 결제 수단 API
+    path('api/mobile/payment-methods/', api_views_mobile.api_payment_methods_list, name='api_payment_methods_list'),
+    path('api/mobile/payment-methods/<int:method_id>/', api_views_mobile.api_payment_method_delete, name='api_payment_method_delete'),
 
     # ERP 실시간 동기화 API
     path('api/sync/customer/', views_sync_api.sync_customer, name='sync_customer'),
