@@ -87,6 +87,7 @@ urlpatterns = [
     path('api/mobile/payment-methods/', api_views_mobile.api_payment_methods_list, name='api_payment_methods_list'),
     path('api/mobile/payment-methods/add/', api_views_mobile.api_payment_method_add, name='api_payment_method_add'),
     path('api/mobile/payment-methods/<int:method_id>/', api_views_mobile.api_payment_method_delete, name='api_payment_method_delete'),
+    path('api/mobile/payment-methods/<int:method_id>/update-nickname/', api_views_mobile.api_payment_method_update_nickname, name='api_payment_method_update_nickname'),
 
     # ERP 실시간 동기화 API
     path('api/sync/customer/', views_sync_api.sync_customer, name='sync_customer'),

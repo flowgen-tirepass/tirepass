@@ -331,7 +331,10 @@ function renderPaymentMethods(methods) {
                     </div>
                     ${method.nickname ? `<div style="font-size: 13px; color: #6b7280;">${method.nickname}</div>` : ''}
                 </div>
-                <div>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="editPaymentMethodNickname(${method.id}, '${(method.nickname || '').replace(/'/g, "\\'")}')" class="btn btn-sm" style="background: #3b82f6; color: white; padding: 5px 10px; font-size: 12px;">
+                        수정
+                    </button>
                     <button onclick="deletePaymentMethod(${method.id})" class="btn btn-sm" style="background: #ef4444; color: white; padding: 5px 10px; font-size: 12px;">
                         삭제
                     </button>
@@ -341,6 +344,50 @@ function renderPaymentMethods(methods) {
     `).join('');
 
     container.innerHTML = html;
+}
+
+async function editPaymentMethodNickname(methodId, currentNickname) {
+    const newNickname = prompt('별칭을 입력하세요 (예: 회사 법인카드)', currentNickname || '');
+
+    if (newNickname === null) {
+        // 취소 버튼 클릭
+        return;
+    }
+
+    // 별칭이 너무 길면 제한
+    if (newNickname.length > 50) {
+        showAlert('별칭은 50자 이내로 입력해주세요', 'error');
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/payment-methods/${methodId}/update-nickname/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_code: getCustomerCode(),
+                nickname: newNickname
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert('별칭이 수정되었습니다', 'success');
+            loadPaymentMethods();
+        } else {
+            showAlert(data.message || '수정에 실패했습니다', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('별칭 수정 오류:', error);
+        showAlert('수정 중 오류가 발생했습니다', 'error');
+    }
 }
 
 // Toss 위젯 변수

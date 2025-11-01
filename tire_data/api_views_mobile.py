@@ -399,6 +399,60 @@ def api_payment_method_delete(request, method_id):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+def api_payment_method_update_nickname(request, method_id):
+    """결제 수단 별칭 수정"""
+    try:
+        data = json.loads(request.body)
+        customer_code = data.get('customer_code')
+        nickname = data.get('nickname', '')
+
+        if not customer_code:
+            return JsonResponse({
+                'success': False,
+                'message': '고객코드가 필요합니다'
+            }, status=400)
+
+        # 별칭 길이 체크
+        if len(nickname) > 50:
+            return JsonResponse({
+                'success': False,
+                'message': '별칭은 50자 이내로 입력해주세요'
+            }, status=400)
+
+        method = PaymentMethod.objects.filter(
+            id=method_id,
+            customer_code=customer_code
+        ).first()
+
+        if not method:
+            return JsonResponse({
+                'success': False,
+                'message': '결제 수단을 찾을 수 없습니다'
+            }, status=404)
+
+        method.nickname = nickname
+        method.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': '별칭이 수정되었습니다',
+            'data': {
+                'id': method.id,
+                'nickname': method.nickname
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"결제 수단 별칭 수정 오류: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': '수정 중 오류가 발생했습니다',
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
 def api_payment_method_add(request):
     """결제 수단 등록 (카드/계좌)"""
     try:
