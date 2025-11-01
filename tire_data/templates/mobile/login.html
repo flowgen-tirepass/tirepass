@@ -66,6 +66,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         if (data.success) {
             setCustomerCode(customer_code);
             localStorage.setItem('customer_name', data.data.name);
+            localStorage.setItem('login_time', data.data.login_time);
 
             // 비밀번호 변경 필요 체크
             if (data.data.must_change_password) {

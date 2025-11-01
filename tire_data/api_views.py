@@ -12,6 +12,7 @@ from functools import wraps
 import json
 import secrets
 import re
+import time
 
 from .models import Goods, GoodsDisplayName, Customers, ShoppingCart, Order, OrderItem, Payment, ShippingAddress
 from .utils import calculate_discount_price, generate_order_number, update_stock
@@ -1318,7 +1319,8 @@ def api_auth_login(request):
                 'data': {
                     'customer_code': customer.code,
                     'name': customer.name,
-                    'must_change_password': customer.must_change_password
+                    'must_change_password': customer.must_change_password,
+                    'login_time': int(time.time() * 1000)
                 }
             })
         else:

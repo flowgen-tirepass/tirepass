@@ -249,5 +249,37 @@
             <span>정품보증</span>
         </div>
     </div>
+
+    <script>
+    // 로그인 상태 확인
+    function checkLoginStatus() {
+        const customerCode = localStorage.getItem('customer_code');
+        const loginTime = localStorage.getItem('login_time');
+
+        if (!customerCode) {
+            return; // 로그인 안 되어 있으면 인트로 화면 표시
+        }
+
+        // 24시간 경과 확인
+        if (loginTime) {
+            const elapsed = Date.now() - parseInt(loginTime);
+            const hours24 = 24 * 60 * 60 * 1000;
+
+            if (elapsed > hours24) {
+                // 24시간 경과 시 자동 로그아웃
+                localStorage.removeItem('customer_code');
+                localStorage.removeItem('login_time');
+                console.log('24시간 경과로 자동 로그아웃되었습니다');
+                return;
+            }
+        }
+
+        // 로그인 상태 유지 중 - 홈으로 바로 이동
+        window.location.href = '/mobile/home/';
+    }
+
+    // 페이지 로드 시 즉시 실행
+    checkLoginStatus();
+    </script>
 </body>
 </html>
