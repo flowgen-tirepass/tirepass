@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from django.shortcuts import render, redirect
 import re
 from .models import (
-    Goods, GoodsDisplayName, ExcludedGoods, CustomersFull, Customers, YearAllocation, BrandGroup,
+    Goods, GoodsDisplayName, ExcludedGoods, CustomersFull, Customers, PaymentMethod, YearAllocation, BrandGroup,
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
     ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag,
@@ -843,6 +843,45 @@ class CustomersAdmin(admin.ModelAdmin):
                     messages.info(request, f'관련 주문 {updated_orders}개의 고객명도 업데이트했습니다.')
             except Exception as e:
                 messages.warning(request, f'주문 업데이트 중 오류: {str(e)}')
+
+
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    """결제 수단 관리"""
+    list_display = ['customer_code', 'customer_name', 'payment_type', 'masked_info', 'nickname', 'is_default', 'is_active', 'created_at']
+    list_filter = ['payment_type', 'is_default', 'is_active', 'card_company', 'account_bank']
+    search_fields = ['customer_code', 'card_company', 'account_bank', 'nickname']
+    ordering = ['-created_at']
+    list_per_page = 50
+    readonly_fields = ['billing_key', 'card_last4', 'account_last4', 'created_at', 'updated_at']
+
+    fieldsets = (
+        ('기본 정보', {
+            'fields': ('customer_code', 'payment_type', 'nickname', 'is_default', 'is_active')
+        }),
+        ('카드 정보', {
+            'fields': ('billing_key', 'card_company', 'card_last4', 'card_type'),
+            'classes': ('collapse',)
+        }),
+        ('계좌 정보', {
+            'fields': ('account_bank', 'account_number_encrypted', 'account_last4', 'account_holder'),
+            'classes': ('collapse',)
+        }),
+        ('시스템 정보', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def customer_name(self, obj):
+        """고객명 표시"""
+        return obj.customer_name or '-'
+    customer_name.short_description = '고객명'
+
+    def has_add_permission(self, request):
+        """Admin에서 직접 추가 불가 (모바일에서만)"""
+        return False
+
 
 class BrandGroupPatternInline(admin.TabularInline):
     """브랜드 그룹에 패턴을 인라인으로 추가/편집"""

@@ -228,6 +228,169 @@ class Customers(models.Model):
         return not self.code.startswith('Z')
 
 
+class PaymentMethod(models.Model):
+    """고객 결제 수단 (카드/계좌)"""
+    PAYMENT_TYPE_CHOICES = [
+        ('CARD', '신용/체크카드'),
+        ('ACCOUNT', '계좌이체'),
+    ]
+
+    customer_code = models.CharField(
+        max_length=10,
+        verbose_name='고객코드',
+        db_column='customer_code',
+        db_index=True
+    )
+
+    payment_type = models.CharField(
+        max_length=10,
+        choices=PAYMENT_TYPE_CHOICES,
+        verbose_name='결제수단유형',
+        db_column='payment_type'
+    )
+
+    # 토스페이먼츠 빌링키 (카드번호 대신 저장)
+    billing_key = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name='빌링키',
+        db_column='billing_key',
+        null=True,
+        blank=True
+    )
+
+    # 카드 정보 (마스킹된 정보만 저장)
+    card_company = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name='카드사',
+        db_column='card_company'
+    )
+    card_last4 = models.CharField(
+        max_length=4,
+        null=True,
+        blank=True,
+        verbose_name='카드끝4자리',
+        db_column='card_last4'
+    )
+    card_type = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        verbose_name='카드종류',
+        db_column='card_type',
+        help_text='신용/체크/법인'
+    )
+
+    # 계좌 정보 (암호화하여 저장)
+    account_bank = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name='은행',
+        db_column='account_bank'
+    )
+    account_number_encrypted = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name='계좌번호암호화',
+        db_column='account_number_encrypted'
+    )
+    account_last4 = models.CharField(
+        max_length=4,
+        null=True,
+        blank=True,
+        verbose_name='계좌끝4자리',
+        db_column='account_last4'
+    )
+    account_holder = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name='예금주',
+        db_column='account_holder'
+    )
+
+    # 사용자 설정
+    nickname = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name='별칭',
+        db_column='nickname',
+        help_text='예: 회사 법인카드, 개인 신한카드'
+    )
+    is_default = models.BooleanField(
+        default=False,
+        verbose_name='기본결제수단',
+        db_column='is_default'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='활성화',
+        db_column='is_active'
+    )
+
+    # 메타 정보
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='등록일시',
+        db_column='created_at'
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name='수정일시',
+        db_column='updated_at'
+    )
+
+    class Meta:
+        db_table = 'payment_methods'
+        managed = True
+        verbose_name = '결제수단'
+        verbose_name_plural = 'A. 📊 판매 | 03. 결제수단'
+        ordering = ['-is_default', '-created_at']
+
+    def __str__(self):
+        customer_name = self.customer_name or self.customer_code
+        if self.payment_type == 'CARD':
+            return f"{customer_name} - {self.card_company} {self.card_last4}"
+        else:
+            return f"{customer_name} - {self.account_bank} {self.account_last4}"
+
+    @property
+    def customer(self):
+        """고객 객체 조회"""
+        try:
+            return Customers.objects.get(code=self.customer_code)
+        except Customers.DoesNotExist:
+            return None
+
+    @property
+    def customer_name(self):
+        """고객명 조회"""
+        customer = self.customer
+        return customer.name if customer else None
+
+    def save(self, *args, **kwargs):
+        # 기본 결제 수단으로 설정 시, 다른 결제 수단의 is_default를 False로
+        if self.is_default:
+            PaymentMethod.objects.filter(
+                customer_code=self.customer_code,
+                is_default=True
+            ).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
+
+    @property
+    def masked_info(self):
+        """마스킹된 결제 정보 반환"""
+        if self.payment_type == 'CARD':
+            return f"{self.card_company} **** **** **** {self.card_last4}"
+        else:
+            return f"{self.account_bank} ****{self.account_last4} ({self.account_holder})"
+
+
 class YearAllocation(models.Model):
     """상품별 연도별 재고 할당 및 DOT 할인 모델"""
     goods_code = models.CharField(max_length=20, verbose_name='상품코드')
