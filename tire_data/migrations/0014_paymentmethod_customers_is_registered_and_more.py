@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tire_data', '0009_add_customer_fk_to_customerdiscount'),
+        ('tire_data', '0013_merge_20251023_1823'),
     ]
 
     operations = [
