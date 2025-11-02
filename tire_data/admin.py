@@ -792,54 +792,61 @@ class CustomersAdmin(admin.ModelAdmin):
 
     def payment_methods_display(self, obj):
         """등록된 결제 수단 목록 표시"""
-        methods = PaymentMethod.objects.filter(customer_code=obj.code).order_by('-is_default', '-created_at')
+        try:
+            methods = PaymentMethod.objects.filter(customer_code=obj.code).order_by('-is_default', '-created_at')
 
-        if not methods.exists():
-            return '등록된 결제 수단이 없습니다.'
+            if not methods.exists():
+                return '등록된 결제 수단이 없습니다.'
 
-        from django.urls import reverse
+            from django.urls import reverse
 
-        html = '<table style="width: 100%; border-collapse: collapse;">'
-        html += '<thead><tr style="background: #f3f4f6;">'
-        html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">유형</th>'
-        html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">정보</th>'
-        html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">별칭</th>'
-        html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">기본</th>'
-        html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">활성</th>'
-        html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">등록일</th>'
-        html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">관리</th>'
-        html += '</tr></thead><tbody>'
+            html = '<table style="width: 100%; border-collapse: collapse;">'
+            html += '<thead><tr style="background: #f3f4f6;">'
+            html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">유형</th>'
+            html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">정보</th>'
+            html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">별칭</th>'
+            html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">기본</th>'
+            html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">활성</th>'
+            html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">등록일</th>'
+            html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">관리</th>'
+            html += '</tr></thead><tbody>'
 
-        for method in methods:
-            url = reverse('admin:tire_data_paymentmethod_change', args=[method.id])
-            html += '<tr>'
-            html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.get_payment_type_display()}</td>'
-            html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.masked_info}</td>'
-            html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.nickname or "-"}</td>'
-            html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">{"✓" if method.is_default else ""}</td>'
-            html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">{"✓" if method.is_active else "✗"}</td>'
-            html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.created_at.strftime("%Y-%m-%d")}</td>'
-            html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;"><a href="{url}">수정</a></td>'
-            html += '</tr>'
+            for method in methods:
+                url = reverse('admin:tire_data_paymentmethod_change', args=[method.id])
+                html += '<tr>'
+                html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.get_payment_type_display()}</td>'
+                html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.masked_info}</td>'
+                html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.nickname or "-"}</td>'
+                html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">{"✓" if method.is_default else ""}</td>'
+                html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">{"✓" if method.is_active else "✗"}</td>'
+                html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.created_at.strftime("%Y-%m-%d")}</td>'
+                html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;"><a href="{url}">수정</a></td>'
+                html += '</tr>'
 
-        html += '</tbody></table>'
+            html += '</tbody></table>'
 
-        list_url = reverse('admin:tire_data_paymentmethod_changelist') + f'?customer_code={obj.code}'
-        html += f'<p style="margin-top: 10px;"><a href="{list_url}">전체 결제 수단 목록 보기 →</a></p>'
+            list_url = reverse('admin:tire_data_paymentmethod_changelist') + f'?customer_code={obj.code}'
+            html += f'<p style="margin-top: 10px;"><a href="{list_url}">전체 결제 수단 목록 보기 →</a></p>'
 
-        return format_html(html)
+            return format_html(html)
+        except Exception as e:
+            # 테이블이 없거나 에러 발생 시
+            return f'결제 수단 정보를 불러올 수 없습니다. (마이그레이션 필요: {str(e)})'
     payment_methods_display.short_description = '등록된 결제 수단'
 
     def payment_method_count(self, obj):
         """등록된 결제 수단 개수"""
-        count = PaymentMethod.objects.filter(customer_code=obj.code).count()
-        active_count = PaymentMethod.objects.filter(customer_code=obj.code, is_active=True).count()
-        if count > 0:
-            from django.urls import reverse
-            from django.utils.html import format_html
-            url = reverse('admin:tire_data_paymentmethod_changelist') + f'?customer_code={obj.code}'
-            return format_html('<a href="{}">{} 개 (활성 {})</a>', url, count, active_count)
-        return '0 개'
+        try:
+            count = PaymentMethod.objects.filter(customer_code=obj.code).count()
+            active_count = PaymentMethod.objects.filter(customer_code=obj.code, is_active=True).count()
+            if count > 0:
+                from django.urls import reverse
+                from django.utils.html import format_html
+                url = reverse('admin:tire_data_paymentmethod_changelist') + f'?customer_code={obj.code}'
+                return format_html('<a href="{}">{} 개 (활성 {})</a>', url, count, active_count)
+            return '0 개'
+        except Exception:
+            return '-'
     payment_method_count.short_description = '결제 수단'
 
     def product_discount_count(self, obj):
