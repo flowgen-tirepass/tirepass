@@ -91,10 +91,13 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         hideLoading();
 
         if (data.success) {
-            showAlert(`회원가입 성공! 고객코드: ${data.data.customer_code}`, 'success');
+            // 고객 코드 저장 (결제 수단 등록 페이지에서 사용)
+            setCustomerCode(data.data.customer_code);
+
+            showAlert(`회원가입 성공! 결제 수단을 등록해주세요.`, 'success');
             setTimeout(() => {
-                location.href = '/mobile/login/';
-            }, 2000);
+                location.href = '/mobile/register/payment/';
+            }, 1500);
         } else {
             showAlert(data.message, 'error');
         }

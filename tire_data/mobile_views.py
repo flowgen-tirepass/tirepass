@@ -38,6 +38,12 @@ def mobile_register(request):
     """회원가입 페이지"""
     return render(request, 'mobile/register.html')
 
+def mobile_register_payment(request):
+    """회원가입 후 결제 수단 등록 페이지"""
+    return render(request, 'mobile/register_payment.html', {
+        'settings': settings
+    })
+
 def mobile_products(request):
     """상품 목록 페이지"""
     return render(request, 'mobile/products.html')

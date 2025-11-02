@@ -19,6 +19,7 @@ urlpatterns = [
     path('mobile/home/', mobile_views.mobile_home, name='mobile_home'),
     path('mobile/login/', mobile_views.mobile_login, name='mobile_login'),
     path('mobile/register/', mobile_views.mobile_register, name='mobile_register'),
+    path('mobile/register/payment/', mobile_views.mobile_register_payment, name='mobile_register_payment'),
     path('mobile/products/', mobile_views.mobile_products, name='mobile_products'),
     path('mobile/products/<str:code>/', mobile_views.mobile_product_detail, name='mobile_product_detail'),
     path('mobile/cart/', mobile_views.mobile_cart, name='mobile_cart'),

@@ -768,9 +768,24 @@ class GoodsAdmin(admin.ModelAdmin):
 #         return False
 
 @admin.register(Customers)
+class PaymentMethodInline(admin.TabularInline):
+    """고객의 결제 수단을 인라인으로 표시"""
+    model = PaymentMethod
+    extra = 0
+    fields = ['payment_type', 'masked_info', 'nickname', 'is_default', 'is_active', 'created_at']
+    readonly_fields = ['payment_type', 'masked_info', 'created_at']
+    can_delete = True
+    verbose_name = '결제 수단'
+    verbose_name_plural = '등록된 결제 수단'
+
+    def has_add_permission(self, request, obj=None):
+        """Admin에서 직접 추가 불가 (모바일에서만)"""
+        return False
+
+
 class CustomersAdmin(admin.ModelAdmin):
     """모바일 회원가입 고객"""
-    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'product_discount_count']
+    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'payment_method_count', 'product_discount_count']
     list_filter = ['is_registered', 'must_change_password']
     search_fields = ['=code', 'code', 'name', 'rep', '=enno', 'enno']  # =code: 정확히 일치, code: 포함
     ordering = ['code']
@@ -778,6 +793,19 @@ class CustomersAdmin(admin.ModelAdmin):
     readonly_fields = ['code']
     fields = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'must_change_password']
     actions = ['sync_from_erp']
+    inlines = [PaymentMethodInline]
+
+    def payment_method_count(self, obj):
+        """등록된 결제 수단 개수"""
+        count = PaymentMethod.objects.filter(customer_code=obj.code).count()
+        active_count = PaymentMethod.objects.filter(customer_code=obj.code, is_active=True).count()
+        if count > 0:
+            from django.urls import reverse
+            from django.utils.html import format_html
+            url = reverse('admin:tire_data_paymentmethod_changelist') + f'?customer_code={obj.code}'
+            return format_html('<a href="{}">{} 개 (활성 {})</a>', url, count, active_count)
+        return '0 개'
+    payment_method_count.short_description = '결제 수단'
 
     def product_discount_count(self, obj):
         """개별 상품 할인 개수"""
@@ -849,11 +877,12 @@ class CustomersAdmin(admin.ModelAdmin):
 class PaymentMethodAdmin(admin.ModelAdmin):
     """결제 수단 관리"""
     list_display = ['customer_code', 'customer_name', 'payment_type', 'masked_info', 'nickname', 'is_default', 'is_active', 'created_at']
-    list_filter = ['payment_type', 'is_default', 'is_active', 'card_company', 'account_bank']
+    list_filter = ['payment_type', 'is_default', 'is_active', 'card_company', 'account_bank', 'created_at']
     search_fields = ['customer_code', 'card_company', 'account_bank', 'nickname']
     ordering = ['-created_at']
     list_per_page = 50
     readonly_fields = ['billing_key', 'card_last4', 'account_last4', 'created_at', 'updated_at']
+    actions = ['make_active', 'make_inactive', 'set_as_default']
 
     fieldsets = (
         ('기본 정보', {
@@ -881,6 +910,33 @@ class PaymentMethodAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         """Admin에서 직접 추가 불가 (모바일에서만)"""
         return False
+
+    @admin.action(description='선택된 결제 수단 활성화')
+    def make_active(self, request, queryset):
+        """선택된 결제 수단을 활성화"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated}개 결제 수단이 활성화되었습니다.')
+
+    @admin.action(description='선택된 결제 수단 비활성화')
+    def make_inactive(self, request, queryset):
+        """선택된 결제 수단을 비활성화"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated}개 결제 수단이 비활성화되었습니다.')
+
+    @admin.action(description='기본 결제 수단으로 설정')
+    def set_as_default(self, request, queryset):
+        """선택된 결제 수단을 기본으로 설정 (1개만 선택 가능)"""
+        if queryset.count() > 1:
+            self.message_user(request, '기본 결제 수단은 1개만 선택해주세요.', level='error')
+            return
+
+        method = queryset.first()
+        # 같은 고객의 다른 결제 수단을 기본에서 해제
+        PaymentMethod.objects.filter(customer_code=method.customer_code, is_default=True).update(is_default=False)
+        # 선택한 결제 수단을 기본으로 설정
+        method.is_default = True
+        method.save()
+        self.message_user(request, f'{method.masked_info}를 기본 결제 수단으로 설정했습니다.')
 
 
 class BrandGroupPatternInline(admin.TabularInline):
