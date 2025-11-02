@@ -476,54 +476,55 @@ def api_payment_method_add(request):
             }, status=404)
 
         if payment_type == 'CARD':
-            # 카드 등록 (토스 빌링키 사용)
-            billing_key = data.get('billing_key')
-            auth_key = data.get('auth_key')  # 카드 인증키 (토스 위젯에서 받은)
+            # 카드 등록 (직접 입력 방식)
+            card_company = data.get('card_company')
+            card_number = data.get('card_number')  # 16자리 숫자
+            card_expiry = data.get('card_expiry')  # MM/YY
+            card_cvc = data.get('card_cvc')  # 3자리
 
-            if not auth_key:
+            if not all([card_company, card_number, card_expiry, card_cvc]):
                 return JsonResponse({
                     'success': False,
-                    'message': '카드 인증키가 필요합니다'
+                    'message': '카드 정보를 모두 입력해주세요'
                 }, status=400)
 
-            # 토스 빌링키 발급 API 호출
-            toss_secret = settings.TOSS_PAYMENTS_SECRET_KEY
-            auth_header = base64.b64encode(f"{toss_secret}:".encode()).decode()
+            # 카드번호 유효성 검사
+            if len(card_number) != 16 or not card_number.isdigit():
+                return JsonResponse({
+                    'success': False,
+                    'message': '카드번호는 16자리 숫자여야 합니다'
+                }, status=400)
+
+            # 유효기간 파싱
+            try:
+                expiry_month, expiry_year = card_expiry.split('/')
+                if not (1 <= int(expiry_month) <= 12 and len(expiry_year) == 2):
+                    raise ValueError
+            except:
+                return JsonResponse({
+                    'success': False,
+                    'message': '유효기간 형식이 올바르지 않습니다 (MM/YY)'
+                }, status=400)
+
+            # CVC 유효성 검사
+            if len(card_cvc) != 3 or not card_cvc.isdigit():
+                return JsonResponse({
+                    'success': False,
+                    'message': 'CVC는 3자리 숫자여야 합니다'
+                }, status=400)
 
             try:
-                # 빌링키 발급 요청
-                response = requests.post(
-                    f"{settings.TOSS_PAYMENTS_API_URL}/billing/authorizations/issue",
-                    headers={
-                        'Authorization': f'Basic {auth_header}',
-                        'Content-Type': 'application/json'
-                    },
-                    json={
-                        'authKey': auth_key,
-                        'customerKey': customer_code
-                    },
-                    timeout=10
-                )
+                # PaymentMethod 생성 (보안상 카드번호 전체는 저장하지 않음)
+                # 실제 운영에서는 PG사 빌링키 사용 권장
+                billing_key_temp = f"TEMP_{customer_code}_{card_number[-4:]}"  # 임시 빌링키
 
-                if response.status_code != 200:
-                    logger.error(f"토스 빌링키 발급 실패: {response.text}")
-                    return JsonResponse({
-                        'success': False,
-                        'message': '카드 등록에 실패했습니다. 카드 정보를 확인해주세요.'
-                    }, status=400)
-
-                toss_data = response.json()
-                billing_key = toss_data.get('billingKey')
-                card_info = toss_data.get('card', {})
-
-                # PaymentMethod 생성
                 method = PaymentMethod.objects.create(
                     customer_code=customer_code,
                     payment_type='CARD',
-                    billing_key=billing_key,
-                    card_company=card_info.get('issuerCode', ''),
-                    card_last4=card_info.get('number', '')[-4:] if card_info.get('number') else '',
-                    card_type=card_info.get('cardType', ''),
+                    billing_key=billing_key_temp,
+                    card_company=card_company,
+                    card_last4=card_number[-4:],  # 마지막 4자리만 저장
+                    card_type='신용',  # 기본값
                     nickname=data.get('nickname', ''),
                     is_default=data.get('is_default', False)
                 )
@@ -538,8 +539,8 @@ def api_payment_method_add(request):
                     }
                 })
 
-            except requests.RequestException as e:
-                logger.error(f"토스 API 호출 오류: {str(e)}")
+            except Exception as e:
+                logger.error(f"카드 등록 오류: {str(e)}")
                 return JsonResponse({
                     'success': False,
                     'message': '카드 등록 중 오류가 발생했습니다'

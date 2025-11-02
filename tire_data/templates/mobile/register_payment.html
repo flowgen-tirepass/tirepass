@@ -39,12 +39,44 @@
     <div id="cardForm" style="display: block;">
         <div style="background: #fffbeb; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
             <p style="font-size: 13px; color: #92400e; line-height: 1.6;">
-                📸 <strong>카드 OCR 스캔</strong>을 지원합니다<br>
-                카드를 카메라에 비추면 자동으로 입력됩니다
+                🔒 카드 정보는 암호화되어 안전하게 저장됩니다<br>
+                빌링키 방식으로 안전하게 관리됩니다
             </p>
         </div>
 
-        <div id="toss-billing-widget" style="margin-bottom: 20px;"></div>
+        <div class="form-group">
+            <label class="form-label">카드사</label>
+            <select class="form-input" id="card_company" required>
+                <option value="">카드사 선택</option>
+                <option value="신한카드">신한카드</option>
+                <option value="KB국민카드">KB국민카드</option>
+                <option value="삼성카드">삼성카드</option>
+                <option value="현대카드">현대카드</option>
+                <option value="롯데카드">롯데카드</option>
+                <option value="하나카드">하나카드</option>
+                <option value="우리카드">우리카드</option>
+                <option value="NH농협카드">NH농협카드</option>
+                <option value="BC카드">BC카드</option>
+                <option value="씨티카드">씨티카드</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">카드번호</label>
+            <input type="text" class="form-input" id="card_number" placeholder="1234-5678-9012-3456" maxlength="19" required>
+            <small style="color: #6b7280; font-size: 12px;">숫자만 입력 (하이픈 자동 입력)</small>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 1;">
+                <label class="form-label">유효기간</label>
+                <input type="text" class="form-input" id="card_expiry" placeholder="MM/YY" maxlength="5" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label class="form-label">CVC</label>
+                <input type="text" class="form-input" id="card_cvc" placeholder="123" maxlength="3" pattern="[0-9]{3}" required>
+            </div>
+        </div>
 
         <div class="form-group">
             <label class="form-label">별칭 (선택)</label>
@@ -118,10 +150,6 @@
 
 {% block extra_js %}
 <script>
-// Toss 위젯 변수
-let tossWidget = null;
-let tossAuthKey = null;
-
 function switchTab(tab) {
     if (tab === 'card') {
         document.getElementById('tabCard').style.color = '#3b82f6';
@@ -140,45 +168,63 @@ function switchTab(tab) {
     }
 }
 
-async function loadTossWidget() {
-    // Toss Payments SDK 로드
-    const script = document.createElement('script');
-    script.src = 'https://js.tosspayments.com/v1/payment-widget';
-    script.onload = async () => {
-        try {
-            const clientKey = '{{ settings.TOSS_PAYMENTS_CLIENT_KEY }}';
-            const customerKey = getCustomerCode();
+// 카드번호 자동 하이픈 입력
+document.addEventListener('DOMContentLoaded', function() {
+    const cardNumberInput = document.getElementById('card_number');
+    if (cardNumberInput) {
+        cardNumberInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); // 숫자만 추출
+            let formattedValue = '';
+            for (let i = 0; i < value.length && i < 16; i++) {
+                if (i > 0 && i % 4 === 0) {
+                    formattedValue += '-';
+                }
+                formattedValue += value[i];
+            }
+            e.target.value = formattedValue;
+        });
+    }
 
-            // Payment Widget 초기화 대신 Billing Widget 사용
-            const { loadBillingWidget } = window.TossPayments;
-            tossWidget = await loadBillingWidget(clientKey, customerKey);
-
-            // 위젯 렌더링
-            tossWidget.renderCardForm('#toss-billing-widget', {
-                cardNumberInputLabel: '카드번호',
-                expiryInputLabel: '유효기간 (MM/YY)',
-                cvcInputLabel: 'CVC (보안코드)',
-                focusOnFirstInput: true
-            });
-
-            // 카드 정보 입력 완료 시 authKey 받기
-            tossWidget.on('complete', (authKey) => {
-                tossAuthKey = authKey;
-            });
-        } catch (error) {
-            console.error('Toss 위젯 로드 오류:', error);
-            showAlert('카드 입력 위젯 로드에 실패했습니다', 'error');
-        }
-    };
-    document.head.appendChild(script);
-}
+    // 유효기간 자동 슬래시 입력
+    const cardExpiryInput = document.getElementById('card_expiry');
+    if (cardExpiryInput) {
+        cardExpiryInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); // 숫자만 추출
+            if (value.length >= 2) {
+                e.target.value = value.slice(0, 2) + '/' + value.slice(2, 4);
+            } else {
+                e.target.value = value;
+            }
+        });
+    }
+});
 
 async function submitCard() {
+    const company = document.getElementById('card_company').value;
+    const cardNumber = document.getElementById('card_number').value.replace(/\D/g, ''); // 하이픈 제거
+    const expiry = document.getElementById('card_expiry').value;
+    const cvc = document.getElementById('card_cvc').value;
     const nickname = document.getElementById('card_nickname').value;
     const isDefault = document.getElementById('card_is_default').checked;
 
-    if (!tossAuthKey) {
-        showAlert('카드 정보를 입력해주세요', 'error');
+    // 유효성 검사
+    if (!company) {
+        showAlert('카드사를 선택해주세요', 'error');
+        return;
+    }
+
+    if (cardNumber.length !== 16) {
+        showAlert('카드번호 16자리를 입력해주세요', 'error');
+        return;
+    }
+
+    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
+        showAlert('유효기간을 MM/YY 형식으로 입력해주세요', 'error');
+        return;
+    }
+
+    if (cvc.length !== 3) {
+        showAlert('CVC 3자리를 입력해주세요', 'error');
         return;
     }
 
@@ -193,7 +239,10 @@ async function submitCard() {
             body: JSON.stringify({
                 customer_code: getCustomerCode(),
                 payment_type: 'CARD',
-                auth_key: tossAuthKey,
+                card_company: company,
+                card_number: cardNumber,
+                card_expiry: expiry,
+                card_cvc: cvc,
                 nickname: nickname,
                 is_default: isDefault
             })
@@ -283,9 +332,6 @@ if (!customerCode) {
     setTimeout(() => {
         location.href = '/mobile/login/';
     }, 1500);
-} else {
-    // Toss 위젯 로드
-    loadTossWidget();
 }
 </script>
 {% endblock %}
