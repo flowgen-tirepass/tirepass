@@ -768,21 +768,6 @@ class GoodsAdmin(admin.ModelAdmin):
 #         return False
 
 @admin.register(Customers)
-class PaymentMethodInline(admin.TabularInline):
-    """고객의 결제 수단을 인라인으로 표시"""
-    model = PaymentMethod
-    extra = 0
-    fields = ['payment_type', 'masked_info', 'nickname', 'is_default', 'is_active', 'created_at']
-    readonly_fields = ['payment_type', 'masked_info', 'created_at']
-    can_delete = True
-    verbose_name = '결제 수단'
-    verbose_name_plural = '등록된 결제 수단'
-
-    def has_add_permission(self, request, obj=None):
-        """Admin에서 직접 추가 불가 (모바일에서만)"""
-        return False
-
-
 class CustomersAdmin(admin.ModelAdmin):
     """모바일 회원가입 고객"""
     list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'payment_method_count', 'product_discount_count']
@@ -790,10 +775,60 @@ class CustomersAdmin(admin.ModelAdmin):
     search_fields = ['=code', 'code', 'name', 'rep', '=enno', 'enno']  # =code: 정확히 일치, code: 포함
     ordering = ['code']
     list_per_page = 50
-    readonly_fields = ['code']
-    fields = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'must_change_password']
+    readonly_fields = ['code', 'payment_methods_display']
+    fieldsets = (
+        ('기본 정보', {
+            'fields': ('code', 'name', 'rep', 'tel1', 'tel3', 'enno')
+        }),
+        ('계정 상태', {
+            'fields': ('is_registered', 'must_change_password')
+        }),
+        ('등록된 결제 수단', {
+            'fields': ('payment_methods_display',),
+            'classes': ('collapse',)
+        }),
+    )
     actions = ['sync_from_erp']
-    inlines = [PaymentMethodInline]
+
+    def payment_methods_display(self, obj):
+        """등록된 결제 수단 목록 표시"""
+        methods = PaymentMethod.objects.filter(customer_code=obj.code).order_by('-is_default', '-created_at')
+
+        if not methods.exists():
+            return '등록된 결제 수단이 없습니다.'
+
+        from django.urls import reverse
+
+        html = '<table style="width: 100%; border-collapse: collapse;">'
+        html += '<thead><tr style="background: #f3f4f6;">'
+        html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">유형</th>'
+        html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">정보</th>'
+        html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">별칭</th>'
+        html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">기본</th>'
+        html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">활성</th>'
+        html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">등록일</th>'
+        html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">관리</th>'
+        html += '</tr></thead><tbody>'
+
+        for method in methods:
+            url = reverse('admin:tire_data_paymentmethod_change', args=[method.id])
+            html += '<tr>'
+            html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.get_payment_type_display()}</td>'
+            html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.masked_info}</td>'
+            html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.nickname or "-"}</td>'
+            html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">{"✓" if method.is_default else ""}</td>'
+            html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">{"✓" if method.is_active else "✗"}</td>'
+            html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{method.created_at.strftime("%Y-%m-%d")}</td>'
+            html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;"><a href="{url}">수정</a></td>'
+            html += '</tr>'
+
+        html += '</tbody></table>'
+
+        list_url = reverse('admin:tire_data_paymentmethod_changelist') + f'?customer_code={obj.code}'
+        html += f'<p style="margin-top: 10px;"><a href="{list_url}">전체 결제 수단 목록 보기 →</a></p>'
+
+        return format_html(html)
+    payment_methods_display.short_description = '등록된 결제 수단'
 
     def payment_method_count(self, obj):
         """등록된 결제 수단 개수"""
