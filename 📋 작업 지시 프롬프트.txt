@@ -1,0 +1,62 @@
+  📋 작업 지시 프롬프트
+
+  🎯 해결할 문제
+
+  로그아웃 상태에서 '내정보' 페이지 접근 시 보안 문제
+
+  현재 상황:
+  - ✅ 로그아웃 상태에서 장바구니 담기 → "로그인이 필요합니다" 정상 작동
+  - ❌ 로그아웃 상태에서 '내정보' 버튼 클릭 → 로그인 확인 없이 페이지 접근 가능 (문제)
+  - ✅ 로그아웃 후 재접속 시 로그인 창 정상 출력
+
+  📝 작업 내용
+
+  1. 내정보 페이지 로그인 체크 강화
+
+  파일: tire_data/templates/mobile/profile.html
+
+  수정 사항:
+  - JavaScript에서 getCustomerCode() 체크 강화
+  - localStorage에 customer_code 없으면 즉시 로그인 페이지로 리다이렉트
+  - 페이지 로드 시점에 체크 (DOMContentLoaded 이전)
+
+  2. 추가 확인 필요한 페이지들
+
+  다음 페이지들도 동일하게 로그인 체크 필요:
+  - /mobile/cart/ - 장바구니
+  - /mobile/orders/ - 주문 내역
+  - /mobile/addresses/ - 배송지 관리
+  - /mobile/quote/ - 견적서
+
+  각 페이지에서 로그인 안 된 상태로 접근 시:
+  const customerCode = getCustomerCode();
+  if (!customerCode) {
+      location.href = '/mobile/login/';
+  }
+
+  🔍 테스트 방법
+
+  1. 로그인 후 '내정보' 접속 → 정상 표시 확인
+  2. 로그아웃 버튼 클릭
+  3. 브라우저 뒤로가기로 '내정보' 재접속 시도 → 로그인 페이지로 리다이렉트 확인
+  4. localStorage 직접 삭제 후 '내정보' 접속 → 로그인 페이지로 리다이렉트 확인
+
+  📌 참고: 최근 완료된 작업 (2025-11-03)
+
+  1. 회원가입 후 결제 수단 등록 플로우 (커밋: ee67043, 7d1f679)
+    - 회원가입 → 결제 수단 등록 → 홈 화면 플로우 구현
+    - 카드/계좌 등록 폼 (OCR 스캔 제거, 일반 입력 방식)
+    - "나중에 등록할게요" 스킵 기능
+  2. 관리자 페이지 개선 (커밋: 14a7bb1, 1dd551f)
+    - PaymentMethod 일괄 작업 (활성화/비활성화/기본 설정)
+    - Customers에 payment_method_count 표시
+    - payment_methods_display readonly 필드 추가
+  3. 마이그레이션 충돌 해결 (커밋: aad4cef)
+    - 0010 → 0014로 변경
+    - payment_methods 테이블 생성
+
+  🚀 서버 상태
+
+  - 최신 커밋: 7d1f679
+  - 마이그레이션: 0014까지 적용 필요
+  - URL: https://tirepass.pythonanywhere.com
