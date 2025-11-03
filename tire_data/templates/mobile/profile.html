@@ -64,28 +64,30 @@
 
             <!-- 카드 등록 폼 -->
             <div id="cardForm" style="display: block;">
-                <div style="background: #f0f9ff; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
-                    <p style="font-size: 14px; color: #1e40af; line-height: 1.8; margin-bottom: 10px;">
-                        📸 <strong>카드 OCR 스캔</strong>을 지원합니다
-                    </p>
-                    <ul style="margin: 0; padding-left: 20px; color: #1e40af; font-size: 12px; line-height: 1.8;">
-                        <li>카메라로 카드 촬영 → 자동 인식</li>
-                        <li>밝은 곳에서 촬영하면 정확도 ↑</li>
-                        <li>카드 전체가 화면에 보이게 촬영</li>
-                        <li>인식 실패 시 직접 입력 가능</li>
-                    </ul>
-                </div>
+                <!-- OCR 스캔 기능 (접을 수 있음) -->
+                <div style="background: #f0f9ff; border-radius: 8px; padding: 12px; margin-bottom: 20px; border-left: 3px solid #3b82f6;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleOCRSection()">
+                        <div>
+                            <p style="font-size: 13px; color: #1e40af; font-weight: 500; margin-bottom: 3px;">
+                                📸 OCR 스캔 시도 (실험 기능)
+                            </p>
+                            <p style="font-size: 11px; color: #64748b; margin: 0;">
+                                카드 촬영으로 자동 입력 시도 (정확도 낮음)
+                            </p>
+                        </div>
+                        <span id="ocrToggleIcon" style="font-size: 20px; color: #3b82f6;">▼</span>
+                    </div>
 
-                <!-- OCR 스캔 버튼 -->
-                <div style="margin-bottom: 20px;">
-                    <input type="file" id="cardImageInput" accept="image/*" capture="environment" style="display: none;" onchange="processCardImage(event)">
-                    <button type="button" onclick="document.getElementById('cardImageInput').click()" class="btn btn-secondary btn-block" style="background: #10b981; border: none; font-size: 16px; font-weight: 600;">
-                        📷 카드 스캔하기 (OCR)
-                    </button>
-                    <p style="font-size: 12px; color: #6b7280; text-align: center; margin-top: 8px; line-height: 1.5;">
-                        카메라가 열리면 카드를 촬영하세요<br>
-                        10~20초 후 자동으로 정보가 입력됩니다
-                    </p>
+                    <div id="ocrSection" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #bfdbfe;">
+                        <input type="file" id="cardImageInput" accept="image/*" capture="environment" style="display: none;" onchange="processCardImage(event)">
+                        <button type="button" onclick="document.getElementById('cardImageInput').click()" class="btn btn-secondary btn-block" style="background: #6b7280; font-size: 14px; padding: 10px;">
+                            📷 카드 사진 촬영
+                        </button>
+                        <p style="font-size: 11px; color: #64748b; text-align: center; margin-top: 8px; line-height: 1.4;">
+                            ⚠️ 현재 정확도가 낮아 일부만 인식될 수 있습니다<br>
+                            밝은 곳에서 카드 전체가 보이도록 촬영하세요
+                        </p>
+                    </div>
                 </div>
 
                 <!-- OCR 진행 상태 -->
@@ -101,6 +103,7 @@
                 <!-- 촬영된 이미지 미리보기 -->
                 <div id="cardImagePreview" style="display: none; margin-bottom: 20px;">
                     <img id="previewImage" style="width: 100%; border-radius: 8px; border: 2px solid #e5e7eb;">
+                    <canvas id="processedCanvas" style="display: none;"></canvas>
                 </div>
 
                 <!-- 수동 입력 필드 -->
@@ -206,6 +209,20 @@ if (!getCustomerCode()) {
 // 카드 OCR 스캔 기능
 // ========================================
 
+// OCR 섹션 토글
+function toggleOCRSection() {
+    const section = document.getElementById('ocrSection');
+    const icon = document.getElementById('ocrToggleIcon');
+
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        icon.textContent = '▲';
+    } else {
+        section.style.display = 'none';
+        icon.textContent = '▼';
+    }
+}
+
 // Tesseract.js 로드 확인
 let tesseractLoaded = false;
 window.addEventListener('load', function() {
@@ -273,6 +290,53 @@ async function processCardImage(event) {
     reader.readAsDataURL(file);
 }
 
+// 이미지 전처리 (정확도 향상)
+function preprocessImage(imageData) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.getElementById('processedCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // 캔버스 크기 설정 (원본 크기의 2배로 확대)
+            canvas.width = img.width * 2;
+            canvas.height = img.height * 2;
+
+            // 이미지 확대 (선명도 향상)
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // 이미지 데이터 가져오기
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // 그레이스케일 변환 및 대비 증가
+            for (let i = 0; i < data.length; i += 4) {
+                // 그레이스케일
+                const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+
+                // 대비 증가 (contrast)
+                const contrast = 1.5; // 대비 계수
+                const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                const adjusted = factor * (gray - 128) + 128;
+
+                // 이진화 (threshold)
+                const threshold = 128;
+                const binary = adjusted > threshold ? 255 : 0;
+
+                data[i] = binary;
+                data[i + 1] = binary;
+                data[i + 2] = binary;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+
+            // 전처리된 이미지 반환
+            resolve(canvas.toDataURL());
+        };
+        img.src = imageData;
+    });
+}
+
 // Tesseract.js로 OCR 실행
 async function runOCR(imageData) {
     const progressDiv = document.getElementById('ocrProgress');
@@ -283,12 +347,21 @@ async function runOCR(imageData) {
     progressBar.style.width = '0%';
 
     try {
-        showAlert('🔍 카드 정보를 읽는 중입니다... (10~20초 소요)', 'success');
+        showAlert('🔍 이미지 전처리 중...', 'success');
+
+        // 이미지 전처리 (그레이스케일 + 대비 증가)
+        const processedImage = await preprocessImage(imageData);
+        console.log('✅ 이미지 전처리 완료');
+
+        showAlert('🔍 카드 정보를 읽는 중... (20~30초 소요)', 'success');
 
         const { data: { text } } = await Tesseract.recognize(
-            imageData,
+            processedImage,
             'eng',
             {
+                lang: 'eng',
+                tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ /',
+                tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT,
                 logger: m => {
                     console.log('OCR 진행:', m);
                     if (m.status === 'recognizing text') {
