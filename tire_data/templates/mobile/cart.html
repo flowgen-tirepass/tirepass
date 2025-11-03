@@ -18,6 +18,11 @@
 
 {% block extra_js %}
 <script>
+// 페이지 로드 즉시 로그인 체크 (보안 강화)
+if (!getCustomerCode()) {
+    location.href = '/mobile/login/';
+}
+
 let cartItems = [];
 let paymentMethods = [];
 let selectedPaymentMethodId = null;

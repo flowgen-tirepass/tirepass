@@ -51,6 +51,12 @@
 
 {% block extra_js %}
 <script>
+// 페이지 로드 즉시 로그인 체크
+const customerCode = getCustomerCode();
+if (!customerCode) {
+    location.href = '/mobile/login/';
+}
+
 let selectedProductCode = null;
 let customerDefaultMargin = 15;
 
