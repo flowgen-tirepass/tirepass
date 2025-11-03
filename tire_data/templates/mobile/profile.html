@@ -65,19 +65,27 @@
             <!-- 카드 등록 폼 -->
             <div id="cardForm" style="display: block;">
                 <div style="background: #f0f9ff; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
-                    <p style="font-size: 13px; color: #1e40af; line-height: 1.6;">
-                        📸 <strong>카드 OCR 스캔</strong>을 지원합니다<br>
-                        카드를 카메라로 촬영하면 자동으로 정보를 읽어옵니다
+                    <p style="font-size: 14px; color: #1e40af; line-height: 1.8; margin-bottom: 10px;">
+                        📸 <strong>카드 OCR 스캔</strong>을 지원합니다
                     </p>
+                    <ul style="margin: 0; padding-left: 20px; color: #1e40af; font-size: 12px; line-height: 1.8;">
+                        <li>카메라로 카드 촬영 → 자동 인식</li>
+                        <li>밝은 곳에서 촬영하면 정확도 ↑</li>
+                        <li>카드 전체가 화면에 보이게 촬영</li>
+                        <li>인식 실패 시 직접 입력 가능</li>
+                    </ul>
                 </div>
 
                 <!-- OCR 스캔 버튼 -->
                 <div style="margin-bottom: 20px;">
                     <input type="file" id="cardImageInput" accept="image/*" capture="environment" style="display: none;" onchange="processCardImage(event)">
-                    <button type="button" onclick="document.getElementById('cardImageInput').click()" class="btn btn-secondary btn-block" style="background: #10b981; border: none;">
-                        📷 카드 스캔하기
+                    <button type="button" onclick="document.getElementById('cardImageInput').click()" class="btn btn-secondary btn-block" style="background: #10b981; border: none; font-size: 16px; font-weight: 600;">
+                        📷 카드 스캔하기 (OCR)
                     </button>
-                    <p style="font-size: 12px; color: #6b7280; text-align: center; margin-top: 8px;">카메라로 카드를 촬영하면 자동으로 인식됩니다</p>
+                    <p style="font-size: 12px; color: #6b7280; text-align: center; margin-top: 8px; line-height: 1.5;">
+                        카메라가 열리면 카드를 촬영하세요<br>
+                        10~20초 후 자동으로 정보가 입력됩니다
+                    </p>
                 </div>
 
                 <!-- OCR 진행 상태 -->
@@ -198,20 +206,70 @@ if (!getCustomerCode()) {
 // 카드 OCR 스캔 기능
 // ========================================
 
+// Tesseract.js 로드 확인
+let tesseractLoaded = false;
+window.addEventListener('load', function() {
+    if (typeof Tesseract !== 'undefined') {
+        tesseractLoaded = true;
+        console.log('✅ Tesseract.js 로드 완료');
+    } else {
+        console.error('❌ Tesseract.js 로드 실패');
+    }
+});
+
 // 카드 이미지 처리 및 OCR
 async function processCardImage(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        console.log('파일이 선택되지 않음');
+        return;
+    }
+
+    console.log('📸 이미지 선택됨:', file.name, file.type, file.size);
+
+    // Tesseract.js 로드 확인
+    if (!tesseractLoaded || typeof Tesseract === 'undefined') {
+        showAlert('OCR 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.', 'error');
+        console.error('Tesseract.js가 로드되지 않음');
+        return;
+    }
+
+    // 이미지 파일 유효성 검사
+    if (!file.type.startsWith('image/')) {
+        showAlert('이미지 파일만 선택 가능합니다.', 'error');
+        return;
+    }
+
+    // 파일 크기 제한 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        showAlert('이미지 파일 크기가 너무 큽니다. (최대 10MB)', 'error');
+        return;
+    }
+
+    // 이미지 로딩 시작 알림
+    showAlert('📸 이미지를 불러오는 중...', 'success');
 
     // 이미지 미리보기
     const reader = new FileReader();
     reader.onload = async function(e) {
+        console.log('✅ 이미지 로드 완료');
         document.getElementById('previewImage').src = e.target.result;
         document.getElementById('cardImagePreview').style.display = 'block';
+
+        // 스크롤을 이미지 위치로 이동
+        setTimeout(() => {
+            document.getElementById('cardImagePreview').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
 
         // OCR 처리 시작
         await runOCR(e.target.result);
     };
+
+    reader.onerror = function(error) {
+        console.error('이미지 읽기 오류:', error);
+        showAlert('이미지를 읽을 수 없습니다.', 'error');
+    };
+
     reader.readAsDataURL(file);
 }
 
@@ -220,21 +278,30 @@ async function runOCR(imageData) {
     const progressDiv = document.getElementById('ocrProgress');
     const progressBar = document.getElementById('ocrProgressBar');
 
+    console.log('🔍 OCR 시작...');
     progressDiv.style.display = 'block';
     progressBar.style.width = '0%';
 
     try {
+        showAlert('🔍 카드 정보를 읽는 중입니다... (10~20초 소요)', 'success');
+
         const { data: { text } } = await Tesseract.recognize(
             imageData,
             'eng',
             {
                 logger: m => {
+                    console.log('OCR 진행:', m);
                     if (m.status === 'recognizing text') {
-                        progressBar.style.width = (m.progress * 100) + '%';
+                        const percent = Math.round(m.progress * 100);
+                        progressBar.style.width = percent + '%';
+                        console.log(`OCR 진행률: ${percent}%`);
                     }
                 }
             }
         );
+
+        console.log('✅ OCR 완료');
+        console.log('인식된 텍스트:', text);
 
         // OCR 완료
         progressBar.style.width = '100%';
@@ -246,7 +313,7 @@ async function runOCR(imageData) {
         extractCardInfo(text);
 
     } catch (error) {
-        console.error('OCR 오류:', error);
+        console.error('❌ OCR 오류:', error);
         progressDiv.style.display = 'none';
         showAlert('카드 정보를 읽을 수 없습니다. 수동으로 입력해주세요.', 'error');
     }
@@ -254,36 +321,102 @@ async function runOCR(imageData) {
 
 // 텍스트에서 카드 정보 추출
 function extractCardInfo(text) {
-    console.log('OCR 결과:', text);
+    console.log('========================================');
+    console.log('📝 OCR 원본 텍스트:');
+    console.log(text);
+    console.log('========================================');
 
-    // 공백과 줄바꿈 제거
+    let recognizedFields = [];
+
+    // 공백과 줄바꿈 제거한 버전
     const cleanText = text.replace(/\s+/g, '');
+    console.log('🧹 정제된 텍스트:', cleanText);
 
-    // 카드번호 추출 (연속된 16자리 숫자)
-    const cardNumberMatch = cleanText.match(/\d{16}|\d{4}\d{4}\d{4}\d{4}/);
+    // 1. 카드번호 추출 (여러 패턴 시도)
+    let cardNumberMatch = cleanText.match(/\d{16}/); // 연속된 16자리
+
+    if (!cardNumberMatch) {
+        // 공백이나 하이픈으로 구분된 경우
+        const numbers = text.match(/\d+/g);
+        if (numbers) {
+            const allDigits = numbers.join('');
+            if (allDigits.length >= 16) {
+                cardNumberMatch = [allDigits.substring(0, 16)];
+            }
+        }
+    }
+
     if (cardNumberMatch) {
         const cardNumber = cardNumberMatch[0];
+        console.log('✅ 카드번호 인식:', cardNumber);
         document.getElementById('card_number').value = formatCardNumberString(cardNumber);
-        showAlert('✅ 카드번호가 인식되었습니다!', 'success');
+        recognizedFields.push('카드번호');
+
+        // 카드사 판별
+        const firstDigit = cardNumber[0];
+        const cardBrand = {
+            '4': 'VISA',
+            '5': 'MasterCard',
+            '3': 'AMEX',
+            '6': 'Discover',
+            '9': 'BC카드'
+        }[firstDigit] || '기타';
+        console.log('💳 카드사:', cardBrand);
+    } else {
+        console.log('❌ 카드번호 인식 실패');
     }
 
-    // 유효기간 추출 (MM/YY 또는 MM/YYYY 형식)
-    const expiryMatch = text.match(/(\d{2})[\s\/]*(\d{2})/);
+    // 2. 유효기간 추출 (MM/YY, MM/YYYY, MMYY 형식)
+    let expiryMatch = text.match(/(\d{2})[\s\/\-\.]*(\d{2,4})/);
+
+    // VALID THRU나 EXP DATE 근처 찾기
+    if (!expiryMatch) {
+        const validThruMatch = text.match(/(?:VALID|EXP|EXPIRES)[\s\S]{0,20}?(\d{2})[\s\/\-\.]*(\d{2})/i);
+        if (validThruMatch) {
+            expiryMatch = [validThruMatch[0], validThruMatch[1], validThruMatch[2]];
+        }
+    }
+
     if (expiryMatch) {
-        const month = expiryMatch[1];
-        const year = expiryMatch[2];
-        document.getElementById('card_expiry').value = `${month}/${year}`;
+        let month = expiryMatch[1];
+        let year = expiryMatch[2];
+
+        // 4자리 연도를 2자리로 변환
+        if (year.length === 4) {
+            year = year.substring(2);
+        }
+
+        // 월 유효성 검사
+        const monthNum = parseInt(month);
+        if (monthNum >= 1 && monthNum <= 12) {
+            console.log('✅ 유효기간 인식:', `${month}/${year}`);
+            document.getElementById('card_expiry').value = `${month}/${year}`;
+            recognizedFields.push('유효기간');
+        } else {
+            console.log('❌ 유효기간 형식 오류:', month);
+        }
+    } else {
+        console.log('❌ 유효기간 인식 실패');
     }
 
-    // 이름 추출 시도 (카드 소유자)
-    // 대문자로 된 영문 이름 패턴 찾기
-    const nameMatch = text.match(/[A-Z]{2,}\s+[A-Z]{2,}/);
+    // 3. 이름 추출 시도 (대문자 영문 이름)
+    const nameMatch = text.match(/\b[A-Z]{2,}\s+[A-Z]{2,}\b/);
     if (nameMatch) {
-        document.getElementById('card_holder_name').value = nameMatch[0];
+        const name = nameMatch[0];
+        console.log('✅ 이름 인식:', name);
+        document.getElementById('card_holder_name').value = name;
+        recognizedFields.push('소유자 이름');
+    } else {
+        console.log('❌ 이름 인식 실패');
     }
 
-    if (!cardNumberMatch && !expiryMatch) {
-        showAlert('⚠️ 카드 정보를 자동으로 인식하지 못했습니다.\n수동으로 입력해주세요.', 'warning');
+    console.log('========================================');
+
+    // 결과 알림
+    if (recognizedFields.length > 0) {
+        showAlert(`✅ ${recognizedFields.join(', ')}이(가) 인식되었습니다!\n나머지는 직접 입력해주세요.`, 'success');
+    } else {
+        showAlert('⚠️ 카드 정보를 자동으로 인식하지 못했습니다.\n• 밝은 곳에서 다시 촬영하거나\n• 직접 입력해주세요', 'error');
     }
 }
 
