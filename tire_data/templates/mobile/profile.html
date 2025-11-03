@@ -359,9 +359,6 @@ async function runOCR(imageData) {
             processedImage,
             'eng',
             {
-                lang: 'eng',
-                tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ /',
-                tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT,
                 logger: m => {
                     console.log('OCR 진행:', m);
                     if (m.status === 'recognizing text') {
