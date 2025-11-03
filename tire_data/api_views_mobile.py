@@ -477,16 +477,26 @@ def api_payment_method_add(request):
 
         if payment_type == 'CARD':
             # 카드 등록 (직접 입력 방식)
-            card_company = data.get('card_company')
             card_number = data.get('card_number')  # 16자리 숫자
             card_expiry = data.get('card_expiry')  # MM/YY
             card_cvc = data.get('card_cvc')  # 3자리
+            card_holder_name = data.get('card_holder_name')  # 카드 소유자 이름
 
-            if not all([card_company, card_number, card_expiry, card_cvc]):
+            if not all([card_number, card_expiry, card_cvc]):
                 return JsonResponse({
                     'success': False,
                     'message': '카드 정보를 모두 입력해주세요'
                 }, status=400)
+
+            # 카드번호 첫 자리로 카드사 자동 판별
+            first_digit = card_number[0]
+            card_company = {
+                '4': 'VISA',
+                '5': 'MasterCard',
+                '3': 'American Express',
+                '6': 'Discover',
+                '9': 'BC카드'
+            }.get(first_digit, '기타')
 
             # 카드번호 유효성 검사
             if len(card_number) != 16 or not card_number.isdigit():
