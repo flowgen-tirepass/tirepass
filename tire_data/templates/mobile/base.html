@@ -581,10 +581,36 @@
             }
         }
 
-        // 페이지 로드 시 장바구니 개수 및 사용자 인사 업데이트
+        // 로그인 시 고객 정보 자동 업데이트 (localStorage 동기화)
+        async function syncCustomerInfo() {
+            {% if user.is_authenticated %}
+            try {
+                const response = await fetch('/mobile/api/customer/info/');
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    // localStorage에 최신 정보 저장 (잘못된 값 자동 수정)
+                    localStorage.setItem('customer_code', data.data.code);
+                    localStorage.setItem('customer_name', data.data.name);
+
+                    // 사용자 인사 문구 즉시 업데이트
+                    updateUserGreeting();
+                }
+            } catch (error) {
+                console.error('고객 정보 동기화 실패:', error);
+                // 실패해도 기존 localStorage 값 사용
+                updateUserGreeting();
+            }
+            {% else %}
+            // 로그아웃 상태면 localStorage 정리
+            clearCustomerCode();
+            {% endif %}
+        }
+
+        // 페이지 로드 시 실행
         document.addEventListener('DOMContentLoaded', () => {
+            syncCustomerInfo();  // 고객 정보 먼저 동기화
             updateCartBadge();
-            updateUserGreeting();
         });
     </script>
 
