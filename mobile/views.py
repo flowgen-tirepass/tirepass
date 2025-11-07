@@ -94,6 +94,10 @@ def mobile_change_password(request):
 
     return render(request, 'mobile/change_password.html')
 
+def fix_storage(request):
+    """localStorage 초기화 긴급 수정 페이지"""
+    return render(request, 'mobile/fix_storage.html')
+
 def mobile_index(request):
     """모바일 메인 페이지"""
     goods_count = Goods.objects.count()

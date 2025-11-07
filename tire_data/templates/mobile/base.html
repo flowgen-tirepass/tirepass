@@ -581,10 +581,32 @@
             }
         }
 
+        // 잘못된 localStorage 값 강제 초기화 (긴급 수정)
+        function cleanupBadLocalStorage() {
+            const customerName = localStorage.getItem('customer_name');
+
+            // '정확한', '입력', 'placeholder' 등의 텍스트가 포함되어 있으면 삭제
+            if (customerName && (
+                customerName.includes('정확한') ||
+                customerName.includes('입력') ||
+                customerName.includes('placeholder') ||
+                customerName.includes('예:') ||
+                customerName.includes('고객명')
+            )) {
+                console.log('잘못된 localStorage 값 발견, 삭제:', customerName);
+                localStorage.removeItem('customer_name');
+                localStorage.removeItem('customer_code');
+            }
+        }
+
         // 로그인 시 고객 정보 자동 업데이트 (localStorage 동기화)
         async function syncCustomerInfo() {
+            // 1단계: 잘못된 값 먼저 삭제
+            cleanupBadLocalStorage();
+
             {% if user.is_authenticated %}
             try {
+                // 2단계: API에서 올바른 값 가져오기
                 const response = await fetch('/mobile/api/customer/info/');
                 const data = await response.json();
 
@@ -593,13 +615,20 @@
                     localStorage.setItem('customer_code', data.data.code);
                     localStorage.setItem('customer_name', data.data.name);
 
+                    console.log('고객 정보 업데이트:', data.data.name);
+
                     // 사용자 인사 문구 즉시 업데이트
                     updateUserGreeting();
+                } else {
+                    console.error('고객 정보를 가져올 수 없습니다:', data);
                 }
             } catch (error) {
                 console.error('고객 정보 동기화 실패:', error);
-                // 실패해도 기존 localStorage 값 사용
-                updateUserGreeting();
+                // 실패 시 빈 값으로 표시 (잘못된 값보다 나음)
+                const userGreeting = document.getElementById('userGreeting');
+                if (userGreeting) {
+                    userGreeting.style.display = 'none';
+                }
             }
             {% else %}
             // 로그아웃 상태면 localStorage 정리

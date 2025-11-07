@@ -11,6 +11,9 @@ urlpatterns = [
     path('logout/', views.mobile_logout, name='mobile_logout'),
     path('change-password/', views.mobile_change_password, name='mobile_change_password'),
 
+    # 긴급 수정 페이지
+    path('fix-storage/', views.fix_storage, name='mobile_fix_storage'),
+
     # 상품 상세
     path('product/<str:product_code>/', views.product_detail, name='product_detail'),
 
