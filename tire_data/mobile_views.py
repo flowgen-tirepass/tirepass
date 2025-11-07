@@ -211,3 +211,8 @@ def mobile_payment_success(request):
             'success': False,
             'message': '결제 처리 중 오류가 발생했습니다.'
         })
+
+
+def mobile_fix_storage(request):
+    """localStorage 초기화 긴급 수정 페이지"""
+    return render(request, 'mobile/fix_storage.html')

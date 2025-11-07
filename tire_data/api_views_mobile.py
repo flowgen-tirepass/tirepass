@@ -609,3 +609,56 @@ def api_payment_method_add(request):
             'message': '등록 중 오류가 발생했습니다',
             'error': str(e)
         }, status=500)
+
+
+@csrf_exempt
+def api_customer_info(request):
+    """
+    로그인한 사용자의 고객 정보 조회
+    GET /api/mobile/customer/info/
+    """
+    if request.method != 'GET':
+        return JsonResponse({
+            'success': False,
+            'message': 'GET 요청만 가능합니다'
+        }, status=405)
+
+    # 세션에서 customer_code 가져오기
+    customer_code = request.session.get('customer_code')
+
+    if not customer_code:
+        return JsonResponse({
+            'success': False,
+            'message': '로그인이 필요합니다'
+        }, status=401)
+
+    try:
+        from .models import Customers
+
+        customer = Customers.objects.get(code=customer_code)
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'code': customer.code,
+                'name': customer.name or '',
+                'rep': customer.rep or '',
+                'tel1': customer.tel1 or '',
+                'tel3': customer.tel3 or '',
+                'enno': customer.enno or ''
+            }
+        })
+
+    except Customers.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '고객 정보를 찾을 수 없습니다'
+        }, status=404)
+
+    except Exception as e:
+        logger.error(f"고객 정보 조회 오류: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': '조회 중 오류가 발생했습니다',
+            'error': str(e)
+        }, status=500)

@@ -31,6 +31,7 @@ urlpatterns = [
     path('mobile/terms/', mobile_views.mobile_terms, name='mobile_terms'),
     path('mobile/privacy/', mobile_views.mobile_privacy, name='mobile_privacy'),
     path('mobile/payment/success/', mobile_views.mobile_payment_success, name='mobile_payment_success'),
+    path('mobile/fix-storage/', mobile_views.mobile_fix_storage, name='mobile_fix_storage'),
 
     # Dashboard URLs
     path('', views.index, name='index'),
@@ -89,6 +90,9 @@ urlpatterns = [
     path('api/mobile/payment-methods/add/', api_views_mobile.api_payment_method_add, name='api_payment_method_add'),
     path('api/mobile/payment-methods/<int:method_id>/', api_views_mobile.api_payment_method_delete, name='api_payment_method_delete'),
     path('api/mobile/payment-methods/<int:method_id>/update-nickname/', api_views_mobile.api_payment_method_update_nickname, name='api_payment_method_update_nickname'),
+
+    # 고객 정보 API
+    path('api/mobile/customer/info/', api_views_mobile.api_customer_info, name='api_customer_info'),
 
     # ERP 실시간 동기화 API
     path('api/sync/customer/', views_sync_api.sync_customer, name='sync_customer'),
