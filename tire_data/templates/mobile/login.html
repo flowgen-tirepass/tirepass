@@ -54,6 +54,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'same-origin',  // 세션 쿠키 포함
             body: JSON.stringify({
                 customer_code: customer_code,
                 password: password
