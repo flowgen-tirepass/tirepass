@@ -604,10 +604,10 @@
             // 1단계: 잘못된 값 먼저 삭제
             cleanupBadLocalStorage();
 
-            {% if user.is_authenticated %}
+            {% if request.session.customer_code %}
             try {
                 // 2단계: API에서 올바른 값 가져오기
-                const response = await fetch('/mobile/api/customer/info/');
+                const response = await fetch('/api/mobile/customer/info/');
                 const data = await response.json();
 
                 if (data.success && data.data) {
