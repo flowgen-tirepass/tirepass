@@ -39,4 +39,7 @@ urlpatterns = [
     # 결제 API (토스페이먼츠 콜백)
     path('payment/success', api_views.payment_success, name='payment_success'),
     path('payment/fail', api_views.payment_fail, name='payment_fail'),
+
+    # 고객 정보 API
+    path('api/customer/info/', api_views.customer_info, name='api_customer_info'),
 ]

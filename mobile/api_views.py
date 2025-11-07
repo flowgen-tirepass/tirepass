@@ -858,3 +858,54 @@ def order_reorder(request, order_id):
             'success': False,
             'error': str(e)
         }, status=500)
+
+# ============================================
+# 고객 정보 API
+# ============================================
+
+@require_http_methods(["GET"])
+@login_required
+def customer_info(request):
+    """
+    로그인한 사용자의 고객 정보 조회
+
+    GET /api/mobile/customer/info/
+    Response: {
+        "success": true,
+        "data": {
+            "code": "고객코드",
+            "name": "상호",
+            "rep": "대표자",
+            "tel1": "전화",
+            "tel3": "휴대전화",
+            "enno": "사업자번호"
+        }
+    }
+    """
+    try:
+        # 로그인한 사용자의 고객 정보 조회
+        customer = Customers.objects.filter(user_id=request.user.id).first()
+
+        if not customer:
+            return JsonResponse({
+                'success': False,
+                'error': '고객 정보를 찾을 수 없습니다.'
+            }, status=404)
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'code': customer.code,
+                'name': customer.name or '',
+                'rep': customer.rep or '',
+                'tel1': customer.tel1 or '',
+                'tel3': customer.tel3 or '',
+                'enno': customer.enno or ''
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
