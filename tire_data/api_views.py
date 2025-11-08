@@ -1299,7 +1299,12 @@ def api_auth_login(request):
         if customer_code.upper().startswith('TEST'):
             customer_code = customer_code.upper()
 
-        customer = Customers.objects.get(code=customer_code)
+        # 고객코드 또는 사업자번호로 검색
+        try:
+            customer = Customers.objects.get(code=customer_code)
+        except Customers.DoesNotExist:
+            # code로 못 찾으면 사업자번호(enno)로 검색
+            customer = Customers.objects.get(enno__contains=customer_code)
 
         # 비밀번호가 없는 경우
         if not customer.password:
