@@ -1300,11 +1300,33 @@ def api_auth_login(request):
             customer_code = customer_code.upper()
 
         # 고객코드 또는 사업자번호로 검색
+        customer = None
+
+        # 1단계: 고객코드로 검색
         try:
             customer = Customers.objects.get(code=customer_code)
         except Customers.DoesNotExist:
-            # code로 못 찾으면 사업자번호(enno)로 검색
-            customer = Customers.objects.get(enno__contains=customer_code)
+            pass
+
+        # 2단계: 사업자번호로 검색 (10자리 숫자면 하이픈 추가해서도 시도)
+        if not customer:
+            from django.db.models import Q
+
+            # 하이픈 추가 형식 (예: 4101448232 → 410-14-48232)
+            if len(customer_code) == 10 and customer_code.isdigit():
+                formatted_enno = f"{customer_code[:3]}-{customer_code[3:5]}-{customer_code[5:]}"
+                customer = Customers.objects.filter(
+                    Q(enno=formatted_enno) | Q(enno=customer_code)
+                ).first()
+            else:
+                customer = Customers.objects.filter(enno=customer_code).first()
+
+        # 3단계: 고객을 찾지 못한 경우
+        if not customer:
+            return JsonResponse({
+                'success': False,
+                'message': '사업자등록번호 또는 비밀번호가 올바르지 않습니다.'
+            }, status=401)
 
         # 비밀번호가 없는 경우
         if not customer.password:
