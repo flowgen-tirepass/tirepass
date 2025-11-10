@@ -767,6 +767,19 @@ class GoodsAdmin(admin.ModelAdmin):
 #         """수정 불가 (ERP에서만)"""
 #         return False
 
+
+class ShippingAddressInline(admin.TabularInline):
+    """고객 상세 페이지에서 배송지 관리"""
+    model = ShippingAddress
+    extra = 0  # 빈 폼 개수 (0으로 설정)
+    fields = ['is_default', 'recipient_name', 'phone_number', 'postal_code', 'address', 'address_detail']
+    readonly_fields = []
+    can_delete = True
+    show_change_link = True
+    verbose_name = '배송지'
+    verbose_name_plural = '배송지 목록'
+
+
 @admin.register(Customers)
 class CustomersAdmin(admin.ModelAdmin):
     """모바일 회원가입 고객"""
@@ -1774,18 +1787,6 @@ class PaymentAdmin(admin.ModelAdmin):
         return obj.order.order_number
     get_order_number.short_description = '주문번호'
     get_order_number.admin_order_field = 'order__order_number'
-
-
-class ShippingAddressInline(admin.TabularInline):
-    """고객 상세 페이지에서 배송지 관리"""
-    model = ShippingAddress
-    extra = 0  # 빈 폼 개수 (0으로 설정)
-    fields = ['is_default', 'recipient_name', 'phone_number', 'postal_code', 'address', 'address_detail']
-    readonly_fields = []
-    can_delete = True
-    show_change_link = True
-    verbose_name = '배송지'
-    verbose_name_plural = '배송지 목록'
 
 
 @admin.register(ShippingAddress)
