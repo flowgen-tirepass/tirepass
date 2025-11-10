@@ -770,12 +770,13 @@ class GoodsAdmin(admin.ModelAdmin):
 @admin.register(Customers)
 class CustomersAdmin(admin.ModelAdmin):
     """모바일 회원가입 고객"""
-    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'payment_method_count', 'product_discount_count']
+    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'shipping_count', 'payment_method_count', 'product_discount_count']
     list_filter = ['is_registered', 'must_change_password']
     search_fields = ['=code', 'code', 'name', 'rep', '=enno', 'enno']  # =code: 정확히 일치, code: 포함
     ordering = ['code']
     list_per_page = 50
     readonly_fields = ['code', 'payment_methods_display']
+    inlines = [ShippingAddressInline]
     fieldsets = (
         ('기본 정보', {
             'fields': ('code', 'name', 'rep', 'tel1', 'tel3', 'enno')
@@ -848,6 +849,24 @@ class CustomersAdmin(admin.ModelAdmin):
         except Exception:
             return '-'
     payment_method_count.short_description = '결제 수단'
+
+    def shipping_count(self, obj):
+        """등록된 배송지 개수"""
+        try:
+            # ShippingAddress는 customer_code에 사업자번호(enno)를 사용
+            if not obj.enno:
+                return '❌ 0'
+
+            count = ShippingAddress.objects.filter(customer_code=obj.enno).count()
+            if count > 0:
+                from django.urls import reverse
+                from django.utils.html import format_html
+                url = reverse('admin:tire_data_shippingaddress_changelist') + f'?customer_code={obj.enno}'
+                return format_html('<a href="{}">✅ {} 개</a>', url, count)
+            return '❌ 0'
+        except Exception:
+            return '-'
+    shipping_count.short_description = '배송지'
 
     def product_discount_count(self, obj):
         """개별 상품 할인 개수"""
@@ -1755,6 +1774,18 @@ class PaymentAdmin(admin.ModelAdmin):
         return obj.order.order_number
     get_order_number.short_description = '주문번호'
     get_order_number.admin_order_field = 'order__order_number'
+
+
+class ShippingAddressInline(admin.TabularInline):
+    """고객 상세 페이지에서 배송지 관리"""
+    model = ShippingAddress
+    extra = 0  # 빈 폼 개수 (0으로 설정)
+    fields = ['is_default', 'recipient_name', 'phone_number', 'postal_code', 'address', 'address_detail']
+    readonly_fields = []
+    can_delete = True
+    show_change_link = True
+    verbose_name = '배송지'
+    verbose_name_plural = '배송지 목록'
 
 
 @admin.register(ShippingAddress)
