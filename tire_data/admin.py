@@ -768,18 +768,6 @@ class GoodsAdmin(admin.ModelAdmin):
 #         return False
 
 
-class ShippingAddressInline(admin.TabularInline):
-    """고객 상세 페이지에서 배송지 관리"""
-    model = ShippingAddress
-    extra = 0  # 빈 폼 개수 (0으로 설정)
-    fields = ['is_default', 'recipient_name', 'phone_number', 'postal_code', 'address', 'address_detail']
-    readonly_fields = []
-    can_delete = True
-    show_change_link = True
-    verbose_name = '배송지'
-    verbose_name_plural = '배송지 목록'
-
-
 @admin.register(Customers)
 class CustomersAdmin(admin.ModelAdmin):
     """모바일 회원가입 고객"""
@@ -788,14 +776,17 @@ class CustomersAdmin(admin.ModelAdmin):
     search_fields = ['=code', 'code', 'name', 'rep', '=enno', 'enno']  # =code: 정확히 일치, code: 포함
     ordering = ['code']
     list_per_page = 50
-    readonly_fields = ['code', 'payment_methods_display']
-    inlines = [ShippingAddressInline]
+    readonly_fields = ['code', 'payment_methods_display', 'shipping_addresses_display']
     fieldsets = (
         ('기본 정보', {
             'fields': ('code', 'name', 'rep', 'tel1', 'tel3', 'enno')
         }),
         ('계정 상태', {
             'fields': ('is_registered', 'must_change_password')
+        }),
+        ('등록된 배송지', {
+            'fields': ('shipping_addresses_display',),
+            'classes': ('collapse',)
         }),
         ('등록된 결제 수단', {
             'fields': ('payment_methods_display',),
@@ -893,6 +884,57 @@ class CustomersAdmin(admin.ModelAdmin):
             return format_html('<a href="{}">{} 개</a>', url, count)
         return '0 개'
     product_discount_count.short_description = '개별 할인 상품'
+
+    def shipping_addresses_display(self, obj):
+        """등록된 배송지 목록 표시"""
+        try:
+            # ShippingAddress는 customer_code에 사업자번호(enno)를 사용
+            if not obj.enno:
+                return '사업자번호가 없어 배송지를 조회할 수 없습니다.'
+
+            addresses = ShippingAddress.objects.filter(customer_code=obj.enno).order_by('-is_default', '-created_at')
+
+            if not addresses.exists():
+                return '등록된 배송지가 없습니다.'
+
+            from django.urls import reverse
+            from django.utils.html import format_html
+
+            html = '<table style="width: 100%; border-collapse: collapse;">'
+            html += '<thead><tr style="background: #f3f4f6;">'
+            html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">기본</th>'
+            html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">수령인</th>'
+            html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">주소</th>'
+            html += '<th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">전화번호</th>'
+            html += '<th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">관리</th>'
+            html += '</tr></thead><tbody>'
+
+            for address in addresses:
+                url = reverse('admin:tire_data_shippingaddress_change', args=[address.id])
+                html += '<tr>'
+                html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">{"✅" if address.is_default else ""}</td>'
+                html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{address.recipient_name}</td>'
+
+                # 주소 (우편번호 포함)
+                full_address = address.full_address
+                if address.postal_code:
+                    full_address = f'({address.postal_code}) {full_address}'
+                html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{full_address}</td>'
+
+                html += f'<td style="padding: 8px; border: 1px solid #e5e7eb;">{address.phone_number}</td>'
+                html += f'<td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;"><a href="{url}">수정</a></td>'
+                html += '</tr>'
+
+            html += '</tbody></table>'
+
+            # 전체 배송지 목록 링크
+            list_url = reverse('admin:tire_data_shippingaddress_changelist') + f'?customer_code={obj.enno}'
+            html += f'<p style="margin-top: 10px;"><a href="{list_url}">전체 배송지 목록 보기 →</a></p>'
+
+            return format_html(html)
+        except Exception as e:
+            return f'배송지 정보를 불러올 수 없습니다: {str(e)}'
+    shipping_addresses_display.short_description = '등록된 배송지'
 
     @admin.action(description='ERP에서 고객 정보 동기화')
     def sync_from_erp(self, request, queryset):
