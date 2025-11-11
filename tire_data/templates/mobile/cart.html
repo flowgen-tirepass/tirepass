@@ -326,7 +326,16 @@ function showAddressSelectModal() {
 
     let addressOptions = '';
     if (shippingAddresses.length === 0) {
-        addressOptions = '<p style="color: #6b7280; text-align: center; padding: 20px;">등록된 배송지가 없습니다</p>';
+        addressOptions = `
+            <div style="text-align: center; padding: 30px 20px;">
+                <div style="font-size: 48px; margin-bottom: 15px;">📍</div>
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px; color: #1f2937;">등록된 배송지가 없습니다</div>
+                <div style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">주문을 진행하려면 배송지를 먼저 등록해주세요.</div>
+                <button onclick="location.href='/mobile/addresses/';" class="btn btn-primary" style="padding: 12px 24px;">
+                    배송지 등록하러 가기
+                </button>
+            </div>
+        `;
     } else {
         addressOptions = shippingAddresses.map(addr => `
             <label style="display: block; padding: 15px; border: 2px solid ${selectedAddressId === addr.id ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer; position: relative;">
@@ -505,6 +514,23 @@ function showPaymentMethodModal() {
                 <div style="margin-bottom: 20px;">
                     <h4 style="font-size: 15px; font-weight: 600; margin-bottom: 10px;">결제 수단</h4>
 
+                    ${paymentMethods.length === 0 ? `
+                        <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                            <div style="display: flex; align-items: start; gap: 10px;">
+                                <span style="font-size: 20px;">💳</span>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; margin-bottom: 5px; color: #92400e;">등록된 결제 수단이 없습니다</div>
+                                    <div style="font-size: 13px; color: #78350f; margin-bottom: 10px;">
+                                        결제 수단을 미리 등록하면 다음부터 빠르게 주문할 수 있습니다.
+                                    </div>
+                                    <button onclick="location.href='/mobile/profile/';" style="background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                                        결제 수단 등록하러 가기
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
                     ${paymentMethods.length > 0 ? paymentMethods.map((method, index) => `
                         <label style="display: block; padding: 15px; border: 2px solid ${selectedPaymentMethodId === method.id ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer; position: relative;" id="paymentMethod${method.id}">
                             <input type="radio" name="payment_method" value="saved_${method.id}" ${selectedPaymentMethodId === method.id ? 'checked' : ''} onchange="selectedPaymentMethodId = ${method.id}; updatePaymentMethodSelection();" style="margin-right: 10px;">
@@ -620,7 +646,15 @@ function closePaymentModal() {
 }
 
 async function processPayment() {
-    const paymentMethodValue = document.querySelector('input[name="payment_method"]:checked').value;
+    const selectedMethod = document.querySelector('input[name="payment_method"]:checked');
+
+    // 결제 수단이 선택되지 않은 경우
+    if (!selectedMethod) {
+        showAlert('결제 수단을 선택해주세요.', 'error');
+        return;
+    }
+
+    const paymentMethodValue = selectedMethod.value;
 
     if (paymentMethodValue.startsWith('saved_')) {
         // 등록된 결제 수단으로 결제
