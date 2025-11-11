@@ -531,7 +531,9 @@ function showPaymentMethodModal() {
                         </div>
                     ` : ''}
 
-                    ${paymentMethods.length > 0 ? paymentMethods.map((method, index) => `
+                    <!-- 등록된 결제 수단 기능 임시 비활성화 -->
+                    <!-- 토스페이먼츠 빌링키 API 미구현으로 인한 결제 누락 방지 -->
+                    ${false && paymentMethods.length > 0 ? paymentMethods.map((method, index) => `
                         <label style="display: block; padding: 15px; border: 2px solid ${selectedPaymentMethodId === method.id ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer; position: relative;" id="paymentMethod${method.id}">
                             <input type="radio" name="payment_method" value="saved_${method.id}" ${selectedPaymentMethodId === method.id ? 'checked' : ''} onchange="selectedPaymentMethodId = ${method.id}; updatePaymentMethodSelection();" style="margin-right: 10px;">
                             <div style="display: inline-block; vertical-align: top; width: calc(100% - 90px);">
@@ -556,14 +558,19 @@ function showPaymentMethodModal() {
                         </div>
                     </label>
 
-                    ${paymentMethods.length === 0 ? `
-                        <div style="padding: 15px; background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; margin-bottom: 10px;">
-                            <div style="font-size: 13px; color: #92400e; line-height: 1.6;">
+                    <!-- 안내 메시지 -->
+                    <div style="padding: 15px; background-color: ${paymentMethods.length > 0 ? '#fef2f2' : '#fffbeb'}; border: 1px solid ${paymentMethods.length > 0 ? '#fecaca' : '#fde68a'}; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="font-size: 13px; color: ${paymentMethods.length > 0 ? '#991b1b' : '#92400e'}; line-height: 1.6;">
+                            ${paymentMethods.length > 0 ? `
+                                ⚠️ <strong>등록된 결제 수단은 현재 사용할 수 없습니다.</strong><br>
+                                안전한 결제를 위해 "새 카드로 결제" 옵션을 이용해주세요.<br>
+                                <span style="font-size: 12px; color: #dc2626;">(시스템 개선 작업 중입니다)</span>
+                            ` : `
                                 💡 <strong>결제 수단을 등록하면 더 빠르게 주문할 수 있습니다!</strong><br>
                                 프로필 페이지에서 카드/계좌를 미리 등록하세요.
-                            </div>
+                            `}
                         </div>
-                    ` : ''}
+                    </div>
                 </div>
 
                 <!-- 결제 금액 -->
