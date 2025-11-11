@@ -1001,6 +1001,98 @@ def api_order_cancel(request, order_id):
         return JsonResponse({'success': False, 'message': f'주문 취소 중 오류가 발생했습니다: {str(e)}'}, status=500)
 
 
+@require_session_auth
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_order_reorder(request, order_id):
+    """재주문 API - 과거 주문의 상품들을 장바구니에 담기"""
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=400)
+
+    customer_code = data.get('customer_code')
+
+    if not customer_code:
+        return JsonResponse({'success': False, 'message': '고객 코드가 필요합니다.'}, status=400)
+
+    try:
+        # 주문 조회
+        order = Order.objects.get(id=order_id, customer_code=customer_code)
+
+        # 주문 아이템 가져오기
+        order_items = order.items.all()
+
+        if not order_items:
+            return JsonResponse({'success': False, 'message': '주문 상품이 없습니다.'}, status=400)
+
+        # 장바구니에 추가된 상품 수 추적
+        added_count = 0
+        skipped_items = []
+
+        for item in order_items:
+            # 상품 정보 조회
+            try:
+                product = Goods.objects.get(code=item.product_code)
+            except Goods.DoesNotExist:
+                skipped_items.append({
+                    'product_name': item.product_name,
+                    'reason': '상품을 찾을 수 없습니다'
+                })
+                continue
+
+            # 이미 장바구니에 있는지 확인
+            existing_cart = ShoppingCart.objects.filter(
+                customer_code=customer_code,
+                product_code=item.product_code,
+                selected_year=item.selected_year
+            ).first()
+
+            if existing_cart:
+                # 기존 수량에 추가
+                existing_cart.quantity += item.quantity
+                existing_cart.save()
+                added_count += 1
+            else:
+                # 새로 장바구니에 추가
+                ShoppingCart.objects.create(
+                    customer_code=customer_code,
+                    product_code=item.product_code,
+                    quantity=item.quantity,
+                    selected_year=item.selected_year
+                )
+                added_count += 1
+
+        # 결과 메시지 생성
+        if added_count == 0:
+            return JsonResponse({
+                'success': False,
+                'message': '장바구니에 담을 수 있는 상품이 없습니다.',
+                'data': {'skipped_items': skipped_items}
+            }, status=400)
+
+        message = f'{added_count}개 상품이 장바구니에 담겼습니다.'
+        if skipped_items:
+            message += f' ({len(skipped_items)}개 상품 제외)'
+
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'data': {
+                'added_count': added_count,
+                'skipped_items': skipped_items
+            }
+        })
+
+    except Order.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '주문을 찾을 수 없습니다.'}, status=404)
+    except Exception as e:
+        import traceback
+        print(f"재주문 오류: {e}")
+        print(traceback.format_exc())
+        return JsonResponse({'success': False, 'message': f'재주문 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+
 # ============================================
 # 가격 계산 API
 # ============================================

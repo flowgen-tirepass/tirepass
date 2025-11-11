@@ -173,6 +173,9 @@ function renderOrderDetail(order) {
 
         <!-- 버튼 -->
         <div style="padding: 20px 0;">
+            <button onclick="reorder()" class="btn btn-primary btn-block" style="margin-bottom: 10px;">
+                같은 상품 재주문
+            </button>
             ${order.order_status !== 'cancelled' && order.payment_status !== 'refunded' ? `
                 <button onclick="cancelOrder()" class="btn btn-danger btn-block" style="margin-bottom: 10px;">
                     주문 취소
@@ -221,6 +224,46 @@ async function cancelOrder() {
         hideLoading();
         console.error('주문 취소 오류:', error);
         showAlert('주문 취소 중 오류가 발생했습니다', 'error');
+    }
+}
+
+async function reorder() {
+    if (!confirm('이 주문의 상품을 장바구니에 담으시겠습니까?')) return;
+
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/orders/${orderId}/reorder/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                customer_code: customerCode
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert(data.message, 'success');
+
+            // 장바구니로 이동할지 물어보기
+            if (confirm('장바구니로 이동하시겠습니까?')) {
+                location.href = '/mobile/cart/';
+            }
+        } else {
+            showAlert(data.message || '재주문 실패', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('재주문 오류:', error);
+        showAlert('재주문 중 오류가 발생했습니다', 'error');
     }
 }
 

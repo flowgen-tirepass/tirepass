@@ -60,6 +60,7 @@ urlpatterns = [
     path('api/mobile/orders/create/', api_views.api_order_create, name='api_order_create'),
     path('api/mobile/orders/<int:order_id>/', api_views.api_order_detail, name='api_order_detail'),
     path('api/mobile/orders/<int:order_id>/cancel/', api_views.api_order_cancel, name='api_order_cancel'),
+    path('api/mobile/orders/<int:order_id>/reorder/', api_views.api_order_reorder, name='api_order_reorder'),
 
     # 가격 계산 API
     path('api/mobile/calculate-price/', api_views.api_calculate_price, name='api_calculate_price'),

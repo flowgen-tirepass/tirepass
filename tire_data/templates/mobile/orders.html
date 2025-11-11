@@ -62,7 +62,7 @@ function renderOrders(orders) {
     };
 
     container.innerHTML = orders.map(order => `
-        <div class="card" style="cursor: pointer;" onclick="location.href='/mobile/orders/${order.id}/'">
+        <div class="card">
             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                 <span style="font-weight: 600;">${order.order_number}</span>
                 <span class="badge badge-blue">${statusText[order.order_status] || order.order_status}</span>
@@ -70,7 +70,7 @@ function renderOrders(orders) {
 
             <p style="font-size: 13px; color: #6b7280; margin-bottom: 10px;">${order.order_date}</p>
 
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <div>
                     <div style="font-size: 18px; font-weight: 600; color: #2563eb;">
                         ${order.final_amount.toLocaleString()}원
@@ -79,10 +79,58 @@ function renderOrders(orders) {
                         ${order.items_count}개 상품 • ${paymentText[order.payment_status]}
                     </div>
                 </div>
-                <button class="btn btn-primary" style="padding: 8px 16px;">상세보기</button>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button onclick="event.stopPropagation(); reorder(${order.id});" class="btn btn-primary" style="flex: 1; padding: 8px 16px; font-size: 13px;">
+                    재주문
+                </button>
+                <button onclick="location.href='/mobile/orders/${order.id}/';" class="btn btn-secondary" style="flex: 1; padding: 8px 16px; font-size: 13px;">
+                    상세보기
+                </button>
             </div>
         </div>
     `).join('');
+}
+
+async function reorder(orderId) {
+    if (!confirm('이 주문의 상품을 장바구니에 담으시겠습니까?')) return;
+
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        location.href = '/mobile/login/';
+        return;
+    }
+
+    showLoading();
+
+    try {
+        const response = await fetch(`/api/mobile/orders/${orderId}/reorder/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                customer_code: customerCode
+            })
+        });
+
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            showAlert(data.message, 'success');
+
+            // 장바구니로 이동할지 물어보기
+            if (confirm('장바구니로 이동하시겠습니까?')) {
+                location.href = '/mobile/cart/';
+            }
+        } else {
+            showAlert(data.message || '재주문 실패', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        console.error('재주문 오류:', error);
+        showAlert('재주문 중 오류가 발생했습니다', 'error');
+    }
 }
 
 loadOrders();
