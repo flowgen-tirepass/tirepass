@@ -834,7 +834,7 @@ def api_order_list(request):
                 {
                     'id': order.id,
                     'order_number': order.order_number,
-                    'order_date': order.order_date.strftime('%Y-%m-%d %H:%M:%S'),
+                    'order_date': timezone.localtime(order.order_date).strftime('%Y-%m-%d %H:%M:%S'),
                     'total_amount': order.total_amount,
                     'final_amount': order.final_amount,
                     'order_status': order.order_status,
@@ -876,7 +876,7 @@ def api_order_detail(request, order_id):
         'success': True,
         'data': {
             'order_number': order.order_number,
-            'order_date': order.order_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'order_date': timezone.localtime(order.order_date).strftime('%Y-%m-%d %H:%M:%S'),
             'customer_name': order.customer_name,
             'total_amount': order.total_amount,
             'total_discount': order.total_discount,
@@ -1782,7 +1782,7 @@ def api_payment_confirm(request):
                     'order_number': order.order_number,
                     'payment_key': payment_key,
                     'amount': amount,
-                    'payment_date': payment.payment_date.isoformat()
+                    'payment_date': timezone.localtime(payment.payment_date).strftime('%Y-%m-%d %H:%M:%S')
                 }
             })
         else:
@@ -1877,7 +1877,7 @@ def api_payment_cancel(request):
                 'message': '결제가 취소되었습니다.',
                 'data': {
                     'payment_key': payment_key,
-                    'cancelled_date': payment.cancelled_date.isoformat()
+                    'cancelled_date': timezone.localtime(payment.cancelled_date).strftime('%Y-%m-%d %H:%M:%S')
                 }
             })
         else:
@@ -1943,7 +1943,7 @@ def api_shipping_addresses_list(request):
                 'address_detail': addr.address_detail,
                 'full_address': addr.full_address,
                 'is_default': addr.is_default,
-                'created_at': addr.created_at.isoformat()
+                'created_at': timezone.localtime(addr.created_at).strftime('%Y-%m-%d %H:%M:%S')
             })
 
         return JsonResponse({
