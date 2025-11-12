@@ -556,14 +556,19 @@ def api_payment_method_add(request):
                     'Content-Type': 'application/json'
                 }
 
+                # 연도를 4자리로 변환 (29 -> 2029)
+                full_year = f"20{expiry_year}" if len(expiry_year) == 2 else expiry_year
+
                 payload = {
                     'customerKey': customer_code,
                     'cardNumber': card_number,
-                    'cardExpirationYear': expiry_year,
+                    'cardExpirationYear': full_year,
                     'cardExpirationMonth': expiry_month,
                     'cardPassword': card_password,
                     'customerIdentityNumber': customer_identity_number
                 }
+
+                logger.info(f"빌링키 발급 payload: customerKey={customer_code}, year={full_year}, month={expiry_month}")
 
                 logger.info(f"빌링키 발급 요청: customer_code={customer_code}, card_last4={card_number[-4:]}")
 
