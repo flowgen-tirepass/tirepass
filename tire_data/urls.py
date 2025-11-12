@@ -62,6 +62,9 @@ urlpatterns = [
     path('api/mobile/orders/<int:order_id>/cancel/', api_views.api_order_cancel, name='api_order_cancel'),
     path('api/mobile/orders/<int:order_id>/reorder/', api_views.api_order_reorder, name='api_order_reorder'),
 
+    # 빌링키 결제 API
+    path('api/mobile/payment/billing/', api_views.api_payment_billing, name='api_payment_billing'),
+
     # 가격 계산 API
     path('api/mobile/calculate-price/', api_views.api_calculate_price, name='api_calculate_price'),
     path('api/mobile/calculate-quote/', api_views.api_calculate_quote, name='api_calculate_quote'),

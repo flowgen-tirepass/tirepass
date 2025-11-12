@@ -812,6 +812,275 @@ def api_order_create(request):
 
 
 @require_session_auth
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_payment_billing(request):
+    """
+    빌링키 자동결제 API
+    등록된 결제 수단으로 자동 결제 처리
+
+    Request Body:
+        - payment_method_id: 등록된 결제 수단 ID (필수)
+        - customer_code: 고객 코드 (필수)
+        - cart_ids: 장바구니 ID 목록 (필수)
+        - shipping_address_id: 배송지 ID (선택)
+        - shipping_memo: 배송 메모 (선택)
+    """
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': '잘못된 요청입니다.'
+        }, status=400)
+
+    payment_method_id = data.get('payment_method_id')
+    customer_code = data.get('customer_code')
+    cart_ids = data.get('cart_ids', [])
+    shipping_address_id = data.get('shipping_address_id')
+    shipping_memo = data.get('shipping_memo', '')
+
+    if not all([payment_method_id, customer_code, cart_ids]):
+        return JsonResponse({
+            'success': False,
+            'message': '결제 수단, 고객 코드, 장바구니 항목이 필요합니다.'
+        }, status=400)
+
+    try:
+        from django.db import transaction
+        import requests
+        import base64
+        from django.conf import settings
+
+        # 트랜잭션 시작 (실패 시 모든 작업 롤백)
+        with transaction.atomic():
+            # 1. 고객 확인
+            customer = Customers.objects.get(code=customer_code)
+
+            # 2. 등록된 결제 수단 확인
+            payment_method = PaymentMethod.objects.get(
+                id=payment_method_id,
+                customer_code=customer_code,
+                is_active=True
+            )
+
+            # 빌링키 유효성 검증
+            if payment_method.billing_key.startswith('TEMP_'):
+                return JsonResponse({
+                    'success': False,
+                    'message': '임시 빌링키는 사용할 수 없습니다. 카드를 다시 등록해주세요.'
+                }, status=400)
+
+            # 3. 장바구니 항목 조회
+            cart_items = ShoppingCart.objects.filter(
+                id__in=cart_ids,
+                customer_code=customer_code
+            )
+
+            if not cart_items.exists():
+                return JsonResponse({
+                    'success': False,
+                    'message': '장바구니 항목을 찾을 수 없습니다.'
+                }, status=404)
+
+            # 4. 총 금액 계산
+            total_amount = 0
+            total_discount = 0
+
+            for cart_item in cart_items:
+                total_amount += cart_item.unit_price * cart_item.quantity
+                discount_amount = (cart_item.unit_price * cart_item.quantity) - cart_item.final_price
+                total_discount += discount_amount
+
+            final_amount = total_amount - total_discount
+
+            # 5. 배송지 정보 가져오기
+            shipping_address = ''
+            if shipping_address_id:
+                try:
+                    address = ShippingAddress.objects.get(
+                        id=shipping_address_id,
+                        customer_code=customer_code
+                    )
+                    shipping_address = f"{address.address} {address.detail_address}"
+                except ShippingAddress.DoesNotExist:
+                    pass
+
+            # 6. 주문 생성
+            order_number = generate_order_number()
+            order = Order.objects.create(
+                order_number=order_number,
+                customer_code=customer_code,
+                customer_name=customer.name,
+                total_amount=total_amount,
+                total_discount=total_discount,
+                final_amount=final_amount,
+                order_status='pending',
+                payment_status='unpaid',
+                payment_method='card',
+                shipping_address=shipping_address,
+                shipping_memo=shipping_memo,
+                order_source='mobile'
+            )
+
+            # 7. 주문 상세 생성
+            for cart_item in cart_items:
+                product = Goods.objects.get(code=cart_item.product_code)
+
+                price_info = calculate_discount_price(
+                    product_code=cart_item.product_code,
+                    customer_code=customer_code,
+                    selected_year=cart_item.selected_year,
+                    quantity=cart_item.quantity
+                )
+
+                OrderItem.objects.create(
+                    order=order,
+                    product_code=cart_item.product_code,
+                    product_name=product.name,
+                    brand=product.brand,
+                    quantity=cart_item.quantity,
+                    selected_year=cart_item.selected_year,
+                    unit_price=price_info['unit_price'],
+                    basic_discount_rate=price_info['basic_discount_rate'],
+                    customer_discount_rate=price_info['customer_discount_rate'],
+                    additional_discount_rate=price_info['additional_discount_rate'],
+                    dot_discount_rate=price_info['dot_discount_rate'],
+                    total_discount_rate=price_info['total_discount_rate'],
+                    discounted_price=price_info['discounted_price'],
+                    final_price=price_info['final_price']
+                )
+
+            # 8. 토스페이먼츠 빌링키 자동결제 API 호출
+            url = f"https://api.tosspayments.com/v1/billing/{payment_method.billing_key}"
+
+            secret_key = settings.TOSS_PAYMENTS_SECRET_KEY + ':'
+            encoded_key = base64.b64encode(secret_key.encode()).decode()
+
+            headers = {
+                'Authorization': f'Basic {encoded_key}',
+                'Content-Type': 'application/json'
+            }
+
+            payload = {
+                'customerKey': customer_code,
+                'amount': int(final_amount),
+                'orderId': order_number,
+                'orderName': f'{customer.name} 주문',
+                'customerEmail': customer.email if hasattr(customer, 'email') and customer.email else None,
+                'customerName': customer.name
+            }
+
+            logger.info(f"빌링키 자동결제 요청: order={order_number}, amount={final_amount}, billing_key={payment_method.billing_key[:20]}...")
+
+            billing_response = requests.post(url, json=payload, headers=headers)
+            billing_data = billing_response.json()
+
+            if billing_response.status_code == 200:
+                # 결제 성공
+                payment_key = billing_data.get('paymentKey')
+                transaction_key = billing_data.get('transactionKey')
+
+                logger.info(f"빌링키 자동결제 성공: order={order_number}, payment_key={payment_key}")
+
+                # 9. Payment 레코드 생성
+                payment = Payment.objects.create(
+                    order=order,
+                    payment_method='card',
+                    payment_amount=final_amount,
+                    payment_status='completed',
+                    payment_date=timezone.now(),
+                    pg_name='TossPayments',
+                    payment_key=payment_key,
+                    transaction_id=transaction_key,
+                    order_id_toss=order_number,
+                    raw_response=json.dumps(billing_data, ensure_ascii=False)
+                )
+
+                # 10. 주문 상태 업데이트
+                order.payment_status = 'paid'
+                order.order_status = 'confirmed'
+                order.confirmed_date = timezone.now()
+                order.save()
+
+                # 11. 재고 차감
+                for item in order.items.all():
+                    update_stock(
+                        product_code=item.product_code,
+                        year=item.selected_year,
+                        quantity=item.quantity,
+                        operation='subtract'
+                    )
+
+                # 12. 장바구니 삭제
+                cart_items.delete()
+
+                return JsonResponse({
+                    'success': True,
+                    'message': '결제가 완료되었습니다.',
+                    'data': {
+                        'order_number': order.order_number,
+                        'order_id': order.id,
+                        'payment_key': payment_key,
+                        'amount': final_amount,
+                        'payment_date': payment.payment_date.isoformat()
+                    }
+                })
+            else:
+                # 결제 실패 - 트랜잭션 롤백됨
+                error_code = billing_data.get('code', 'UNKNOWN')
+                error_message = billing_data.get('message', '결제에 실패했습니다')
+
+                logger.error(f"빌링키 자동결제 실패: order={order_number}, code={error_code}, message={error_message}")
+
+                # 주문을 취소 상태로 변경 (트랜잭션 내에서)
+                order.order_status = 'cancelled'
+                order.payment_status = 'failed'
+                order.save()
+
+                # 실패 Payment 레코드 생성
+                Payment.objects.create(
+                    order=order,
+                    payment_method='card',
+                    payment_amount=final_amount,
+                    payment_status='failed',
+                    pg_name='TossPayments',
+                    order_id_toss=order_number,
+                    memo=f'실패: {error_code} - {error_message}',
+                    raw_response=json.dumps(billing_data, ensure_ascii=False)
+                )
+
+                return JsonResponse({
+                    'success': False,
+                    'message': f'결제 실패: {error_message}',
+                    'error_code': error_code
+                }, status=400)
+
+    except Customers.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '고객을 찾을 수 없습니다.'
+        }, status=404)
+    except PaymentMethod.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': '등록된 결제 수단을 찾을 수 없습니다.'
+        }, status=404)
+    except requests.exceptions.RequestException as e:
+        logger.error(f"빌링키 결제 API 호출 오류: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': '결제 중 네트워크 오류가 발생했습니다.'
+        }, status=500)
+    except Exception as e:
+        logger.error(f"빌링키 자동결제 오류: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'결제 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
+
+
+@require_session_auth
 @require_http_methods(["GET"])
 def api_order_list(request):
     """주문 목록 조회 API"""

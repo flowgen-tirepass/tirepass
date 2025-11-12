@@ -481,11 +481,13 @@ def api_payment_method_add(request):
             card_expiry = data.get('card_expiry')  # MM/YY
             card_cvc = data.get('card_cvc')  # 3자리
             card_holder_name = data.get('card_holder_name')  # 카드 소유자 이름
+            card_password = data.get('card_password')  # 카드 비밀번호 앞 2자리
+            customer_identity_number = data.get('customer_identity_number')  # 생년월일 6자리 또는 사업자번호 10자리
 
-            if not all([card_number, card_expiry, card_cvc]):
+            if not all([card_number, card_expiry, card_cvc, card_password, customer_identity_number]):
                 return JsonResponse({
                     'success': False,
-                    'message': '카드 정보를 모두 입력해주세요'
+                    'message': '카드 정보를 모두 입력해주세요 (카드번호, 유효기간, CVC, 비밀번호 앞 2자리, 생년월일 또는 사업자번호)'
                 }, status=400)
 
             # 카드번호 첫 자리로 카드사 자동 판별
@@ -523,37 +525,104 @@ def api_payment_method_add(request):
                     'message': 'CVC는 3자리 숫자여야 합니다'
                 }, status=400)
 
-            try:
-                # PaymentMethod 생성 (보안상 카드번호 전체는 저장하지 않음)
-                # 실제 운영에서는 PG사 빌링키 사용 권장
-                billing_key_temp = f"TEMP_{customer_code}_{card_number[-4:]}"  # 임시 빌링키
-
-                method = PaymentMethod.objects.create(
-                    customer_code=customer_code,
-                    payment_type='CARD',
-                    billing_key=billing_key_temp,
-                    card_company=card_company,
-                    card_last4=card_number[-4:],  # 마지막 4자리만 저장
-                    card_type='신용',  # 기본값
-                    nickname=data.get('nickname', ''),
-                    is_default=data.get('is_default', False)
-                )
-
+            # 카드 비밀번호 유효성 검사
+            if len(card_password) != 2 or not card_password.isdigit():
                 return JsonResponse({
-                    'success': True,
-                    'message': '카드가 등록되었습니다',
-                    'data': {
-                        'id': method.id,
-                        'masked_info': method.masked_info,
-                        'is_default': method.is_default
-                    }
-                })
+                    'success': False,
+                    'message': '카드 비밀번호 앞 2자리를 입력해주세요'
+                }, status=400)
 
+            # 생년월일/사업자번호 유효성 검사
+            if len(customer_identity_number) not in [6, 10] or not customer_identity_number.isdigit():
+                return JsonResponse({
+                    'success': False,
+                    'message': '생년월일 6자리 또는 사업자번호 10자리를 입력해주세요'
+                }, status=400)
+
+            try:
+                import requests
+                import base64
+                from django.conf import settings
+
+                # 토스페이먼츠 빌링키 발급 API 호출
+                url = "https://api.tosspayments.com/v1/billing/authorizations/issue"
+
+                # Secret Key를 Base64로 인코딩 (Basic Auth)
+                secret_key = settings.TOSS_PAYMENTS_SECRET_KEY + ':'
+                encoded_key = base64.b64encode(secret_key.encode()).decode()
+
+                headers = {
+                    'Authorization': f'Basic {encoded_key}',
+                    'Content-Type': 'application/json'
+                }
+
+                payload = {
+                    'customerKey': customer_code,
+                    'cardNumber': card_number,
+                    'cardExpirationYear': expiry_year,
+                    'cardExpirationMonth': expiry_month,
+                    'cardPassword': card_password,
+                    'customerIdentityNumber': customer_identity_number
+                }
+
+                logger.info(f"빌링키 발급 요청: customer_code={customer_code}, card_last4={card_number[-4:]}")
+
+                response = requests.post(url, json=payload, headers=headers)
+                response_data = response.json()
+
+                if response.status_code == 200:
+                    # 빌링키 발급 성공
+                    billing_key = response_data.get('billingKey')
+
+                    if not billing_key:
+                        raise ValueError('빌링키를 받지 못했습니다')
+
+                    logger.info(f"빌링키 발급 성공: customer_code={customer_code}, billing_key={billing_key[:20]}...")
+
+                    # PaymentMethod 생성 (실제 빌링키 저장)
+                    method = PaymentMethod.objects.create(
+                        customer_code=customer_code,
+                        payment_type='CARD',
+                        billing_key=billing_key,  # ✅ 실제 토스페이먼츠 빌링키
+                        card_company=card_company,
+                        card_last4=card_number[-4:],
+                        card_type='신용',
+                        nickname=data.get('nickname', ''),
+                        is_default=data.get('is_default', False)
+                    )
+
+                    return JsonResponse({
+                        'success': True,
+                        'message': '카드가 등록되었습니다',
+                        'data': {
+                            'id': method.id,
+                            'masked_info': method.masked_info,
+                            'is_default': method.is_default
+                        }
+                    })
+                else:
+                    # 빌링키 발급 실패
+                    error_code = response_data.get('code', 'UNKNOWN')
+                    error_message = response_data.get('message', '카드 등록에 실패했습니다')
+
+                    logger.error(f"빌링키 발급 실패: code={error_code}, message={error_message}")
+
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'카드 등록 실패: {error_message}'
+                    }, status=400)
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"빌링키 API 호출 오류: {str(e)}")
+                return JsonResponse({
+                    'success': False,
+                    'message': '카드 등록 중 네트워크 오류가 발생했습니다'
+                }, status=500)
             except Exception as e:
                 logger.error(f"카드 등록 오류: {str(e)}")
                 return JsonResponse({
                     'success': False,
-                    'message': '카드 등록 중 오류가 발생했습니다'
+                    'message': f'카드 등록 중 오류가 발생했습니다: {str(e)}'
                 }, status=500)
 
         elif payment_type == 'ACCOUNT':

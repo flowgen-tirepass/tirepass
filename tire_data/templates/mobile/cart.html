@@ -531,9 +531,8 @@ function showPaymentMethodModal() {
                         </div>
                     ` : ''}
 
-                    <!-- 등록된 결제 수단 기능 임시 비활성화 -->
-                    <!-- 토스페이먼츠 빌링키 API 미구현으로 인한 결제 누락 방지 -->
-                    ${false && paymentMethods.length > 0 ? paymentMethods.map((method, index) => `
+                    <!-- 등록된 결제 수단 -->
+                    ${paymentMethods.length > 0 ? paymentMethods.map((method, index) => `
                         <label style="display: block; padding: 15px; border: 2px solid ${selectedPaymentMethodId === method.id ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer; position: relative;" id="paymentMethod${method.id}">
                             <input type="radio" name="payment_method" value="saved_${method.id}" ${selectedPaymentMethodId === method.id ? 'checked' : ''} onchange="selectedPaymentMethodId = ${method.id}; updatePaymentMethodSelection();" style="margin-right: 10px;">
                             <div style="display: inline-block; vertical-align: top; width: calc(100% - 90px);">
@@ -559,18 +558,14 @@ function showPaymentMethodModal() {
                     </label>
 
                     <!-- 안내 메시지 -->
-                    <div style="padding: 15px; background-color: ${paymentMethods.length > 0 ? '#fef2f2' : '#fffbeb'}; border: 1px solid ${paymentMethods.length > 0 ? '#fecaca' : '#fde68a'}; border-radius: 8px; margin-bottom: 10px;">
-                        <div style="font-size: 13px; color: ${paymentMethods.length > 0 ? '#991b1b' : '#92400e'}; line-height: 1.6;">
-                            ${paymentMethods.length > 0 ? `
-                                ⚠️ <strong>등록된 결제 수단은 현재 사용할 수 없습니다.</strong><br>
-                                안전한 결제를 위해 "새 카드로 결제" 옵션을 이용해주세요.<br>
-                                <span style="font-size: 12px; color: #dc2626;">(시스템 개선 작업 중입니다)</span>
-                            ` : `
+                    ${paymentMethods.length === 0 ? `
+                        <div style="padding: 15px; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="font-size: 13px; color: #1e40af; line-height: 1.6;">
                                 💡 <strong>결제 수단을 등록하면 더 빠르게 주문할 수 있습니다!</strong><br>
-                                프로필 페이지에서 카드/계좌를 미리 등록하세요.
-                            `}
+                                프로필 페이지에서 카드를 미리 등록하세요.
+                            </div>
                         </div>
-                    </div>
+                    ` : ''}
                 </div>
 
                 <!-- 결제 금액 -->
@@ -693,23 +688,19 @@ async function processSavedPaymentMethod(methodId) {
     try {
         const cartIds = cartItems.map(item => item.id);
 
-        // TODO: 빌링키를 사용한 자동 결제 API 호출
-        // 현재는 주문만 생성하고, 실제 빌링키 결제는 추후 구현
-        const response = await fetch('/api/mobile/orders/create/', {
+        // ✅ 빌링키를 사용한 자동 결제 API 호출
+        const response = await fetch('/api/mobile/payment/billing/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
             body: JSON.stringify({
+                payment_method_id: methodId,
                 customer_code: customerCode,
                 cart_ids: cartIds,
-                shipping_address: selectedAddress ? selectedAddress.full_address : '',
-                shipping_memo: shippingMemo || '',
-                payment_method_id: methodId,
-                payment_method: selectedMethod.payment_type === 'CARD' ? 'card' : 'account',
-                amount: totalAmount,
-                use_saved_method: true
+                shipping_address_id: selectedAddressId,
+                shipping_memo: shippingMemo || ''
             })
         });
 
@@ -717,7 +708,7 @@ async function processSavedPaymentMethod(methodId) {
         hideLoading();
 
         if (data.success) {
-            showAlert('주문이 완료되었습니다!', 'success');
+            showAlert('결제가 완료되었습니다!', 'success');
 
             closePaymentModal();
             closeCheckoutModal();
@@ -727,12 +718,12 @@ async function processSavedPaymentMethod(methodId) {
                 location.href = `/mobile/orders/${data.data.order_id}/`;
             }, 1500);
         } else {
-            showAlert(data.message || '주문 실패', 'error');
+            showAlert(data.message || '결제 실패', 'error');
         }
     } catch (error) {
         hideLoading();
-        console.error('주문 오류:', error);
-        showAlert('주문 처리 중 오류가 발생했습니다.', 'error');
+        console.error('결제 오류:', error);
+        showAlert('결제 처리 중 오류가 발생했습니다.', 'error');
     }
 }
 
