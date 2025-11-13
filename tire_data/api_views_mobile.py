@@ -544,8 +544,8 @@ def api_payment_method_add(request):
                 import base64
                 from django.conf import settings
 
-                # 토스페이먼츠 빌링키 발급 API 호출
-                url = "https://api.tosspayments.com/v1/billing/authorizations/issue"
+                # 토스페이먼츠 빌링키 발급 API 호출 (카드 정보 직접 전송)
+                url = "https://api.tosspayments.com/v1/billing/authorizations/card"
 
                 # Secret Key를 Base64로 인코딩 (Basic Auth)
                 secret_key = settings.TOSS_PAYMENTS_SECRET_KEY + ':'
