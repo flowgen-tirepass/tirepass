@@ -71,7 +71,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
             // 비밀번호 변경 필요 체크
             if (data.data.must_change_password) {
-                showAlert('최초 로그인입니다. 보안을 위해 비밀번호를 변경해주세요.', 'info');
+                showAlert('최초 로그인입니다. 보안을 위해 비밀번호를 변경해주세요.', 'success');
                 setTimeout(() => {
                     location.href = '/mobile/profile/?change_password=true';
                 }, 2000);
