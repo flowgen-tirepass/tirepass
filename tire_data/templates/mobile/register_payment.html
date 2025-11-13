@@ -189,9 +189,8 @@ async function registerCardWithWidget() {
         // 토스페이먼츠 SDK 초기화
         const tossPayments = TossPayments('{{ settings.TOSS_PAYMENTS_CLIENT_KEY }}');
 
-        // 빌링키 발급 위젯 호출
-        await tossPayments.requestBillingAuth({
-            method: 'CARD',
+        // 빌링키 발급 위젯 호출 (첫 번째 파라미터: 결제수단, 두 번째 파라미터: 옵션)
+        await tossPayments.requestBillingAuth('CARD', {
             customerKey: customerCode,
             successUrl: window.location.origin + '/mobile/register/payment/',
             failUrl: window.location.origin + '/mobile/register/payment/?error=true'
