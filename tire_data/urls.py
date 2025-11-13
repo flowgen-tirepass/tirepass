@@ -92,6 +92,7 @@ urlpatterns = [
     # 결제 수단 API
     path('api/mobile/payment-methods/', api_views_mobile.api_payment_methods_list, name='api_payment_methods_list'),
     path('api/mobile/payment-methods/add/', api_views_mobile.api_payment_method_add, name='api_payment_method_add'),
+    path('api/mobile/payment-methods/billing-auth/', api_views_mobile.api_payment_method_billing_auth, name='api_payment_method_billing_auth'),
     path('api/mobile/payment-methods/<int:method_id>/', api_views_mobile.api_payment_method_delete, name='api_payment_method_delete'),
     path('api/mobile/payment-methods/<int:method_id>/update-nickname/', api_views_mobile.api_payment_method_update_nickname, name='api_payment_method_update_nickname'),
 

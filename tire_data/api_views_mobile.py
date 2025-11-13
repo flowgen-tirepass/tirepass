@@ -453,6 +453,129 @@ def api_payment_method_update_nickname(request, method_id):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+def api_payment_method_billing_auth(request):
+    """빌링키 발급 (authKey 방식 - 토스페이먼츠 위젯)"""
+    try:
+        data = json.loads(request.body)
+        auth_key = data.get('auth_key')
+        customer_key = data.get('customer_key')
+
+        if not auth_key or not customer_key:
+            return JsonResponse({
+                'success': False,
+                'message': '필수 파라미터가 누락되었습니다 (auth_key, customer_key)'
+            }, status=400)
+
+        # 고객 확인
+        try:
+            customer = Customers.objects.get(code=customer_key)
+        except Customers.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': '고객을 찾을 수 없습니다'
+            }, status=404)
+
+        try:
+            import requests
+            import base64
+            from django.conf import settings
+
+            # 토스페이먼츠 빌링키 발급 API 호출 (authKey 사용)
+            url = "https://api.tosspayments.com/v1/billing/authorizations/issue"
+
+            # Secret Key를 Base64로 인코딩 (Basic Auth)
+            secret_key = settings.TOSS_PAYMENTS_SECRET_KEY + ':'
+            encoded_key = base64.b64encode(secret_key.encode()).decode()
+
+            headers = {
+                'Authorization': f'Basic {encoded_key}',
+                'Content-Type': 'application/json'
+            }
+
+            payload = {
+                'authKey': auth_key,
+                'customerKey': customer_key
+            }
+
+            logger.info(f"빌링키 발급 요청 (authKey 방식): customerKey={customer_key}")
+
+            response = requests.post(url, json=payload, headers=headers)
+            response_data = response.json()
+
+            logger.info(f"토스페이먼츠 응답 status_code: {response.status_code}")
+            logger.info(f"토스페이먼츠 응답 body: {response_data}")
+
+            if response.status_code == 200:
+                # 빌링키 발급 성공
+                billing_key = response_data.get('billingKey')
+                card_company = response_data.get('card', {}).get('issuerCode', 'UNKNOWN')
+                card_number = response_data.get('card', {}).get('number', '')
+
+                if not billing_key:
+                    raise ValueError('빌링키를 받지 못했습니다')
+
+                logger.info(f"빌링키 발급 성공: customer_key={customer_key}, billing_key={billing_key[:20]}...")
+
+                # 카드 마지막 4자리 추출
+                card_last4 = card_number[-4:] if len(card_number) >= 4 else '0000'
+
+                # PaymentMethod 생성
+                method = PaymentMethod.objects.create(
+                    customer_code=customer_key,
+                    payment_type='CARD',
+                    billing_key=billing_key,
+                    card_company=card_company,
+                    card_last4=card_last4,
+                    card_type='신용',
+                    nickname='',
+                    is_default=True  # 첫 카드는 기본으로 설정
+                )
+
+                return JsonResponse({
+                    'success': True,
+                    'message': '카드가 등록되었습니다',
+                    'data': {
+                        'id': method.id,
+                        'masked_info': method.masked_info,
+                        'is_default': method.is_default
+                    }
+                })
+            else:
+                # 빌링키 발급 실패
+                error_code = response_data.get('code', 'UNKNOWN')
+                error_message = response_data.get('message', '카드 등록에 실패했습니다')
+
+                logger.error(f"빌링키 발급 실패: code={error_code}, message={error_message}")
+
+                return JsonResponse({
+                    'success': False,
+                    'message': f'카드 등록 실패: {error_message}'
+                }, status=400)
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"빌링키 API 호출 오류: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'message': '카드 등록 중 네트워크 오류가 발생했습니다'
+            }, status=500)
+        except Exception as e:
+            logger.error(f"카드 등록 오류: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'message': f'카드 등록 중 오류가 발생했습니다: {str(e)}'
+            }, status=500)
+
+    except Exception as e:
+        logger.error(f"빌링키 발급 처리 오류: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': '등록 중 오류가 발생했습니다',
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
 def api_payment_method_add(request):
     """결제 수단 등록 (카드/계좌)"""
     try:
