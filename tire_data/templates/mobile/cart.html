@@ -548,12 +548,92 @@ function showPaymentMethodModal() {
                         </label>
                     `).join('') : ''}
 
-                    <!-- 새 결제 수단으로 결제 -->
-                    <label style="display: block; padding: 15px; border: 2px solid ${!selectedPaymentMethodId ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentNew">
-                        <input type="radio" name="payment_method" value="new_card" ${!selectedPaymentMethodId ? 'checked' : ''} onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                    <!-- 일반 결제 수단 -->
+                    <h5 style="font-size: 13px; font-weight: 600; color: #6b7280; margin: 15px 0 10px 0;">💳 일반 결제</h5>
+
+                    <label style="display: block; padding: 15px; border: 2px solid ${!selectedPaymentMethodId ? '#2563eb' : '#e5e7eb'}; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentCard">
+                        <input type="radio" name="payment_method" value="card" ${!selectedPaymentMethodId ? 'checked' : ''} onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
                         <div style="display: inline-block; vertical-align: top;">
-                            <div style="font-weight: 600; margin-bottom: 3px;">💳 새 카드로 결제</div>
-                            <div style="font-size: 13px; color: #6b7280;">토스페이먼츠로 안전하게 결제</div>
+                            <div style="font-weight: 600; margin-bottom: 3px;">💳 카드 결제</div>
+                            <div style="font-size: 13px; color: #6b7280;">카드 정보 직접 입력</div>
+                        </div>
+                    </label>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentTransfer">
+                        <input type="radio" name="payment_method" value="transfer" onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">🏦 계좌이체</div>
+                            <div style="font-size: 13px; color: #6b7280;">실시간 계좌이체</div>
+                        </div>
+                    </label>
+
+                    <!-- 간편결제 -->
+                    <h5 style="font-size: 13px; font-weight: 600; color: #6b7280; margin: 20px 0 10px 0;">⚡ 간편결제</h5>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentToss">
+                        <input type="radio" name="payment_method" value="tosspay" onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">💰 토스페이</div>
+                            <div style="font-size: 13px; color: #6b7280;">빠르고 간편한 결제</div>
+                        </div>
+                    </label>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentKakao">
+                        <input type="radio" name="payment_method" value="kakaopay" onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">💛 카카오페이</div>
+                            <div style="font-size: 13px; color: #6b7280;">카카오톡으로 간편결제</div>
+                        </div>
+                    </label>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentNaver">
+                        <input type="radio" name="payment_method" value="naverpay" onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">🟢 네이버페이</div>
+                            <div style="font-size: 13px; color: #6b7280;">네이버 간편결제</div>
+                        </div>
+                    </label>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentPayco">
+                        <input type="radio" name="payment_method" value="payco" onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">📱 페이코</div>
+                            <div style="font-size: 13px; color: #6b7280;">NHN 페이코 간편결제</div>
+                        </div>
+                    </label>
+
+                    <!-- 카드사 앱카드 -->
+                    <h5 style="font-size: 13px; font-weight: 600; color: #6b7280; margin: 20px 0 10px 0;">📲 카드사 앱카드</h5>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentShinhan">
+                        <input type="radio" name="payment_method" value="appcard_shinhan" onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">🔵 신한 앱카드 (솔페이)</div>
+                            <div style="font-size: 13px; color: #6b7280;">신한카드 앱 결제</div>
+                        </div>
+                    </label>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentKB">
+                        <input type="radio" name="payment_method" value="appcard_kb" onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">🟡 KB 앱카드 (페이)</div>
+                            <div style="font-size: 13px; color: #6b7280;">국민카드 앱 결제</div>
+                        </div>
+                    </label>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentSamsung">
+                        <input type="radio" name="payment_method" value="appcard_samsung" onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">🔷 삼성카드 앱카드</div>
+                            <div style="font-size: 13px; color: #6b7280;">삼성카드 앱 결제</div>
+                        </div>
+                    </label>
+
+                    <label style="display: block; padding: 15px; border: 2px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; cursor: pointer;" id="paymentHyundai">
+                        <input type="radio" name="payment_method" value="appcard_hyundai" onchange="selectedPaymentMethodId = null; updatePaymentMethodSelection();" style="margin-right: 10px;">
+                        <div style="display: inline-block; vertical-align: top;">
+                            <div style="font-weight: 600; margin-bottom: 3px;">⚫ 현대카드 앱카드</div>
+                            <div style="font-size: 13px; color: #6b7280;">현대카드 앱 결제</div>
                         </div>
                     </label>
 
@@ -662,9 +742,29 @@ async function processPayment() {
         // 등록된 결제 수단으로 결제
         const methodId = parseInt(paymentMethodValue.replace('saved_', ''));
         await processSavedPaymentMethod(methodId);
-    } else if (paymentMethodValue === 'new_card') {
-        // 새 카드로 결제 (토스페이먼츠 결제창)
-        await processCardPayment();
+        return;
+    }
+
+    // 결제 수단별 토스페이먼츠 API 파라미터 매핑
+    const paymentMethodMap = {
+        'card': '카드',
+        'transfer': '계좌이체',
+        'tosspay': '토스페이',
+        'kakaopay': '카카오페이',
+        'naverpay': '네이버페이',
+        'payco': '페이코',
+        'appcard_shinhan': '신한페이판',
+        'appcard_kb': 'kb페이',
+        'appcard_samsung': '삼성페이',
+        'appcard_hyundai': '현대카드'
+    };
+
+    const tossPaymentMethod = paymentMethodMap[paymentMethodValue];
+
+    if (tossPaymentMethod) {
+        await processGeneralPayment(tossPaymentMethod, paymentMethodValue);
+    } else {
+        showAlert('지원하지 않는 결제 수단입니다.', 'error');
     }
 }
 
@@ -727,7 +827,7 @@ async function processSavedPaymentMethod(methodId) {
     }
 }
 
-async function processCardPayment() {
+async function processGeneralPayment(tossPaymentMethod, paymentMethodValue) {
     const customerCode = getCustomerCode();
     const selectedAddress = shippingAddresses.find(addr => addr.id === selectedAddressId);
     const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
@@ -749,7 +849,7 @@ async function processCardPayment() {
                 cart_ids: cartIds,
                 shipping_address: selectedAddress ? selectedAddress.full_address : '',
                 shipping_memo: shippingMemo || '',
-                payment_method: 'card',
+                payment_method: paymentMethodValue,
                 amount: totalAmount
             })
         });
@@ -765,9 +865,8 @@ async function processCardPayment() {
         closePaymentModal();
         closeCheckoutModal();
 
-        // 2. 토스페이먼츠 결제창 호출 (실제 운영 키)
+        // 2. 토스페이먼츠 결제창 호출
         const clientKey = data.data.client_key || 'live_ck_jExPeJWYVQ1zDYG7N7PEV49R5gvN';
-        console.log('Client Key:', clientKey);
 
         // TossPayments SDK 로드 확인
         if (typeof TossPayments === 'undefined') {
@@ -775,10 +874,9 @@ async function processCardPayment() {
         }
 
         const tossPayments = TossPayments(clientKey);
-        console.log('TossPayments 인스턴스 생성 완료');
 
-        // 결제 요청
-        await tossPayments.requestPayment('카드', {
+        // 결제 요청 (결제 수단에 따라 다른 파라미터)
+        await tossPayments.requestPayment(tossPaymentMethod, {
             amount: totalAmount,
             orderId: data.data.order_number,
             orderName: `타이어 ${cartItems.length}개`,
@@ -789,68 +887,19 @@ async function processCardPayment() {
 
     } catch (error) {
         hideLoading();
-        console.error('카드결제 오류:', error);
+        console.error('결제 오류:', error);
         showAlert('결제 처리 중 오류: ' + (error.message || error.toString()), 'error');
     }
 }
 
+// 기존 호환성을 위한 별칭
+async function processCardPayment() {
+    await processGeneralPayment('카드', 'card');
+}
+
+// 기존 호환성을 위한 별칭
 async function processTransferPayment() {
-    const customerCode = getCustomerCode();
-    const selectedAddress = shippingAddresses.find(addr => addr.id === selectedAddressId);
-
-    showLoading();
-
-    try {
-        const cartIds = cartItems.map(item => item.id);
-        const totalAmount = cartItems.reduce((sum, item) => sum + item.final_price, 0);
-
-        // 1. 결제 준비 API 호출
-        const response = await fetch('/api/mobile/payment/prepare/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                customer_code: customerCode,
-                cart_ids: cartIds,
-                shipping_address: selectedAddress ? selectedAddress.full_address : '',
-                shipping_memo: shippingMemo || '',
-                payment_method: 'transfer',
-                amount: totalAmount
-            })
-        });
-
-        const data = await response.json();
-        hideLoading();
-
-        if (!data.success) {
-            showAlert(data.message || '결제 준비 실패', 'error');
-            return;
-        }
-
-        closePaymentModal();
-        closeCheckoutModal();
-
-        // 2. 토스페이먼츠 결제창 호출 (계좌이체 실제 운영)
-        const clientKey = data.data.client_key || 'live_ck_jExPeJWYVQ1zDYG7N7PEV49R5gvN';
-        const tossPayments = TossPayments(clientKey);
-
-        // 계좌이체 결제 요청
-        await tossPayments.requestPayment('계좌이체', {
-            amount: totalAmount,
-            orderId: data.data.order_number,
-            orderName: `타이어 ${cartItems.length}개`,
-            customerName: data.data.customer_name,
-            successUrl: window.location.origin + '/mobile/payment/success/',
-            failUrl: window.location.origin + '/mobile/cart/?payment=failed',
-        });
-
-    } catch (error) {
-        hideLoading();
-        console.error('주문 오류:', error);
-        showAlert('주문 처리 중 오류: ' + (error.message || error.toString()), 'error');
-    }
+    await processGeneralPayment('계좌이체', 'transfer');
 }
 
 // ========================================
