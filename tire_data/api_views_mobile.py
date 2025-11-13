@@ -559,21 +559,35 @@ def api_payment_method_add(request):
                 # 연도를 4자리로 변환 (29 -> 2029)
                 full_year = f"20{expiry_year}" if len(expiry_year) == 2 else expiry_year
 
+                # 월을 2자리로 패딩 (1 -> 01, 11 -> 11)
+                padded_month = expiry_month.zfill(2)
+
                 payload = {
                     'customerKey': customer_code,
                     'cardNumber': card_number,
                     'cardExpirationYear': full_year,
-                    'cardExpirationMonth': expiry_month,
+                    'cardExpirationMonth': padded_month,
                     'cardPassword': card_password,
                     'customerIdentityNumber': customer_identity_number
                 }
 
-                logger.info(f"빌링키 발급 payload: customerKey={customer_code}, year={full_year}, month={expiry_month}")
-
-                logger.info(f"빌링키 발급 요청: customer_code={customer_code}, card_last4={card_number[-4:]}")
+                # 디버깅: 민감정보 마스킹 후 전체 payload 로깅
+                safe_payload = {
+                    'customerKey': customer_code,
+                    'cardNumber': f"{card_number[:4]}****{card_number[-4:]}",
+                    'cardExpirationYear': full_year,
+                    'cardExpirationMonth': padded_month,
+                    'cardPassword': '**',
+                    'customerIdentityNumber': f"{customer_identity_number[:2]}****"
+                }
+                logger.info(f"빌링키 발급 요청 payload: {safe_payload}")
 
                 response = requests.post(url, json=payload, headers=headers)
                 response_data = response.json()
+
+                # 디버깅: 응답 상태 코드와 전체 응답 로깅
+                logger.info(f"토스페이먼츠 응답 status_code: {response.status_code}")
+                logger.info(f"토스페이먼츠 응답 body: {response_data}")
 
                 if response.status_code == 200:
                     # 빌링키 발급 성공
