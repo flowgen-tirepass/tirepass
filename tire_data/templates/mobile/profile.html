@@ -62,54 +62,25 @@
                 </button>
             </div>
 
-            <!-- 카드 등록 폼 -->
+            <!-- 카드 등록 폼 (토스페이먼츠 위젯 방식) -->
             <div id="cardForm" style="display: block;">
-                <div class="form-group">
-                    <label class="form-label">카드번호</label>
-                    <input type="text" class="form-input" id="card_number" placeholder="1234-5678-9012-3456" maxlength="19" oninput="formatCardNumber(this)">
-                    <p style="font-size: 12px; color: #6b7280; margin-top: 5px;">16자리 숫자 (하이픈 자동 입력)</p>
+                <div style="background: #fffbeb; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+                    <p style="font-size: 13px; color: #92400e; line-height: 1.6;">
+                        🔒 카드 정보는 토스페이먼츠에서 안전하게 처리됩니다<br>
+                        서버에 카드 정보가 저장되지 않습니다
+                    </p>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label class="form-label">유효기간 (MM/YY)</label>
-                        <input type="text" class="form-input" id="card_expiry" placeholder="12/25" maxlength="5" oninput="formatExpiry(this)">
-                    </div>
-                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label class="form-label">CVC</label>
-                        <input type="text" class="form-input" id="card_cvc" placeholder="123" maxlength="4" pattern="[0-9]*">
-                    </div>
+                <div style="background: #f0f9ff; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: #1e40af; margin-bottom: 10px;">💳 카드 등록 방법</h3>
+                    <p style="margin: 0; color: #1e40af; font-size: 13px; line-height: 1.8;">
+                        1. "카드 등록하기" 버튼 클릭<br>
+                        2. 토스페이먼츠 안전한 결제창에서 카드 정보 입력<br>
+                        3. 자동으로 빌링키 등록 완료
+                    </p>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label class="form-label">비밀번호 앞 2자리</label>
-                        <input type="password" class="form-input" id="card_password" placeholder="**" maxlength="2" pattern="[0-9]{2}">
-                        <p style="font-size: 12px; color: #6b7280; margin-top: 5px;">카드 비밀번호 앞 2자리</p>
-                    </div>
-                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label class="form-label">생년월일/사업자번호</label>
-                        <input type="text" class="form-input" id="customer_identity_number" placeholder="960101 또는 1234567890" maxlength="10" pattern="[0-9]+">
-                        <p style="font-size: 12px; color: #6b7280; margin-top: 5px;">개인: 6자리 / 법인: 10자리</p>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">카드 소유자 이름</label>
-                    <input type="text" class="form-input" id="card_holder_name" placeholder="홍길동">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">별칭 (선택)</label>
-                    <input type="text" class="form-input" id="card_nickname" placeholder="예: 회사 법인카드">
-                </div>
-
-                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" id="card_is_default" style="width: 20px; height: 20px;">
-                    <label for="card_is_default" style="margin: 0; font-size: 14px; color: #374151;">기본 결제 수단으로 설정</label>
-                </div>
-
-                <button onclick="submitCardManual()" class="btn btn-primary btn-block">카드 등록</button>
+                <button onclick="registerCardWithWidget()" class="btn btn-primary btn-block">카드 등록하기</button>
             </div>
 
             <!-- 계좌 등록 폼 -->
@@ -172,115 +143,80 @@ if (!getCustomerCode()) {
     location.href = '/mobile/login/';
 }
 
-// 카드번호 포맷팅 (1234-5678-9012-3456)
-function formatCardNumber(input) {
-    let value = input.value.replace(/\D/g, ''); // 숫자만 추출
-    value = value.substring(0, 16); // 최대 16자리
-
-    // 4자리씩 하이픈 추가
-    const formatted = value.match(/.{1,4}/g)?.join('-') || value;
-    input.value = formatted;
-}
-
-// 유효기간 포맷팅 (MM/YY)
-function formatExpiry(input) {
-    let value = input.value.replace(/\D/g, ''); // 숫자만 추출
-    value = value.substring(0, 4); // 최대 4자리
-
-    if (value.length >= 3) {
-        input.value = value.substring(0, 2) + '/' + value.substring(2);
-    } else {
-        input.value = value;
-    }
-}
-
-// 수동 입력 카드 등록
-async function submitCardManual() {
-    const cardNumber = document.getElementById('card_number').value.replace(/\D/g, '');
-    const cardExpiry = document.getElementById('card_expiry').value;
-    const cardCvc = document.getElementById('card_cvc').value;
-    const cardPassword = document.getElementById('card_password').value;
-    const customerIdentityNumber = document.getElementById('customer_identity_number').value;
-    const cardHolderName = document.getElementById('card_holder_name').value;
-    const nickname = document.getElementById('card_nickname').value;
-    const isDefault = document.getElementById('card_is_default').checked;
-
-    // 유효성 검사
-    if (!cardNumber || cardNumber.length !== 16) {
-        showAlert('카드번호 16자리를 입력해주세요', 'error');
+// 토스페이먼츠 위젯으로 카드 등록
+async function registerCardWithWidget() {
+    const customerCode = getCustomerCode();
+    if (!customerCode) {
+        showAlert('로그인이 필요합니다', 'error');
         return;
     }
-
-    if (!cardExpiry || !cardExpiry.match(/^\d{2}\/\d{2}$/)) {
-        showAlert('유효기간을 MM/YY 형식으로 입력해주세요', 'error');
-        return;
-    }
-
-    if (!cardCvc || cardCvc.length < 3) {
-        showAlert('CVC 3자리 이상을 입력해주세요', 'error');
-        return;
-    }
-
-    if (!cardPassword || cardPassword.length !== 2) {
-        showAlert('카드 비밀번호 앞 2자리를 입력해주세요', 'error');
-        return;
-    }
-
-    if (!customerIdentityNumber || (customerIdentityNumber.length !== 6 && customerIdentityNumber.length !== 10)) {
-        showAlert('생년월일 6자리 또는 사업자번호 10자리를 입력해주세요', 'error');
-        return;
-    }
-
-    if (!cardHolderName) {
-        showAlert('카드 소유자 이름을 입력해주세요', 'error');
-        return;
-    }
-
-    showLoading();
 
     try {
-        const response = await fetch('/api/mobile/payment-methods/add/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                customer_code: getCustomerCode(),
-                payment_type: 'CARD',
-                card_number: cardNumber,
-                card_expiry: cardExpiry,
-                card_cvc: cardCvc,
-                card_password: cardPassword,
-                customer_identity_number: customerIdentityNumber,
-                card_holder_name: cardHolderName,
-                nickname: nickname,
-                is_default: isDefault
-            })
+        // 토스페이먼츠 SDK 초기화
+        const tossPayments = TossPayments('{{ settings.TOSS_PAYMENTS_CLIENT_KEY }}');
+
+        // 빌링키 발급 위젯 호출
+        await tossPayments.requestBillingAuth({
+            method: 'CARD',
+            customerKey: customerCode,
+            successUrl: window.location.origin + '/mobile/profile/?from=widget',
+            failUrl: window.location.origin + '/mobile/profile/?error=true'
         });
-
-        const data = await response.json();
-        hideLoading();
-
-        if (data.success) {
-            showAlert('카드가 등록되었습니다', 'success');
-            hidePaymentMethodModal();
-            loadPaymentMethods();
-
-            // 폼 초기화
-            document.getElementById('card_number').value = '';
-            document.getElementById('card_expiry').value = '';
-            document.getElementById('card_cvc').value = '';
-            document.getElementById('card_holder_name').value = '';
-            document.getElementById('card_nickname').value = '';
-            document.getElementById('card_is_default').checked = false;
-        } else {
-            showAlert(data.message, 'error');
-        }
     } catch (error) {
-        hideLoading();
-        showAlert('카드 등록 중 오류가 발생했습니다', 'error');
+        console.error('토스페이먼츠 위젯 호출 오류:', error);
+        showAlert('카드 등록 창을 여는 중 오류가 발생했습니다', 'error');
     }
 }
+
+// 페이지 로드 시 authKey 처리 (토스페이먼츠 위젯 리다이렉트)
+window.addEventListener('DOMContentLoaded', async function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const authKey = urlParams.get('authKey');
+    const customerKey = urlParams.get('customerKey');
+    const fromWidget = urlParams.get('from');
+
+    if (authKey && customerKey && fromWidget === 'widget') {
+        // 토스페이먼츠 위젯에서 리다이렉트된 경우
+        showLoading();
+
+        try {
+            const response = await fetch('/api/mobile/payment-methods/billing-auth/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    auth_key: authKey,
+                    customer_key: customerKey
+                })
+            });
+
+            const data = await response.json();
+            hideLoading();
+
+            if (data.success) {
+                showAlert('카드가 등록되었습니다!', 'success');
+                // URL 파라미터 제거
+                window.history.replaceState({}, document.title, '/mobile/profile/');
+                // 결제 수단 목록 새로고침
+                setTimeout(() => {
+                    loadPaymentMethods();
+                    hidePaymentMethodModal();
+                }, 500);
+            } else {
+                showAlert(data.message, 'error');
+                // URL 파라미터 제거
+                window.history.replaceState({}, document.title, '/mobile/profile/');
+            }
+        } catch (error) {
+            hideLoading();
+            console.error('카드 등록 오류:', error);
+            showAlert('카드 등록 중 오류가 발생했습니다', 'error');
+            // URL 파라미터 제거
+            window.history.replaceState({}, document.title, '/mobile/profile/');
+        }
+    }
+});
 
 
 async function loadProfile() {
@@ -541,13 +477,7 @@ function hidePaymentMethodModal() {
     document.getElementById('paymentMethodModal').style.display = 'none';
     document.body.style.overflow = 'auto';
 
-    // 폼 초기화
-    document.getElementById('card_number').value = '';
-    document.getElementById('card_expiry').value = '';
-    document.getElementById('card_cvc').value = '';
-    document.getElementById('card_holder_name').value = '';
-    document.getElementById('card_nickname').value = '';
-    document.getElementById('card_is_default').checked = false;
+    // 폼 초기화 (계좌 폼만)
     document.getElementById('account_bank').value = '';
     document.getElementById('account_number').value = '';
     document.getElementById('account_holder').value = '';
