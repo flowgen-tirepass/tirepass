@@ -556,16 +556,15 @@ def api_payment_method_add(request):
                     'Content-Type': 'application/json'
                 }
 
-                # 연도를 4자리로 변환 (29 -> 2029)
-                full_year = f"20{expiry_year}" if len(expiry_year) == 2 else expiry_year
-
+                # 연도는 2자리로 유지 (30 그대로)
                 # 월을 2자리로 패딩 (1 -> 01, 11 -> 11)
                 padded_month = expiry_month.zfill(2)
+                padded_year = expiry_year.zfill(2)  # YY 형식 (2자리)
 
                 payload = {
                     'customerKey': customer_code,
                     'cardNumber': card_number,
-                    'cardExpirationYear': full_year,
+                    'cardExpirationYear': padded_year,  # YY 형식으로 변경
                     'cardExpirationMonth': padded_month,
                     'cardPassword': card_password,
                     'customerIdentityNumber': customer_identity_number
@@ -575,7 +574,7 @@ def api_payment_method_add(request):
                 safe_payload = {
                     'customerKey': customer_code,
                     'cardNumber': f"{card_number[:4]}****{card_number[-4:]}",
-                    'cardExpirationYear': full_year,
+                    'cardExpirationYear': padded_year,
                     'cardExpirationMonth': padded_month,
                     'cardPassword': '**',
                     'customerIdentityNumber': f"{customer_identity_number[:2]}****"
