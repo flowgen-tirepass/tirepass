@@ -146,22 +146,31 @@ if (!getCustomerCode()) {
 // 토스페이먼츠 위젯으로 카드 등록
 async function registerCardWithWidget() {
     const customerCode = getCustomerCode();
+    console.log('customerCode:', customerCode);
+
     if (!customerCode) {
         showAlert('로그인이 필요합니다', 'error');
         return;
     }
 
     try {
+        const clientKey = '{{ settings.TOSS_PAYMENTS_CLIENT_KEY }}';
+        console.log('clientKey:', clientKey);
+
         // 토스페이먼츠 SDK 초기화
-        const tossPayments = TossPayments('{{ settings.TOSS_PAYMENTS_CLIENT_KEY }}');
+        const tossPayments = TossPayments(clientKey);
+        console.log('tossPayments 객체:', tossPayments);
 
         // 빌링키 발급 위젯 호출
-        await tossPayments.requestBillingAuth({
+        const requestData = {
             method: 'CARD',
             customerKey: customerCode,
             successUrl: window.location.origin + '/mobile/profile/?from=widget',
             failUrl: window.location.origin + '/mobile/profile/?error=true'
-        });
+        };
+        console.log('requestBillingAuth 호출 데이터:', requestData);
+
+        await tossPayments.requestBillingAuth(requestData);
     } catch (error) {
         console.error('토스페이먼츠 위젯 호출 오류:', error);
         showAlert('카드 등록 창을 여는 중 오류가 발생했습니다', 'error');
