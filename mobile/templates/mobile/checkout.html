@@ -254,6 +254,21 @@
 
 {% block content %}
 <div class="checkout-container" id="checkoutContainer">
+    <!-- 간편결제 안내 -->
+    <div class="section-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-top: 0;">
+        <div style="display: flex; align-items: center; gap: 3vw; margin-bottom: 3vw;">
+            <span style="font-size: 8vw;">💳</span>
+            <div>
+                <div style="font-size: 4.5vw; font-weight: bold; margin-bottom: 1vw;">간편결제로 빠르게 결제하세요!</div>
+                <div style="font-size: 3.2vw; opacity: 0.95;">토스페이, 카카오페이, 네이버페이 등</div>
+            </div>
+        </div>
+        <div style="background: rgba(255,255,255,0.15); border-radius: 2vw; padding: 3vw; font-size: 3vw; line-height: 1.6;">
+            빠르고 안전한 결제를 위해 토스페이/카카오페이를 이용하세요.<br>
+            간편결제 서비스에 카드를 등록하면 매번 카드번호를 입력할 필요 없이 편리하게 결제할 수 있습니다.
+        </div>
+    </div>
+
     <!-- 주문 상품 -->
     <div class="section-card">
         <div class="section-title">
@@ -345,8 +360,8 @@
     </div>
 </div>
 
-<!-- 토스페이먼츠 SDK -->
-<script src="https://js.tosspayments.com/v1/payment-widget"></script>
+<!-- 토스페이먼츠 결제위젯 SDK v2 -->
+<script src="https://js.tosspayments.com/v2/sdk"></script>
 
 <script>
 let cartItems = [];
@@ -357,7 +372,7 @@ let paymentWidget = null;
 window.addEventListener('DOMContentLoaded', async () => {
     await loadCartItems();
     await createOrder();
-    initPaymentWidget();
+    await initPaymentWidget();
 });
 
 // 장바구니 조회
@@ -461,7 +476,7 @@ async function createOrder() {
     }
 }
 
-// 토스 결제 위젯 초기화
+// 토스 결제 위젯 초기화 (v2 SDK)
 async function initPaymentWidget() {
     if (!orderData) {
         console.error('주문 정보가 없습니다');
@@ -469,22 +484,32 @@ async function initPaymentWidget() {
     }
 
     const clientKey = '{{ toss_client_key }}';
-    const customerKey = '{{ customer.code }}';  // 고객 코드를 customerKey로 사용
+    const customerKey = '{{ customer.code }}';
 
     try {
-        paymentWidget = await loadTossPayments(clientKey);
+        // v2 SDK로 결제위젯 초기화
+        const tossPayments = await TossPayments(clientKey);
 
-        // 결제 위젯 렌더링
-        await paymentWidget.renderPaymentMethods(
-            '#payment-widget',
-            { value: orderData.order.final_amount },
-            { variantKey: 'DEFAULT' }
-        );
-
-        // 이용약관 렌더링
-        await paymentWidget.renderAgreement('#agreement', {
-            variantKey: 'AGREEMENT'
+        // 결제위젯 생성
+        paymentWidget = tossPayments.widgets({
+            customerKey: customerKey
         });
+
+        // 결제 수단 UI 렌더링 (간편결제 포함)
+        await paymentWidget.renderPaymentMethods({
+            selector: '#payment-widget',
+            amount: {
+                currency: 'KRW',
+                value: orderData.order.final_amount
+            }
+        });
+
+        // 이용약관 UI 렌더링
+        await paymentWidget.renderAgreement({
+            selector: '#agreement'
+        });
+
+        console.log('결제위젯 초기화 완료 (간편결제 포함)');
 
     } catch (error) {
         console.error('결제 위젯 초기화 실패:', error);
@@ -510,6 +535,7 @@ async function requestPayment() {
     }
 
     try {
+        // v2 SDK 결제 요청
         await paymentWidget.requestPayment({
             orderId: orderData.order.order_number,
             orderName: `타이어 ${cartItems.length}건`,
@@ -517,11 +543,16 @@ async function requestPayment() {
             failUrl: `${window.location.origin}/mobile/payment/fail`,
             customerEmail: '{{ customer.email|default:"" }}',
             customerName: recipientName,
-            customerMobilePhone: recipientPhone,
+            customerMobilePhone: recipientPhone
         });
     } catch (error) {
         console.error('결제 요청 실패:', error);
-        alert('결제 요청 중 오류가 발생했습니다');
+        if (error.code === 'USER_CANCEL') {
+            // 사용자가 결제를 취소한 경우
+            console.log('결제가 취소되었습니다');
+        } else {
+            alert('결제 요청 중 오류가 발생했습니다');
+        }
     }
 }
 
