@@ -43,7 +43,8 @@ def api_products_erp(request):
 
     Query Parameters:
         - search: 검색어
-        - brand: 브랜드 (kumho, michelin 등)
+        - brand: 단일 브랜드 (kumho, michelin 등)
+        - brands: 다중 브랜드 (KUMHO,NEXEN,MICHELIN 등, 쉼표로 구분)
         - page: 페이지 번호 (기본값: 1)
         - page_size: 페이지 크기 (기본값: 20)
     """
@@ -51,17 +52,31 @@ def api_products_erp(request):
         # 파라미터
         search = request.GET.get('search', '')
         brand = request.GET.get('brand', '').lower()
+        brands = request.GET.get('brands', '')  # 다중 브랜드 지원
         page = int(request.GET.get('page', 1))
         page_size = int(request.GET.get('page_size', 20))
 
+        # 브랜드 리스트 구성
+        brand_list = []
+        if brands:
+            # 다중 브랜드: KUMHO,NEXEN,MICHELIN -> [kumho, nexen, michelin]
+            brand_list = [b.strip().lower() for b in brands.split(',') if b.strip()]
+        elif brand:
+            # 단일 브랜드
+            brand_list = [brand]
+
         # ERP에서 상품 가져오기
-        if brand:
+        if brand_list:
             # 브랜드 필터: 전체 로드 후 필터링
             erp_goods_count = ERPAPIClient.get_goods_count()
             erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=erp_goods_count, search=search)
 
-            # 브랜드 필터링
-            brand_keywords = BRAND_MAPPING.get(brand, [])
+            # 모든 브랜드의 키워드 수집
+            all_brand_keywords = []
+            for brand_name in brand_list:
+                keywords = BRAND_MAPPING.get(brand_name, [])
+                all_brand_keywords.extend(keywords)
+
             filtered_goods = []
 
             for goods in erp_goods_list:
@@ -75,7 +90,7 @@ def api_products_erp(request):
                 # bun1 필드 인코딩 문제 대비하여 name 필드에서도 검색
                 brand_match = any(
                     kw in bun1 or kw in bun1.upper() or kw in name or kw in name.upper()
-                    for kw in brand_keywords
+                    for kw in all_brand_keywords
                 )
 
                 if brand_match and jaego > 0:

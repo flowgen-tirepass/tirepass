@@ -45,8 +45,8 @@ urlpatterns = [
     # Mobile API URLs
     path('api/mobile/', api_views.api_index, name='api_index'),
 
-    # 상품 API (임시로 MySQL 사용, ERP 연동은 추후 재적용)
-    path('api/mobile/products/', api_views.api_products_list, name='api_products_list'),
+    # 상품 API - ERP 실시간 연동
+    path('api/mobile/products/', api_views_mobile.api_products_erp, name='api_products_list'),
     path('api/mobile/products/<str:code>/', api_views.api_product_detail, name='api_product_detail'),
 
     # 장바구니 API
