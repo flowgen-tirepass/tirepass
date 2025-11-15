@@ -17,16 +17,16 @@ logger = logging.getLogger(__name__)
 
 # 브랜드 매핑
 BRAND_MAPPING = {
-    'kumho': ['금호', 'KUMHO'],
-    'hankook': ['한국', 'HANKOOK'],
-    'michelin': ['미쉐린', '미슐랭', 'MICHELIN'],
-    'nexen': ['넥센', 'NEXEN'],
-    'pirelli': ['피렐리', 'PIRELLI', 'P ZERO'],
-    'bridgestone': ['브리지스톤', 'BRIDGESTONE'],
-    'continental': ['콘티넨탈', 'CONTINENTAL'],
-    'dunlop': ['던롭', 'DUNLOP'],
-    'yokohama': ['요코하마', 'YOKOHAMA'],
-    'goodyear': ['굳이어', 'GOODYEAR'],
+    'kumho': {'keywords': ['금호', 'KUMHO'], 'code_prefix': ['K-']},
+    'hankook': {'keywords': ['한국', 'HANKOOK'], 'code_prefix': ['H-']},
+    'michelin': {'keywords': ['미쉐린', '미슐랭', 'MICHELIN'], 'code_prefix': ['M-']},
+    'nexen': {'keywords': ['넥센', 'NEXEN'], 'code_prefix': ['N-']},
+    'pirelli': {'keywords': ['피렐리', 'PIRELLI', 'P ZERO'], 'code_prefix': ['P-']},
+    'bridgestone': {'keywords': ['브리지스톤', 'BRIDGESTONE'], 'code_prefix': ['BS-']},
+    'continental': {'keywords': ['콘티넨탈', 'CONTINENTAL'], 'code_prefix': ['C-', 'CT-']},
+    'dunlop': {'keywords': ['던롭', 'DUNLOP'], 'code_prefix': ['D-']},
+    'yokohama': {'keywords': ['요코하마', 'YOKOHAMA'], 'code_prefix': ['Y-']},
+    'goodyear': {'keywords': ['굳이어', 'GOODYEAR'], 'code_prefix': ['G-']},
 }
 
 # 타이어 코드 접두사 (사용 안 함 - 브랜드 기반 필터링으로 대체)
@@ -71,11 +71,15 @@ def api_products_erp(request):
             erp_goods_count = ERPAPIClient.get_goods_count()
             erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=erp_goods_count, search=search)
 
-            # 모든 브랜드의 키워드 수집
+            # 모든 브랜드의 키워드 및 코드 접두사 수집
             all_brand_keywords = []
+            all_code_prefixes = []
             for brand_name in brand_list:
-                keywords = BRAND_MAPPING.get(brand_name, [])
+                brand_config = BRAND_MAPPING.get(brand_name, {})
+                keywords = brand_config.get('keywords', [])
+                code_prefixes = brand_config.get('code_prefix', [])
                 all_brand_keywords.extend(keywords)
+                all_code_prefixes.extend(code_prefixes)
 
             filtered_goods = []
 
@@ -85,13 +89,17 @@ def api_products_erp(request):
                 code = (goods.get('code', '') or '').strip().upper()
                 jaego = float(goods.get('jaego', 0))
 
-                # 브랜드 매칭 & 재고 (타이어 코드 접두사 체크 제거)
-                # 브랜드가 타이어 브랜드라면 해당 브랜드의 모든 상품은 타이어로 간주
+                # 브랜드 매칭: 키워드 검색 + 코드 접두사 검색
                 # bun1 필드 인코딩 문제 대비하여 name 필드에서도 검색
-                brand_match = any(
+                keyword_match = any(
                     kw in bun1 or kw in bun1.upper() or kw in name or kw in name.upper()
                     for kw in all_brand_keywords
                 )
+
+                # 코드 접두사 매칭 (인코딩 문제와 무관한 안전장치)
+                code_match = any(code.startswith(prefix) for prefix in all_code_prefixes)
+
+                brand_match = keyword_match or code_match
 
                 if brand_match and jaego > 0:
                     filtered_goods.append(goods)
