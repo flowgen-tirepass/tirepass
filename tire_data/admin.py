@@ -337,6 +337,18 @@ class GoodsAdmin(admin.ModelAdmin):
                     ))
                     logger.info(f"🔍 {fetch_limit}개 중 BUN1에 {brand_keywords} 포함된 상품: {brand_count}개")
 
+                    # 디버깅: 브랜드 필터 전에 235/45R18 제품이 있는지 확인
+                    found_before_brand = [g for g in erp_goods_list if '235/45R18' in g.get('name', '')]
+                    if found_before_brand:
+                        logger.info(f"🔍 브랜드 필터 전 235/45R18 제품: {len(found_before_brand)}개")
+                        for g in found_before_brand[:3]:
+                            code = g.get('code', 'N/A')
+                            bun1 = g.get('bun1', 'N/A')
+                            name = g.get('name', 'N/A')[:60]
+                            logger.info(f"    - {code} (BUN1: {bun1}) - {name}")
+                    else:
+                        logger.warning(f"❌ ERP 전체 {fetch_limit}개 중 235/45R18 제품 없음!")
+
                     if brand_count > 0:
                         # 해당 브랜드 상품 샘플 보기
                         brand_samples = [g for g in erp_goods_list if any(
