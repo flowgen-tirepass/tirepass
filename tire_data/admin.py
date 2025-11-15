@@ -239,20 +239,38 @@ class GoodsAdmin(admin.ModelAdmin):
         filter_stock_only = request.GET.get('stock_only', '')
         filter_brand = request.GET.get('brand', '')  # 우측 사이드바 브랜드 필터
 
-        # 검색어 변환: 숫자만 입력 시 타이어 사이즈로 변환 (예: 2355519 → 235/55R19)
+        # 검색어 변환: 숫자만 입력 시 타이어 사이즈로 변환
         enhanced_search_term = search_term
+        search_patterns = []  # 복수 검색 패턴
+
         if search_term:
             numeric_only = re.sub(r'[^0-9]', '', search_term)
-            if len(numeric_only) >= 6 and numeric_only == search_term:  # 순수 숫자만 입력한 경우
-                width = numeric_only[:3]
-                aspect = numeric_only[3:5]
-                if len(numeric_only) >= 7:
-                    rim = numeric_only[5:7]
-                else:
-                    rim = numeric_only[5:]
-                enhanced_search_term = f"{width}/{aspect}R{rim}"
-                logger.info(f"검색어 변환: '{search_term}' → '{enhanced_search_term}'")
+
+            # 순수 숫자 3자리 이상: 타이어 사이즈 패턴 생성
+            if len(numeric_only) >= 3 and numeric_only == search_term:
+                if len(numeric_only) == 3:
+                    enhanced_search_term = f"{numeric_only}/"
+                    search_patterns = [search_term, enhanced_search_term]
+                elif len(numeric_only) == 4:
+                    width = numeric_only[:3]
+                    aspect_partial = numeric_only[3]
+                    enhanced_search_term = f"{width}/{aspect_partial}"
+                    search_patterns = [search_term, enhanced_search_term]
+                elif len(numeric_only) == 5:
+                    width = numeric_only[:3]
+                    aspect_or_rim = numeric_only[3:5]
+                    enhanced_search_term = f"{width}/{aspect_or_rim}"
+                    search_patterns = [search_term, enhanced_search_term, f"{width}R{aspect_or_rim}"]
+                elif len(numeric_only) >= 6:
+                    width = numeric_only[:3]
+                    aspect = numeric_only[3:5]
+                    rim = numeric_only[5:7] if len(numeric_only) >= 7 else numeric_only[5:]
+                    enhanced_search_term = f"{width}/{aspect}R{rim}"
+                    search_patterns = [search_term, enhanced_search_term]
+
+                logger.info(f"검색어 변환: '{search_term}' → '{enhanced_search_term}' (패턴: {search_patterns})")
             else:
+                search_patterns = [search_term]
                 logger.info(f"검색어 유지: '{search_term}'")
 
         logger.info(f"=== GoodsAdmin changelist_view ===")
@@ -534,20 +552,28 @@ class GoodsAdmin(admin.ModelAdmin):
         if search_term and has_filter:
             before_filter = len(filtered_goods)
 
-            # 검색어로 필터링 (코드, 상품명)
+            # 검색어로 필터링 (코드, 상품명) - 복수 패턴 지원
+            patterns_to_use = search_patterns if search_patterns else [search_term]
             search_filtered = []
+
             for goods in filtered_goods:
                 code = (goods.get('code', '') or '').strip()
                 name = (goods.get('name', '') or '').strip()
 
-                # 검색어 매칭
-                if (enhanced_search_term in code or
-                    enhanced_search_term in name or
-                    enhanced_search_term.upper() in name.upper()):
+                # 모든 패턴 중 하나라도 매칭되면 포함
+                matched = False
+                for pattern in patterns_to_use:
+                    if (pattern in code or
+                        pattern in name or
+                        pattern.upper() in name.upper()):
+                        matched = True
+                        break
+
+                if matched:
                     search_filtered.append(goods)
 
             filtered_goods = search_filtered
-            logger.info(f"✓ 검색어 필터 ('{enhanced_search_term}'): {before_filter} → {len(filtered_goods)}")
+            logger.info(f"✓ 검색어 필터 (패턴: {patterns_to_use}): {before_filter} → {len(filtered_goods)}")
 
             if len(filtered_goods) > 0:
                 logger.info(f"  재고 샘플: {filtered_goods[0].get('name', 'N/A')} (재고: {filtered_goods[0].get('jaego', 0)})")

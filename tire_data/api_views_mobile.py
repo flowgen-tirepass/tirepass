@@ -118,6 +118,50 @@ def api_products_erp(request):
                 erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=erp_goods_count)
 
                 # 검색 로직 (코드, 상품명에서 검색)
+                # 숫자만 추출하여 타이어 사이즈 패턴 생성
+                import re
+                numeric_only = re.sub(r'[^0-9]', '', search)
+                search_patterns = [search]  # 원본 검색어
+
+                # 3자리 이상 숫자: 타이어 사이즈 패턴 생성
+                if len(numeric_only) >= 3 and numeric_only == search:
+                    if len(numeric_only) == 3:
+                        # 3자리: width만 (예: 235)
+                        width = numeric_only
+                        search_patterns.append(f"{width}/")
+                    elif len(numeric_only) == 4:
+                        # 4자리: width (3) + aspect 일부 (1) (예: 2354 -> 235/4)
+                        width = numeric_only[:3]
+                        aspect_partial = numeric_only[3]
+                        search_patterns.append(f"{width}/{aspect_partial}")
+                    elif len(numeric_only) == 5:
+                        # 5자리: width (3) + aspect (2) 또는 width (3) + rim (2)
+                        width = numeric_only[:3]
+                        aspect_or_rim = numeric_only[3:5]
+                        search_patterns.extend([
+                            f"{width}/{aspect_or_rim}",
+                            f"{width}R{aspect_or_rim}",
+                        ])
+                    elif len(numeric_only) == 6:
+                        # 6자리: width (3) + aspect (2) + rim 일부 (1)
+                        width = numeric_only[:3]
+                        aspect = numeric_only[3:5]
+                        rim_partial = numeric_only[5]
+                        search_patterns.extend([
+                            f"{width}/{aspect}R{rim_partial}",
+                            f"{width}/{aspect}/{rim_partial}",
+                        ])
+                    else:
+                        # 7자리 이상: width (3) + aspect (2) + rim (2+)
+                        width = numeric_only[:3]
+                        aspect = numeric_only[3:5]
+                        rim = numeric_only[5:7] if len(numeric_only) >= 7 else numeric_only[5:]
+                        search_patterns.extend([
+                            f"{width}/{aspect}R{rim}",
+                            f"{width}/{aspect}/{rim}",
+                            f"{width}-{aspect}-{rim}",
+                        ])
+
                 filtered_goods = []
                 for goods in erp_goods_list:
                     code = (goods.get('code', '') or '').strip()
@@ -128,8 +172,14 @@ def api_products_erp(request):
                     if jaego == 0:
                         continue
 
-                    # 검색어 매칭 (코드 또는 상품명에 포함)
-                    if search in code or search in name or search.upper() in name.upper():
+                    # 검색어 매칭 (모든 패턴 중 하나라도 매칭되면 포함)
+                    matched = False
+                    for pattern in search_patterns:
+                        if pattern in code or pattern in name or pattern.upper() in name.upper():
+                            matched = True
+                            break
+
+                    if matched:
                         filtered_goods.append(goods)
 
                 # 페이지네이션
