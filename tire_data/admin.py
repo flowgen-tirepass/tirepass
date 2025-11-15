@@ -590,6 +590,15 @@ class GoodsAdmin(admin.ModelAdmin):
                 for i, g in enumerate(filtered_goods[:5]):
                     logger.info(f"    [{i+1}] {g.get('code', 'N/A')} - {g.get('name', 'N/A')[:60]}")
 
+                # 235/45R18 제품이 있는지 전체 확인
+                found_235_45_18 = [g for g in filtered_goods if '235/45R18' in g.get('name', '')]
+                if found_235_45_18:
+                    logger.info(f"✅ 235/45R18 제품 발견: {len(found_235_45_18)}개")
+                    for g in found_235_45_18[:3]:
+                        logger.info(f"    - {g.get('code', 'N/A')} - {g.get('name', 'N/A')[:60]}")
+                else:
+                    logger.warning(f"❌ 286개 중 235/45R18 제품 없음!")
+
             for goods in filtered_goods:
                 code = (goods.get('code', '') or '').strip()
                 name = (goods.get('name', '') or '').strip()
