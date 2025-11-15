@@ -584,6 +584,12 @@ class GoodsAdmin(admin.ModelAdmin):
             patterns_to_use = search_patterns if search_patterns else [search_term]
             search_filtered = []
 
+            # 디버깅: 검색 전 샘플 확인
+            if before_filter > 0:
+                logger.info(f"🔍 검색 전 샘플 (처음 5개):")
+                for i, g in enumerate(filtered_goods[:5]):
+                    logger.info(f"    [{i+1}] {g.get('code', 'N/A')} - {g.get('name', 'N/A')[:60]}")
+
             for goods in filtered_goods:
                 code = (goods.get('code', '') or '').strip()
                 name = (goods.get('name', '') or '').strip()
