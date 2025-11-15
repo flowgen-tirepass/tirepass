@@ -112,13 +112,40 @@ def api_products_erp(request):
 
         else:
             # 검색 또는 일반 조회
-            offset = (page - 1) * page_size
-            erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=page_size, search=search)
-            erp_goods_count = ERPAPIClient.get_goods_count()
+            if search:
+                # 검색어가 있으면 전체 로드 후 검색
+                erp_goods_count = ERPAPIClient.get_goods_count()
+                erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=erp_goods_count)
 
-            # 재고 있는 것만
-            products_page = [g for g in erp_goods_list if float(g.get('jaego', 0)) > 0]
-            total_count = erp_goods_count
+                # 검색 로직 (코드, 상품명에서 검색)
+                filtered_goods = []
+                for goods in erp_goods_list:
+                    code = (goods.get('code', '') or '').strip()
+                    name = (goods.get('name', '') or '').strip()
+                    jaego = float(goods.get('jaego', 0))
+
+                    # 재고 없으면 제외
+                    if jaego == 0:
+                        continue
+
+                    # 검색어 매칭 (코드 또는 상품명에 포함)
+                    if search in code or search in name or search.upper() in name.upper():
+                        filtered_goods.append(goods)
+
+                # 페이지네이션
+                total_count = len(filtered_goods)
+                start = (page - 1) * page_size
+                end = start + page_size
+                products_page = filtered_goods[start:end]
+            else:
+                # 검색어 없으면 일반 조회 (페이지네이션)
+                offset = (page - 1) * page_size
+                erp_goods_list = ERPAPIClient.get_goods_list(offset=offset, limit=page_size)
+                erp_goods_count = ERPAPIClient.get_goods_count()
+
+                # 재고 있는 것만
+                products_page = [g for g in erp_goods_list if float(g.get('jaego', 0)) > 0]
+                total_count = erp_goods_count
 
         # YearAllocation에서 할인율 가져오기
         goods_codes = [g.get('code') for g in products_page if g.get('code')]

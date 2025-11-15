@@ -270,17 +270,15 @@ class GoodsAdmin(admin.ModelAdmin):
             # 필터 사용 시: 전체 상품 로드 후 필터링
             erp_goods_count = ERPAPIClient.get_goods_count()
 
+            # 필터 사용 시: 전체 상품 로드 후 필터링 (ERP 검색 API 사용 안 함)
+            fetch_limit = erp_goods_count
             if search_term:
-                # 검색어가 있으면 검색 우선 (검색 결과에서 필터링)
-                fetch_limit = 1000  # 검색 결과 충분히 가져오기
-                logger.info(f"검색 + 필터 모드: {fetch_limit}개 로드, 검색어: '{enhanced_search_term}'")
+                logger.info(f"검색 + 필터 모드: 전체 {fetch_limit}개 로드, 검색어: '{enhanced_search_term}'")
             else:
-                # 필터만 사용: 전체 상품 로드 후 필터링
-                fetch_limit = erp_goods_count
-                logger.info(f"필터 모드: 전체 {erp_goods_count}개 로드")
+                logger.info(f"필터 모드: 전체 {fetch_limit}개 로드")
 
-            erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit, search=enhanced_search_term)
-            logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품 (검색어: '{enhanced_search_term}')")
+            erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=fetch_limit)
+            logger.info(f"ERP 응답: {len(erp_goods_list)}개 상품")
 
             # 제외 목록 필터링
             if excluded_codes:
@@ -531,6 +529,25 @@ class GoodsAdmin(admin.ModelAdmin):
 
             filtered_goods = [g for g in filtered_goods if has_stock(g)]
             logger.info(f"✓ 재고 필터: {before_filter} → {len(filtered_goods)}")
+
+        # 4. 검색어 필터 (필터 모드에서만)
+        if search_term and has_filter:
+            before_filter = len(filtered_goods)
+
+            # 검색어로 필터링 (코드, 상품명)
+            search_filtered = []
+            for goods in filtered_goods:
+                code = (goods.get('code', '') or '').strip()
+                name = (goods.get('name', '') or '').strip()
+
+                # 검색어 매칭
+                if (enhanced_search_term in code or
+                    enhanced_search_term in name or
+                    enhanced_search_term.upper() in name.upper()):
+                    search_filtered.append(goods)
+
+            filtered_goods = search_filtered
+            logger.info(f"✓ 검색어 필터 ('{enhanced_search_term}'): {before_filter} → {len(filtered_goods)}")
 
             if len(filtered_goods) > 0:
                 logger.info(f"  재고 샘플: {filtered_goods[0].get('name', 'N/A')} (재고: {filtered_goods[0].get('jaego', 0)})")
