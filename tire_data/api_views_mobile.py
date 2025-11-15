@@ -85,6 +85,7 @@ def api_products_erp(request):
             import re
             search_patterns = []
             if search:
+                logger.info(f"📱 모바일 검색: 브랜드={brand_list}, 검색어='{search}'")
                 numeric_only = re.sub(r'[^0-9]', '', search)
                 search_patterns = [search]  # 원본 검색어
 
@@ -123,6 +124,8 @@ def api_products_erp(request):
                             f"{width}-{aspect}-{rim}",
                         ])
 
+                logger.info(f"🔍 검색 패턴: {search_patterns}")
+
             filtered_goods = []
 
             for goods in erp_goods_list:
@@ -157,6 +160,8 @@ def api_products_erp(request):
                         continue
 
                 filtered_goods.append(goods)
+
+            logger.info(f"✅ 브랜드+검색 필터 결과: {len(filtered_goods)}개")
 
             # 페이지네이션
             total_count = len(filtered_goods)
