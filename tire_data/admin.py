@@ -309,7 +309,7 @@ class GoodsAdmin(admin.ModelAdmin):
                         'kumho': ['금호', 'KUMHO'],
                         'michelin': ['미쉐린', '미슐랭', 'MICHELIN'],
                         'nexen': ['넥센', 'NEXEN'],
-                        'pirelli': ['피렐리', 'PIRELLI'],
+                        'pirelli': ['피렐리', 'PIRELLI', 'P ZERO'],
                         'yokohama': ['요코하마', 'YOKOHAMA'],
                         'maxxis': ['맥시스', 'MAXXIS'],
                         'hifly': ['하이플라이', 'HIFLY'],
@@ -424,7 +424,7 @@ class GoodsAdmin(admin.ModelAdmin):
         if filter_brand:
             before_filter = len(filtered_goods)
 
-            # 브랜드 매핑 (파라미터 → BUN1 검색 키워드)
+            # 브랜드 매핑 (파라미터 → BUN1/NAME 검색 키워드)
             brand_mapping = {
                 'annaite': ['안나이트', 'ANNAITE'],
                 'bfg': ['BFG'],
@@ -437,7 +437,7 @@ class GoodsAdmin(admin.ModelAdmin):
                 'kumho': ['금호', 'KUMHO'],
                 'michelin': ['미쉐린', '미슐랭', 'MICHELIN'],
                 'nexen': ['넥센', 'NEXEN'],
-                'pirelli': ['피렐리', 'PIRELLI'],
+                'pirelli': ['피렐리', 'PIRELLI', 'P ZERO'],
                 'yokohama': ['요코하마', 'YOKOHAMA'],
                 'maxxis': ['맥시스', 'MAXXIS'],
                 'hifly': ['하이플라이', 'HIFLY'],
@@ -448,31 +448,33 @@ class GoodsAdmin(admin.ModelAdmin):
 
             if brand_keywords:
                 def matches_brand_and_tire(goods):
-                    # BUN1 브랜드 체크
+                    # BUN1 + NAME 필드에서 브랜드 체크 (인코딩 문제 대비)
                     bun1 = (goods.get('bun1', '') or '').strip()
+                    name = (goods.get('name', '') or '').strip()
                     bun1_upper = bun1.upper()
+                    name_upper = name.upper()
+
                     brand_match = False
                     for keyword in brand_keywords:
                         if keyword.isupper():  # 영문은 대문자 비교
-                            if keyword in bun1_upper:
+                            if keyword in bun1_upper or keyword in name_upper:
                                 brand_match = True
                                 break
                         else:  # 한글은 원본 비교
-                            if keyword in bun1:
+                            if keyword in bun1 or keyword in name:
                                 brand_match = True
                                 break
 
-                    # 브랜드 매칭 안되면 False
-                    if not brand_match:
-                        return False
-
-                    # 브랜드 매칭되면 타이어 상품인지 확인 (CODE 접두사)
+                    # 코드 접두사로도 브랜드 확인 (인코딩 문제와 무관)
                     code = (goods.get('code', '') or '').strip().upper()
                     tire_code_prefixes = [
                         'ANNAITE-', 'BFG-', 'BS-', 'C-', 'CT-', 'D-', 'G-', 'H-',
                         'HIFLY-', 'HILO-', 'K-', 'M-', 'MAXXIS-', 'N-', 'P-'
                     ]
-                    return any(code.startswith(prefix) for prefix in tire_code_prefixes)
+                    code_match = any(code.startswith(prefix) for prefix in tire_code_prefixes)
+
+                    # 키워드 매칭 또는 코드 매칭이면 해당 브랜드 타이어로 간주
+                    return brand_match or code_match
 
                 filtered_goods = [g for g in filtered_goods if matches_brand_and_tire(g)]
                 brand_filtered = True
