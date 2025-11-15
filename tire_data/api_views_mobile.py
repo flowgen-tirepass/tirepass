@@ -29,11 +29,11 @@ BRAND_MAPPING = {
     'goodyear': ['굳이어', 'GOODYEAR'],
 }
 
-# 타이어 코드 접두사
-TIRE_CODE_PREFIXES = [
-    'ANNAITE-', 'BFG-', 'BS-', 'C-', 'CT-', 'D-', 'G-', 'H-',
-    'HIFLY-', 'HILO-', 'K-', 'M-', 'MAXXIS-', 'N-', 'P-'
-]
+# 타이어 코드 접두사 (사용 안 함 - 브랜드 기반 필터링으로 대체)
+# TIRE_CODE_PREFIXES = [
+#     'ANNAITE-', 'BFG-', 'BS-', 'C-', 'CT-', 'D-', 'G-', 'H-',
+#     'HIFLY-', 'HILO-', 'K-', 'M-', 'MAXXIS-', 'N-', 'P-'
+# ]
 
 
 @require_http_methods(["GET"])
@@ -69,11 +69,11 @@ def api_products_erp(request):
                 code = (goods.get('code', '') or '').strip().upper()
                 jaego = float(goods.get('jaego', 0))
 
-                # 브랜드 매칭 & 타이어 & 재고
+                # 브랜드 매칭 & 재고 (타이어 코드 접두사 체크 제거)
+                # 브랜드가 타이어 브랜드라면 해당 브랜드의 모든 상품은 타이어로 간주
                 brand_match = any(kw in bun1 or kw in bun1.upper() for kw in brand_keywords)
-                is_tire = any(code.startswith(prefix) for prefix in TIRE_CODE_PREFIXES)
 
-                if brand_match and is_tire and jaego > 0:
+                if brand_match and jaego > 0:
                     filtered_goods.append(goods)
 
             # 페이지네이션
