@@ -67,9 +67,9 @@ def api_products_erp(request):
 
         # ERP에서 상품 가져오기
         if brand_list:
-            # 브랜드 필터: 전체 로드 후 필터링
+            # 브랜드 필터: 전체 로드 후 필터링 (ERP search API 사용 안 함)
             erp_goods_count = ERPAPIClient.get_goods_count()
-            erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=erp_goods_count, search=search)
+            erp_goods_list = ERPAPIClient.get_goods_list(offset=0, limit=erp_goods_count)
 
             # 모든 브랜드의 키워드 및 코드 접두사 수집
             all_brand_keywords = []
@@ -80,6 +80,48 @@ def api_products_erp(request):
                 code_prefixes = brand_config.get('code_prefix', [])
                 all_brand_keywords.extend(keywords)
                 all_code_prefixes.extend(code_prefixes)
+
+            # 검색어 패턴 생성 (브랜드 + 검색어 조합)
+            import re
+            search_patterns = []
+            if search:
+                numeric_only = re.sub(r'[^0-9]', '', search)
+                search_patterns = [search]  # 원본 검색어
+
+                # 3자리 이상 숫자: 타이어 사이즈 패턴 생성
+                if len(numeric_only) >= 3 and numeric_only == search:
+                    if len(numeric_only) == 3:
+                        width = numeric_only
+                        search_patterns.append(f"{width}/")
+                    elif len(numeric_only) == 4:
+                        width = numeric_only[:3]
+                        aspect_partial = numeric_only[3]
+                        search_patterns.append(f"{width}/{aspect_partial}")
+                    elif len(numeric_only) == 5:
+                        width = numeric_only[:3]
+                        aspect_or_rim = numeric_only[3:5]
+                        search_patterns.extend([
+                            f"{width}/{aspect_or_rim}",
+                            f"{width}R{aspect_or_rim}",
+                        ])
+                    elif len(numeric_only) == 6:
+                        width = numeric_only[:3]
+                        aspect = numeric_only[3:5]
+                        rim_partial = numeric_only[5]
+                        search_patterns.extend([
+                            f"{width}/{aspect}R{rim_partial}",
+                            f"{width}/{aspect}/{rim_partial}",
+                        ])
+                    else:
+                        # 7자리 이상
+                        width = numeric_only[:3]
+                        aspect = numeric_only[3:5]
+                        rim = numeric_only[5:7] if len(numeric_only) >= 7 else numeric_only[5:]
+                        search_patterns.extend([
+                            f"{width}/{aspect}R{rim}",
+                            f"{width}/{aspect}/{rim}",
+                            f"{width}-{aspect}-{rim}",
+                        ])
 
             filtered_goods = []
 
@@ -101,8 +143,20 @@ def api_products_erp(request):
 
                 brand_match = keyword_match or code_match
 
-                if brand_match and jaego > 0:
-                    filtered_goods.append(goods)
+                if not brand_match or jaego == 0:
+                    continue
+
+                # 검색어 필터링 (브랜드 매칭 후)
+                if search_patterns:
+                    search_matched = False
+                    for pattern in search_patterns:
+                        if pattern in code or pattern in name or pattern.upper() in name.upper():
+                            search_matched = True
+                            break
+                    if not search_matched:
+                        continue
+
+                filtered_goods.append(goods)
 
             # 페이지네이션
             total_count = len(filtered_goods)
