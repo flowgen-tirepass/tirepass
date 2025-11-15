@@ -465,16 +465,17 @@ class GoodsAdmin(admin.ModelAdmin):
                                 brand_match = True
                                 break
 
-                    # 코드 접두사로도 브랜드 확인 (인코딩 문제와 무관)
+                    # 브랜드 매칭 안되면 False
+                    if not brand_match:
+                        return False
+
+                    # 브랜드 매칭되면 타이어 상품인지 확인 (CODE 접두사)
                     code = (goods.get('code', '') or '').strip().upper()
                     tire_code_prefixes = [
                         'ANNAITE-', 'BFG-', 'BS-', 'C-', 'CT-', 'D-', 'G-', 'H-',
                         'HIFLY-', 'HILO-', 'K-', 'M-', 'MAXXIS-', 'N-', 'P-'
                     ]
-                    code_match = any(code.startswith(prefix) for prefix in tire_code_prefixes)
-
-                    # 키워드 매칭 또는 코드 매칭이면 해당 브랜드 타이어로 간주
-                    return brand_match or code_match
+                    return any(code.startswith(prefix) for prefix in tire_code_prefixes)
 
                 filtered_goods = [g for g in filtered_goods if matches_brand_and_tire(g)]
                 brand_filtered = True
