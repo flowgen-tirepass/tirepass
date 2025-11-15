@@ -21,7 +21,7 @@ BRAND_MAPPING = {
     'hankook': ['한국', 'HANKOOK'],
     'michelin': ['미쉐린', '미슐랭', 'MICHELIN'],
     'nexen': ['넥센', 'NEXEN'],
-    'pirelli': ['피렐리', 'PIRELLI'],
+    'pirelli': ['피렐리', 'PIRELLI', 'P ZERO'],
     'bridgestone': ['브리지스톤', 'BRIDGESTONE'],
     'continental': ['콘티넨탈', 'CONTINENTAL'],
     'dunlop': ['던롭', 'DUNLOP'],
@@ -66,12 +66,17 @@ def api_products_erp(request):
 
             for goods in erp_goods_list:
                 bun1 = (goods.get('bun1', '') or '').strip()
+                name = (goods.get('name', '') or '').strip()
                 code = (goods.get('code', '') or '').strip().upper()
                 jaego = float(goods.get('jaego', 0))
 
                 # 브랜드 매칭 & 재고 (타이어 코드 접두사 체크 제거)
                 # 브랜드가 타이어 브랜드라면 해당 브랜드의 모든 상품은 타이어로 간주
-                brand_match = any(kw in bun1 or kw in bun1.upper() for kw in brand_keywords)
+                # bun1 필드 인코딩 문제 대비하여 name 필드에서도 검색
+                brand_match = any(
+                    kw in bun1 or kw in bun1.upper() or kw in name or kw in name.upper()
+                    for kw in brand_keywords
+                )
 
                 if brand_match and jaego > 0:
                     filtered_goods.append(goods)
