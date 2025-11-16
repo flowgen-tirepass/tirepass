@@ -42,6 +42,9 @@ class CustomerBrandDiscountForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # 패턴 필드는 선택 사항
+        self.fields['pattern'].required = False
+
         # 기존 인스턴스가 있으면 해당 브랜드의 패턴만 표시
         if self.instance and self.instance.pk and self.instance.brand:
             self.fields['pattern'].queryset = BrandPattern.objects.filter(
@@ -49,9 +52,9 @@ class CustomerBrandDiscountForm(forms.ModelForm):
                 is_active=True
             ).order_by('display_order', 'pattern_name')
         else:
-            # 새로 추가할 때는 빈 queryset (브랜드 선택 전)
-            self.fields['pattern'].queryset = BrandPattern.objects.none()
-            self.fields['pattern'].help_text = '먼저 브랜드를 선택하세요'
+            # 새로 추가할 때는 모든 패턴 표시 (JavaScript가 필터링함)
+            self.fields['pattern'].queryset = BrandPattern.objects.filter(is_active=True)
+            self.fields['pattern'].help_text = '브랜드를 선택하면 해당 브랜드의 패턴만 표시됩니다'
 
         # JavaScript로 동적 필터링
         self.fields['pattern'].widget.attrs.update({
