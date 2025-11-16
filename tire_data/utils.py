@@ -4,7 +4,7 @@
 from decimal import Decimal
 from .models import (
     Goods, CustomerDiscount, CustomerProductDiscount,
-    YearAllocation, BrandGroup, BrandGroupPattern
+    YearAllocation, BrandGroup, BrandGroupPattern, Customers
 )
 
 
@@ -24,6 +24,7 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
             'basic_discount_rate': 기본 할인율,
             'customer_discount_rate': 고객 브랜드/그룹 할인율,
             'additional_discount_rate': 고객 추가 할인율,
+            'membership_discount_rate': 멤버십 할인율,
             'dot_discount_rate': DOT 할인율,
             'total_discount_rate': 총 할인율,
             'discounted_price': 할인 적용 단가,
@@ -36,6 +37,7 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
         'basic_discount_rate': Decimal('0.00'),
         'customer_discount_rate': Decimal('0.00'),
         'additional_discount_rate': Decimal('0.00'),
+        'membership_discount_rate': Decimal('0.00'),
         'dot_discount_rate': Decimal('0.00'),
         'total_discount_rate': Decimal('0.00'),
         'discounted_price': 0,
@@ -85,7 +87,14 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
     except CustomerProductDiscount.DoesNotExist:
         pass
 
-    # 5. DOT 할인율 조회
+    # 5. 멤버십 할인율 조회 (프리미엄 회원 2% 추가 할인)
+    try:
+        customer = Customers.objects.get(code=customer_code)
+        result['membership_discount_rate'] = Decimal(str(customer.membership_discount_rate))
+    except Customers.DoesNotExist:
+        pass
+
+    # 6. DOT 할인율 조회
     if year_allocation:
         # 선택 가능한 제조년도 목록 (재고가 있는 년도만)
         available_years = []
@@ -119,9 +128,9 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
                 # 변환 실패 시 무시
                 pass
 
-    # 6. 최종 가격 계산
+    # 7. 최종 가격 계산
     # 공식: 공장도가 × (1 - 총할인율/100)
-    # 총할인율 = 기본할인% + 고객할인% + 추가할인% + DOT할인% (단순 합산)
+    # 총할인율 = 기본할인% + 고객할인% + 추가할인% + 멤버십할인% + DOT할인% (단순 합산)
     unit_price = Decimal(str(result['unit_price']))
 
     # 모든 할인율을 단순 합산
@@ -129,6 +138,7 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
         Decimal(str(result['basic_discount_rate'])) +
         Decimal(str(result['customer_discount_rate'])) +
         Decimal(str(result['additional_discount_rate'])) +
+        Decimal(str(result['membership_discount_rate'])) +
         Decimal(str(result['dot_discount_rate']))
     )
 

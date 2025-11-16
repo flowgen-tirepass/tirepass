@@ -14,7 +14,7 @@ class GoodsDisplayName(models.Model):
         db_table = 'goods_display_names'
         managed = True
         verbose_name = '상품 표시명'
-        verbose_name_plural = 'C. ⚙️ 설정 | 04. 상품 표시명'
+        verbose_name_plural = 'C. ⚙️ 설정 | 01. 상품 표시명'
 
     def __str__(self):
         return f"{self.goods_code} - {self.korean_name}"
@@ -31,7 +31,7 @@ class ExcludedGoods(models.Model):
         db_table = 'excluded_goods'
         managed = True
         verbose_name = '제외 상품'
-        verbose_name_plural = 'C. ⚙️ 설정 | 09. ERP 동기화 제외 상품'
+        verbose_name_plural = 'Z. 🗄️ 미사용 | ERP 동기화 제외 상품 (개발용)'
 
     def __str__(self):
         return f"{self.code} - {self.reason}"
@@ -212,6 +212,20 @@ class Customers(models.Model):
     user_id = models.IntegerField(null=True, blank=True, verbose_name='사용자ID', db_column='user_id')
     must_change_password = models.BooleanField(default=True, verbose_name='비밀번호변경필요', db_column='must_change_password')
 
+    # 멤버십 관련 필드 (방안 2: 간편결제 기반)
+    membership_tier = models.CharField(
+        max_length=20,
+        default='regular',
+        verbose_name='회원등급',
+        db_column='membership_tier',
+        choices=[
+            ('regular', '🎫 일반 회원'),
+            ('premium', '⭐ 프리미엄 회원'),
+        ],
+        help_text='간편결제 사용 시 프리미엄 회원으로 자동 승급'
+    )
+    tier_updated_at = models.DateTimeField(null=True, blank=True, verbose_name='등급갱신일', db_column='tier_updated_at')
+
     class Meta:
         db_table = 'customers_simple'
         managed = True  # pythonanywhere가 관리
@@ -226,6 +240,23 @@ class Customers(models.Model):
     def is_real_customer(self):
         """실제 고객인지 확인 (Z로 시작하지 않는 코드)"""
         return not self.code.startswith('Z')
+
+    @property
+    def membership_discount_rate(self):
+        """멤버십 등급별 추가 할인율 반환"""
+        if self.membership_tier == 'premium':
+            return 2.0  # 프리미엄 회원 2% 추가 할인
+        return 0.0  # 일반 회원 할인 없음
+
+    def upgrade_to_premium(self):
+        """프리미엄 회원으로 승급"""
+        from django.utils import timezone
+        if self.membership_tier != 'premium':
+            self.membership_tier = 'premium'
+            self.tier_updated_at = timezone.now()
+            self.save(update_fields=['membership_tier', 'tier_updated_at'])
+            return True
+        return False
 
 
 class PaymentMethod(models.Model):
@@ -380,7 +411,16 @@ class PaymentMethod(models.Model):
                 customer_code=self.customer_code,
                 is_default=True
             ).exclude(pk=self.pk).update(is_default=False)
+
+        # 간편결제(빌링키) 등록 시 프리미엄 회원으로 자동 승급
+        is_new = self.pk is None
         super().save(*args, **kwargs)
+
+        if is_new and self.billing_key:
+            # 새로 등록된 빌링키가 있는 경우, 고객을 프리미엄으로 승급
+            customer = self.customer
+            if customer:
+                customer.upgrade_to_premium()
 
     @property
     def masked_info(self):
@@ -460,7 +500,7 @@ class YearAllocation(models.Model):
         db_table = 'year_allocations'
         managed = True  # Django가 관리하는 테이블
         verbose_name = '연식 할인율'
-        verbose_name_plural = 'C. ⚙️ 설정 | 08. 연식 할인율'
+        verbose_name_plural = 'C. ⚙️ 설정 | 02. 연도 할당률 (DOT)'
         unique_together = ['goods_code']  # 상품코드별로 유일
 
     def __str__(self):
@@ -770,7 +810,7 @@ class PerformanceCategory(models.Model):
         db_table = 'performance_categories'
         managed = True
         verbose_name = '성능표기 카테고리'
-        verbose_name_plural = 'C. ⚙️ 설정 | 02. 성능표기 카테고리'
+        verbose_name_plural = 'Z. 🗄️ 미사용 | 성능표기 카테고리 (구)'
         ordering = ['order', 'name']
 
     def __str__(self):
@@ -794,7 +834,7 @@ class PerformanceTag(models.Model):
         db_table = 'performance_tags'
         managed = True
         verbose_name = '성능표기 태그'
-        verbose_name_plural = 'C. ⚙️ 설정 | 03. 성능표기 태그'
+        verbose_name_plural = 'Z. 🗄️ 미사용 | 성능표기 태그 (구)'
         ordering = ['category__order', 'category', 'order', 'name']
         unique_together = ['category', 'name']
 
@@ -817,7 +857,7 @@ class GoodsPerformanceTag(models.Model):
         db_table = 'goods_performance_tags'
         managed = True
         verbose_name = '상품 성능표기'
-        verbose_name_plural = 'C. ⚙️ 설정 | 01. 상품 성능표기'
+        verbose_name_plural = 'Z. 🗄️ 미사용 | 상품 성능표기 (구)'
         unique_together = ['goods_code', 'tag']
         ordering = ['goods_code', 'tag__category__order', 'tag__order']
 
@@ -889,7 +929,7 @@ class ERPSnapshot(models.Model):
         db_table = 'erp_snapshots'
         managed = True
         verbose_name = 'ERP 스냅샷'
-        verbose_name_plural = 'C. ⚙️ 설정 | 06. ERP 스냅샷'
+        verbose_name_plural = 'Z. 🗄️ 미사용 | ERP 스냅샷 (개발용)'
         ordering = ['-timestamp']
         indexes = [
             models.Index(fields=['-timestamp']),
@@ -975,7 +1015,7 @@ class GoodsRealtimeSnapshot(models.Model):
         db_table = 'goods_realtime_snapshots'
         managed = True
         verbose_name = '실시간 재고 스냅샷'
-        verbose_name_plural = 'C. ⚙️ 설정 | 07. 실시간 재고 추적'
+        verbose_name_plural = 'Z. 🗄️ 미사용 | 실시간 재고 추적 (개발용)'
         ordering = ['-snapshot_time', 'code']
         indexes = [
             models.Index(fields=['code', '-snapshot_time']),

@@ -1825,7 +1825,10 @@ def api_auth_profile(request):
                 'tel1': customer.tel1,
                 'tel3': customer.tel3,
                 'enno': customer.enno,
-                'is_registered': customer.is_registered
+                'is_registered': customer.is_registered,
+                'membership_tier': customer.membership_tier,
+                'membership_tier_display': customer.get_membership_tier_display(),
+                'tier_updated_at': customer.tier_updated_at.strftime('%Y-%m-%d') if customer.tier_updated_at else None
             }
         })
     except Customers.DoesNotExist:
