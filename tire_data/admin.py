@@ -15,7 +15,7 @@ from .models import (
     Brand, BrandPattern, CustomerBrandDiscount
 )
 from .erp_api_client import ERPAPIClient
-from .forms import BulkDiscountForm, CustomerBrandDiscountForm
+from .forms import BulkDiscountForm, CustomerBrandDiscountForm, CustomerProductDiscountForm
 
 
 class TireOnlyFilter(SimpleListFilter):
@@ -1663,6 +1663,7 @@ class DiscountHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(CustomerProductDiscount)
 class CustomerProductDiscountAdmin(admin.ModelAdmin):
+    form = CustomerProductDiscountForm
     list_display = ['customer_code', 'get_customer_name', 'product_code', 'get_product_name', 'brand',
                    'additional_discount_rate', 'priority', 'date_range', 'is_active', 'is_valid_status']
     list_filter = ['is_active', 'brand', 'customer_code']
