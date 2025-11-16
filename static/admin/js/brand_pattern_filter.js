@@ -1,6 +1,6 @@
 /**
  * 브랜드 선택 시 패턴 필터링
- * 브랜드를 선택하면 해당 브랜드의 패턴만 표시 (AJAX로 동적 로드)
+ * 브랜드를 선택하면 해당 브랜드의 패턴만 표시 (API로 동적 로드)
  */
 (function() {
     'use strict';
@@ -13,31 +13,58 @@
         var $patternField = $('#id_pattern');
 
         if ($brandField.length && $patternField.length) {
+            console.log('Brand pattern filter initialized');
+
             // 브랜드 선택 변경 시
             $brandField.on('change', function() {
                 var selectedBrandId = $(this).val();
+                console.log('Brand changed:', selectedBrandId);
 
                 // 패턴 필드 초기화
                 $patternField.empty();
                 $patternField.append('<option value="">---------</option>');
 
                 if (selectedBrandId) {
-                    // AJAX로 선택된 브랜드의 패턴 가져오기
-                    $.ajax({
-                        url: '/admin/tire_data/customerbranddiscount/add/',
-                        data: {
-                            'brand': selectedBrandId
-                        },
-                        success: function(data) {
-                            // 응답 HTML에서 pattern select 옵션 추출
-                            var $tempDiv = $('<div>').html(data);
-                            var $newPatternOptions = $tempDiv.find('#id_pattern option');
+                    // JSON API로 선택된 브랜드의 패턴 가져오기
+                    var apiUrl = '/admin/tire_data/brandpattern/?brand__id__exact=' + selectedBrandId + '&format=json';
 
-                            if ($newPatternOptions.length > 0) {
-                                $newPatternOptions.each(function() {
-                                    $patternField.append($(this).clone());
+                    $.ajax({
+                        url: apiUrl,
+                        dataType: 'json',
+                        success: function(patterns) {
+                            console.log('Patterns loaded:', patterns.length);
+                            if (patterns && patterns.length > 0) {
+                                patterns.forEach(function(pattern) {
+                                    $patternField.append(
+                                        $('<option></option>')
+                                            .val(pattern.id)
+                                            .text(pattern.pattern_name)
+                                    );
                                 });
                             }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Failed to load patterns:', error);
+
+                            // 대체: HTML 페이지에서 파싱
+                            $.get('/admin/tire_data/brandpattern/?brand__id__exact=' + selectedBrandId, function(html) {
+                                var $html = $('<div>').html(html);
+                                var $rows = $html.find('.results tbody tr');
+
+                                $rows.each(function() {
+                                    var $row = $(this);
+                                    var patternId = $row.find('input[name="_selected_action"]').val();
+                                    var patternName = $row.find('.field-pattern_name').text().trim();
+
+                                    if (patternId && patternName) {
+                                        $patternField.append(
+                                            $('<option></option>')
+                                                .val(patternId)
+                                                .text(patternName)
+                                        );
+                                    }
+                                });
+                            });
                         }
                     });
                 }
