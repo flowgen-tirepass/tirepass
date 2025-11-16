@@ -2328,21 +2328,25 @@ class TirePassAdminSite(admin.AdminSite):
             'shippingaddress': 'A. 판매',
             'customers': 'A. 판매',
 
-            # B. 할인 (6개)
+            # B. 할인 (신규 + 기존)
+            'brand': 'B. 할인',
+            'brandpattern': 'B. 할인',
+            'customerbranddiscount': 'B. 할인',
             'brandgroup': 'B. 할인',
             'brandgrouppattern': 'B. 할인',
             'customerdiscount': 'B. 할인',
             'customerproductdiscount': 'B. 할인',
-            'yearallocation': 'B. 할인',
             'discounthistory': 'B. 할인',
 
-            # C. 설정 (8개)
+            # C. 설정
             'goodsdisplayname': 'C. 설정',
             'performancecategory': 'C. 설정',
             'performancetag': 'C. 설정',
             'goodsperformancetag': 'C. 설정',
             'erpsnapshot': 'C. 설정',
             'goodsrealtimesnapshot': 'C. 설정',
+            'yearallocation': 'C. 설정',
+            'excludedgoods': 'C. 설정',
             'user': 'C. 설정',
             'logentry': 'C. 설정',
         }
