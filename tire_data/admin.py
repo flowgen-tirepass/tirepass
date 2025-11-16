@@ -2524,3 +2524,11 @@ def register_all_to_custom_site():
 
 # 등록 실행
 register_all_to_custom_site()
+
+# 신규 할인 시스템 모델들을 custom_admin_site에도 명시적으로 등록
+if Brand not in custom_admin_site._registry:
+    custom_admin_site.register(Brand, BrandAdmin)
+if BrandPattern not in custom_admin_site._registry:
+    custom_admin_site.register(BrandPattern, BrandPatternAdmin)
+if CustomerBrandDiscount not in custom_admin_site._registry:
+    custom_admin_site.register(CustomerBrandDiscount, CustomerBrandDiscountAdmin)
