@@ -1089,6 +1089,7 @@ class CustomerBrandDiscount(models.Model):
         Customers,
         on_delete=models.CASCADE,
         to_field='code',
+        db_column='customer_code',
         related_name='brand_discounts',
         verbose_name='고객'
     )

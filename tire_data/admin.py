@@ -11,7 +11,8 @@ from .models import (
     BrandGroupPattern, CustomerDiscount, DiscountHistory,
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
     ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag,
-    ERPSnapshot, GoodsRealtimeSnapshot
+    ERPSnapshot, GoodsRealtimeSnapshot,
+    Brand, BrandPattern, CustomerBrandDiscount
 )
 from .erp_api_client import ERPAPIClient
 from .forms import BulkDiscountForm
@@ -1101,7 +1102,7 @@ class BrandGroupPatternInline(admin.TabularInline):
     verbose_name = '패턴'
     verbose_name_plural = '패턴 목록'
 
-@admin.register(BrandGroup)
+# @admin.register(BrandGroup)  # 신규 할인 시스템으로 대체하여 숨김
 class BrandGroupAdmin(admin.ModelAdmin):
     list_display = ['id', 'brand', 'group_name', 'group_order', 'pattern_count', 'pattern_preview', 'is_active', 'created_at']
     list_filter = ['brand', 'is_active']
@@ -1319,7 +1320,7 @@ class BrandGroupAdmin(admin.ModelAdmin):
 
     apply_discount_to_all_customers.short_description = '선택한 그룹의 할인율을 전체 고객에게 적용'
 
-@admin.register(BrandGroupPattern)
+# @admin.register(BrandGroupPattern)  # 신규 할인 시스템으로 대체하여 숨김
 class BrandGroupPatternAdmin(admin.ModelAdmin):
     list_display = ['id', 'get_brand', 'get_group_name', 'pattern_badge', 'get_group_status', 'created_at']
     list_filter = ['group__brand', 'group__group_name', 'group__is_active']
@@ -1401,7 +1402,7 @@ class BrandGroupPatternAdmin(admin.ModelAdmin):
         self.message_user(request, f'{count}개 패턴을 삭제했습니다.', 'success')
     delete_patterns.short_description = '선택한 패턴 삭제'
 
-@admin.register(CustomerDiscount)
+# @admin.register(CustomerDiscount)  # 신규 할인 시스템으로 대체하여 숨김
 class CustomerDiscountAdmin(admin.ModelAdmin):
     list_display = ['get_customer_name', 'customer_code', 'brand', 'get_group_name', 'discount_rate', 'priority', 'date_range', 'is_active', 'is_valid_status']
     list_filter = ['is_active', 'brand', 'group__brand', 'group__group_name']
@@ -2401,6 +2402,114 @@ class ExcludedGoodsAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """삭제 권한 (제외 목록에서 제거 = 다시 동기화 허용)"""
         return True
+
+
+@admin.register(Brand)
+class BrandAdmin(admin.ModelAdmin):
+    """브랜드 관리"""
+    list_display = ['name', 'name_en', 'display_order', 'pattern_count', 'is_active', 'updated_at']
+    list_editable = ['display_order', 'is_active']
+    search_fields = ['name', 'name_en']  # autocomplete를 위한 필수 필드
+    ordering = ['display_order', 'name']
+    list_per_page = 50
+
+    fieldsets = (
+        ('브랜드 정보', {
+            'fields': ('name', 'name_en', 'display_order', 'is_active')
+        }),
+        ('시스템 정보', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
+
+    def pattern_count(self, obj):
+        """브랜드별 패턴 개수"""
+        return obj.patterns.filter(is_active=True).count()
+    pattern_count.short_description = '패턴 수'
+
+
+@admin.register(BrandPattern)
+class BrandPatternAdmin(admin.ModelAdmin):
+    """브랜드 패턴 관리"""
+    list_display = ['pattern_name', 'brand', 'pattern_code', 'display_order', 'is_active', 'updated_at']
+    list_filter = ['brand', 'is_active']
+    list_editable = ['display_order', 'is_active']
+    search_fields = ['pattern_name', 'pattern_code', 'brand__name']
+    ordering = ['brand', 'display_order', 'pattern_name']
+    list_per_page = 100
+    autocomplete_fields = ['brand']
+
+    fieldsets = (
+        ('패턴 정보', {
+            'fields': ('brand', 'pattern_name', 'pattern_code', 'display_order', 'is_active')
+        }),
+        ('시스템 정보', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(CustomerBrandDiscount)
+class CustomerBrandDiscountAdmin(admin.ModelAdmin):
+    """고객별 브랜드/패턴 할인 관리"""
+    list_display = ['get_customer_name', 'get_customer_code', 'brand', 'pattern', 'discount_rate',
+                   'priority', 'date_range', 'is_active', 'updated_at']
+    list_filter = ['is_active', 'brand', 'pattern__brand']
+    list_editable = ['discount_rate', 'priority', 'is_active']
+    search_fields = ['customer__name', 'customer__code', '=customer__code', 'brand__name',
+                    'pattern__pattern_name', 'memo']
+    ordering = ['customer__name', 'brand', 'pattern', '-priority']
+    list_per_page = 50
+    autocomplete_fields = ['customer', 'brand', 'pattern']
+
+    fieldsets = (
+        ('고객 및 브랜드/패턴', {
+            'fields': ('customer', 'brand', 'pattern')
+        }),
+        ('할인 설정', {
+            'fields': ('discount_rate', 'priority', 'start_date', 'end_date')
+        }),
+        ('메모 및 상태', {
+            'fields': ('memo', 'is_active')
+        }),
+        ('시스템 정보', {
+            'fields': ('created_at', 'updated_at', 'created_by', 'updated_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
+
+    def get_customer_name(self, obj):
+        """고객명 표시"""
+        return obj.customer.name if obj.customer else '⚠️ 미지정'
+    get_customer_name.short_description = '고객명'
+
+    def get_customer_code(self, obj):
+        """고객코드 표시"""
+        return obj.customer.code if obj.customer else '-'
+    get_customer_code.short_description = '고객코드'
+
+    def date_range(self, obj):
+        """적용기간 표시"""
+        if obj.start_date and obj.end_date:
+            return f"{obj.start_date} ~ {obj.end_date}"
+        elif obj.start_date:
+            return f"{obj.start_date} ~"
+        elif obj.end_date:
+            return f"~ {obj.end_date}"
+        return "제한없음"
+    date_range.short_description = '적용기간'
+
+    def save_model(self, request, obj, form, change):
+        """저장 시 생성자/수정자 자동 기록"""
+        if not change:
+            obj.created_by = request.user.username
+        obj.updated_by = request.user.username
+        super().save_model(request, obj, form, change)
 
 
 # 커스텀 Admin Site 인스턴스 생성
