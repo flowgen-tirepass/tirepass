@@ -2,7 +2,12 @@
  * 브랜드 선택 시 패턴 필터링
  * 브랜드를 선택하면 해당 브랜드의 패턴만 표시 (AJAX로 동적 로드)
  */
-(function($) {
+(function() {
+    'use strict';
+
+    // Django admin jQuery 사용
+    var $ = django.jQuery;
+
     $(document).ready(function() {
         var $brandField = $('#id_brand');
         var $patternField = $('#id_pattern');
@@ -44,4 +49,4 @@
             }
         }
     });
-})(django.jQuery);
+})();
