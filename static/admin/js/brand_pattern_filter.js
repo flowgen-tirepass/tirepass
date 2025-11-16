@@ -18,12 +18,9 @@ window.addEventListener('load', function() {
         var $patternField = $('#id_pattern');
 
         if ($brandField.length && $patternField.length) {
-            console.log('Brand pattern filter initialized');
-
             // 브랜드 선택 변경 시
             $brandField.on('change', function() {
                 var selectedBrandId = $(this).val();
-                console.log('Brand changed:', selectedBrandId);
 
                 // 패턴 필드 초기화
                 $patternField.empty();
@@ -37,7 +34,6 @@ window.addEventListener('load', function() {
                         url: apiUrl,
                         dataType: 'json',
                         success: function(patterns) {
-                            console.log('Patterns loaded:', patterns.length);
                             if (patterns && patterns.length > 0) {
                                 patterns.forEach(function(pattern) {
                                     $patternField.append(
@@ -49,22 +45,15 @@ window.addEventListener('load', function() {
                             }
                         },
                         error: function(xhr, status, error) {
-                            console.log('JSON API not available, falling back to HTML parsing');
-
-                            // 대체: HTML 페이지에서 파싱
+                            // JSON API 없음 - HTML 페이지에서 파싱
                             $.get('/admin/tire_data/brandpattern/?brand__id__exact=' + selectedBrandId, function(html) {
-                                console.log('HTML loaded, parsing...');
                                 var $html = $('<div>').html(html);
                                 var $rows = $html.find('#result_list tbody tr');
-
-                                console.log('Found rows:', $rows.length);
 
                                 $rows.each(function() {
                                     var $row = $(this);
                                     var patternId = $row.find('input[name="_selected_action"]').val();
                                     var patternName = $row.find('.field-pattern_name').text().trim();
-
-                                    console.log('Pattern:', patternId, patternName);
 
                                     if (patternId && patternName) {
                                         $patternField.append(
@@ -74,10 +63,6 @@ window.addEventListener('load', function() {
                                         );
                                     }
                                 });
-
-                                console.log('Total patterns added:', $patternField.find('option').length - 1);
-                            }).fail(function() {
-                                console.error('Failed to load HTML page');
                             });
                         }
                     });
