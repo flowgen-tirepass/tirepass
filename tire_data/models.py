@@ -1036,6 +1036,117 @@ class GoodsRealtimeSnapshot(models.Model):
 
 
 # ============================================
+# 새로운 브랜드/패턴 기반 할인 모델
+# ============================================
+
+class Brand(models.Model):
+    """브랜드 마스터"""
+    name = models.CharField(max_length=50, unique=True, verbose_name='브랜드명')
+    name_en = models.CharField(max_length=50, null=True, blank=True, verbose_name='영문명')
+    display_order = models.IntegerField(default=0, verbose_name='표시 순서')
+    is_active = models.BooleanField(default=True, verbose_name='활성화')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'brands'
+        managed = True
+        verbose_name = '브랜드'
+        verbose_name_plural = 'C. 💰 신규 할인 | 01. 브랜드'
+        ordering = ['display_order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
+class BrandPattern(models.Model):
+    """브랜드별 패턴"""
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE,
+                             related_name='patterns', verbose_name='브랜드')
+    pattern_name = models.CharField(max_length=100, verbose_name='패턴명')
+    pattern_code = models.CharField(max_length=50, null=True, blank=True,
+                                   verbose_name='패턴 코드')
+    display_order = models.IntegerField(default=0, verbose_name='표시 순서')
+    is_active = models.BooleanField(default=True, verbose_name='활성화')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'brand_patterns'
+        managed = True
+        verbose_name = '브랜드 패턴'
+        verbose_name_plural = 'C. 💰 신규 할인 | 02. 브랜드 패턴'
+        ordering = ['brand', 'display_order', 'pattern_name']
+        unique_together = ['brand', 'pattern_name']
+
+    def __str__(self):
+        return f"{self.brand.name} - {self.pattern_name}"
+
+
+class CustomerBrandDiscount(models.Model):
+    """고객별 브랜드/패턴 할인율"""
+    customer = models.ForeignKey(
+        Customers,
+        on_delete=models.CASCADE,
+        to_field='code',
+        related_name='brand_discounts',
+        verbose_name='고객'
+    )
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE,
+                             related_name='customer_discounts',
+                             verbose_name='브랜드')
+    pattern = models.ForeignKey(BrandPattern, on_delete=models.CASCADE,
+                               null=True, blank=True,
+                               related_name='customer_discounts',
+                               verbose_name='패턴')
+    discount_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0.00,
+        verbose_name='할인율(%)',
+        validators=[MinValueValidator(0.00), MaxValueValidator(100.00)]
+    )
+    start_date = models.DateField(null=True, blank=True, verbose_name='시작일')
+    end_date = models.DateField(null=True, blank=True, verbose_name='종료일')
+    memo = models.TextField(null=True, blank=True, verbose_name='메모')
+    is_active = models.BooleanField(default=True, verbose_name='활성화')
+    priority = models.IntegerField(default=0, verbose_name='우선순위')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+    created_by = models.CharField(max_length=50, null=True, blank=True,
+                                 verbose_name='생성자')
+    updated_by = models.CharField(max_length=50, null=True, blank=True,
+                                 verbose_name='수정자')
+
+    class Meta:
+        db_table = 'customer_brand_discounts'
+        managed = True
+        verbose_name = '고객별 브랜드 할인'
+        verbose_name_plural = 'C. 💰 신규 할인 | 03. 고객별 할인 관리'
+        ordering = ['customer', 'brand', 'pattern', '-priority']
+        unique_together = ['customer', 'brand', 'pattern']
+
+    def __str__(self):
+        pattern_name = self.pattern.pattern_name if self.pattern else '전체'
+        return f"{self.customer.code} - {self.brand.name}/{pattern_name} - {self.discount_rate}%"
+
+    @property
+    def is_valid(self):
+        """현재 유효한 할인인지 확인"""
+        from datetime import date
+        today = date.today()
+
+        if not self.is_active:
+            return False
+
+        if self.start_date and today < self.start_date:
+            return False
+
+        if self.end_date and today > self.end_date:
+            return False
+
+        return True
+
+
+# ============================================
 # 쇼핑/주문 관련 모델
 # ============================================
 from .models_shopping import ShoppingCart, Order, OrderItem, Payment, ShippingAddress
