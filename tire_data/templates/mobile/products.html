@@ -764,7 +764,12 @@ function extractProductNameWithoutSize(name) {
 }
 
 // 브랜드 로고 경로 생성
-function getBrandLogo(brand) {
+function getBrandLogo(brand, logoFilename) {
+    // API에서 로고 파일명이 지정되어 있으면 그것을 사용
+    if (logoFilename) {
+        return `/static/mobile/img/brands/${logoFilename}`;
+    }
+    // 없으면 기존 방식 (브랜드명 기반)
     if (!brand) return '';
     const brandLower = brand.toLowerCase().replace(/\s+/g, '');
     return `/static/mobile/img/brands/${brandLower}.png`;
@@ -783,7 +788,7 @@ function renderProducts(products) {
         const discount = product.discount_rate || 0;
         const originalPrice = product.price || 0;
         const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
-        const brandLogo = getBrandLogo(product.brand);
+        const brandLogo = getBrandLogo(product.brand, product.brand_logo);
 
         // 한글명: korean_name이 있으면 사용, 없으면 "브랜드명(한글) + NAME(전체)" 조합
         const koreanName = product.korean_name || (product.brand ? `${product.brand} ${product.name}` : product.name);
@@ -801,8 +806,14 @@ function renderProducts(products) {
                 ${product.brand ? `<img src="${brandLogo}" alt="${product.brand}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.style.display='none'">` : ''}
             </div>
 
-            <!-- 성능 표기 (2x2 그리드) 또는 브랜드 태그 -->
-            ${product.performance_tags && product.performance_tags.length > 0 ? `
+            <!-- 성능 표시 (5개 박스: 브랜드명 + 분류1 + 상품등급 + 상품성능 + 계절/온오프로드) -->
+            ${product.brand_performance_boxes && product.brand_performance_boxes.length > 0 ? `
+                <div class="performance-tags">
+                    ${product.brand_performance_boxes.map(box => `
+                        <span class="performance-tag">${box}</span>
+                    `).join('')}
+                </div>
+            ` : (product.performance_tags && product.performance_tags.length > 0 ? `
                 <div class="performance-tags">
                     ${product.performance_tags.slice(0, 4).map(tag => `
                         <span class="performance-tag">${tag.category}: ${tag.tag}</span>
@@ -812,7 +823,7 @@ function renderProducts(products) {
                 <div class="performance-tags" style="display: flex; gap: clamp(3px, 1vw, 5px);">
                     <span class="performance-tag">${product.brand}</span>
                 </div>
-            ` : '')}
+            ` : ''))}
 
             <!-- 상품명 -->
             <div class="product-title-container">

@@ -14,7 +14,7 @@ import secrets
 import re
 import time
 
-from .models import Goods, GoodsDisplayName, Customers, ShoppingCart, Order, OrderItem, Payment, ShippingAddress
+from .models import Goods, GoodsDisplayName, Customers, ShoppingCart, Order, OrderItem, Payment, ShippingAddress, Brand, BrandPattern, BrandPatternPerformance
 from .utils import calculate_discount_price, generate_order_number, update_stock
 
 
@@ -300,7 +300,7 @@ def api_products_list(request):
     # GoodsDisplayName 정보 가져오기 (한글명/영문명)
     display_names = {dn.goods_code: dn for dn in GoodsDisplayName.objects.filter(goods_code__in=product_codes)}
 
-    # 성능 표기 정보 가져오기
+    # 성능 표기 정보 가져오기 (기존 시스템)
     performance_tags_qs = GoodsPerformanceTag.objects.filter(
         goods_code__in=product_codes
     ).select_related('tag', 'tag__category').order_by('tag__category__order', 'tag__order')
@@ -314,6 +314,32 @@ def api_products_list(request):
             'category': pt.tag.category.display_name,
             'tag': pt.tag.name
         })
+
+    # 브랜드/패턴별 성능표시 정보 가져오기 (신규 시스템)
+    # 1. 활성화된 모든 브랜드 조회 (브랜드명 매칭용)
+    all_brands = {brand.name: brand for brand in Brand.objects.filter(is_active=True)}
+
+    # 2. 모든 활성화된 성능표시 설정 조회
+    brand_performances = BrandPatternPerformance.objects.filter(
+        is_active=True
+    ).select_related('brand', 'pattern')
+
+    # 3. 브랜드별, 브랜드+패턴별로 그룹화
+    brand_performance_map = {}
+    for bp in brand_performances:
+        brand_name = bp.brand.name
+        pattern_name = bp.pattern.pattern_name if bp.pattern else None
+
+        if brand_name not in brand_performance_map:
+            brand_performance_map[brand_name] = {
+                'default': None,  # 패턴 없음 (브랜드 전체)
+                'patterns': {}     # 패턴별
+            }
+
+        if pattern_name:
+            brand_performance_map[brand_name]['patterns'][pattern_name] = bp
+        else:
+            brand_performance_map[brand_name]['default'] = bp
 
     # 결과 구성
     products_data = []
@@ -401,18 +427,46 @@ def api_products_list(request):
         korean_name = dn.korean_name if dn else None
         english_name = dn.english_name if dn else None
 
+        # 브랜드/패턴별 성능표시 찾기
+        brand_performance_boxes = []
+        brand_logo = None
+        product_brand_name = (p.bun1 or '').strip()
+
+        if product_brand_name and product_brand_name in brand_performance_map:
+            # 1단계: 패턴 매칭 시도 (상품명에서 패턴명 찾기)
+            matched_performance = None
+            brand_patterns = brand_performance_map[product_brand_name]['patterns']
+
+            # 상품명에서 패턴명 검색 (가장 긴 패턴명부터 매칭)
+            sorted_patterns = sorted(brand_patterns.keys(), key=len, reverse=True)
+            for pattern_name in sorted_patterns:
+                if pattern_name in p.name or pattern_name in (korean_name or ''):
+                    matched_performance = brand_patterns[pattern_name]
+                    break
+
+            # 2단계: 패턴 매칭 실패 시 브랜드 기본값 사용
+            if not matched_performance:
+                matched_performance = brand_performance_map[product_brand_name]['default']
+
+            # 3단계: 성능표시 박스 생성
+            if matched_performance:
+                brand_performance_boxes = matched_performance.get_performance_boxes()
+                brand_logo = matched_performance.logo_filename
+
         products_data.append({
             'code': p.code,
             'name': p.name,
             'korean_name': korean_name,
             'english_name': english_name,
-            'brand': p.bun1 or '',
+            'brand': product_brand_name,
             'price': p.fixp,
             'discount_rate': discount_rate,
             'stock': p.jaego,
             'is_tire': p.is_tire,
             'dot_inventory': dot_inventory,
-            'performance_tags': performance_tags_by_goods.get(p.code, [])
+            'performance_tags': performance_tags_by_goods.get(p.code, []),  # 기존 시스템 (호환성 유지)
+            'brand_performance_boxes': brand_performance_boxes,  # 신규: 5개 성능 박스
+            'brand_logo': brand_logo  # 신규: 브랜드 로고 파일명
         })
 
     result = {
