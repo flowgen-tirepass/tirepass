@@ -1102,8 +1102,7 @@ class BrandGroupPatternInline(admin.TabularInline):
     verbose_name = '패턴'
     verbose_name_plural = '패턴 목록'
 
-# @admin.register(BrandGroup)  # 신규 할인 시스템으로 대체하여 숨김
-class BrandGroupAdmin(admin.ModelAdmin):
+class BrandGroupAdmin(admin.ModelAdmin):  # 등록 해제 (신규 할인 시스템으로 대체)
     list_display = ['id', 'brand', 'group_name', 'group_order', 'pattern_count', 'pattern_preview', 'is_active', 'created_at']
     list_filter = ['brand', 'is_active']
     list_editable = ['group_order', 'is_active']
@@ -1320,8 +1319,7 @@ class BrandGroupAdmin(admin.ModelAdmin):
 
     apply_discount_to_all_customers.short_description = '선택한 그룹의 할인율을 전체 고객에게 적용'
 
-# @admin.register(BrandGroupPattern)  # 신규 할인 시스템으로 대체하여 숨김
-class BrandGroupPatternAdmin(admin.ModelAdmin):
+class BrandGroupPatternAdmin(admin.ModelAdmin):  # 등록 해제 (신규 할인 시스템으로 대체)
     list_display = ['id', 'get_brand', 'get_group_name', 'pattern_badge', 'get_group_status', 'created_at']
     list_filter = ['group__brand', 'group__group_name', 'group__is_active']
     search_fields = ['pattern', 'group__brand', 'group__group_name']  # 패턴은 부분 검색이 유용
@@ -1402,8 +1400,7 @@ class BrandGroupPatternAdmin(admin.ModelAdmin):
         self.message_user(request, f'{count}개 패턴을 삭제했습니다.', 'success')
     delete_patterns.short_description = '선택한 패턴 삭제'
 
-# @admin.register(CustomerDiscount)  # 신규 할인 시스템으로 대체하여 숨김
-class CustomerDiscountAdmin(admin.ModelAdmin):
+class CustomerDiscountAdmin(admin.ModelAdmin):  # 등록 해제 (신규 할인 시스템으로 대체)
     list_display = ['get_customer_name', 'customer_code', 'brand', 'get_group_name', 'discount_rate', 'priority', 'date_range', 'is_active', 'is_valid_status']
     list_filter = ['is_active', 'brand', 'group__brand', 'group__group_name']
     list_editable = ['discount_rate', 'priority', 'is_active']
