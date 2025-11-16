@@ -2,10 +2,15 @@
  * 브랜드 선택 시 패턴 필터링
  * 브랜드를 선택하면 해당 브랜드의 패턴만 표시 (API로 동적 로드)
  */
-(function() {
+window.addEventListener('load', function() {
     'use strict';
 
     // Django admin jQuery 사용
+    if (typeof django === 'undefined' || typeof django.jQuery === 'undefined') {
+        console.error('Django jQuery not loaded');
+        return;
+    }
+
     var $ = django.jQuery;
 
     $(document).ready(function() {
@@ -76,4 +81,4 @@
             }
         }
     });
-})();
+});
