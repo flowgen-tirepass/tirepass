@@ -15,7 +15,7 @@ from .models import (
     Brand, BrandPattern, CustomerBrandDiscount
 )
 from .erp_api_client import ERPAPIClient
-from .forms import BulkDiscountForm
+from .forms import BulkDiscountForm, CustomerBrandDiscountForm
 
 
 class TireOnlyFilter(SimpleListFilter):
@@ -2457,6 +2457,7 @@ class BrandPatternAdmin(admin.ModelAdmin):
 @admin.register(CustomerBrandDiscount)
 class CustomerBrandDiscountAdmin(admin.ModelAdmin):
     """고객별 브랜드/패턴 할인 관리"""
+    form = CustomerBrandDiscountForm
     list_display = ['get_customer_name', 'get_customer_code', 'brand', 'pattern', 'discount_rate',
                    'priority', 'date_range', 'is_active', 'updated_at']
     list_filter = ['is_active', 'brand', 'pattern__brand']
@@ -2465,7 +2466,7 @@ class CustomerBrandDiscountAdmin(admin.ModelAdmin):
                     'pattern__pattern_name', 'memo']
     ordering = ['customer__name', 'brand', 'pattern', '-priority']
     list_per_page = 50
-    autocomplete_fields = ['customer', 'brand', 'pattern']
+    autocomplete_fields = ['customer', 'brand']
 
     fieldsets = (
         ('고객 및 브랜드/패턴', {
@@ -2504,6 +2505,17 @@ class CustomerBrandDiscountAdmin(admin.ModelAdmin):
             return f"~ {obj.end_date}"
         return "제한없음"
     date_range.short_description = '적용기간'
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """브랜드 선택 시 해당 브랜드의 패턴만 표시"""
+        if db_field.name == "pattern":
+            # URL 파라미터에서 브랜드 ID 가져오기
+            brand_id = request.GET.get('brand')
+            if brand_id:
+                kwargs["queryset"] = BrandPattern.objects.filter(brand_id=brand_id, is_active=True)
+            else:
+                kwargs["queryset"] = BrandPattern.objects.filter(is_active=True)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def save_model(self, request, obj, form, change):
         """저장 시 생성자/수정자 자동 기록"""
