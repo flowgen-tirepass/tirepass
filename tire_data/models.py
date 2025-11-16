@@ -31,7 +31,7 @@ class ExcludedGoods(models.Model):
         db_table = 'excluded_goods'
         managed = True
         verbose_name = '제외 상품'
-        verbose_name_plural = 'C. ⚙️ 설정 | 05. ERP 동기화 제외 상품'
+        verbose_name_plural = 'C. ⚙️ 설정 | 09. ERP 동기화 제외 상품'
 
     def __str__(self):
         return f"{self.code} - {self.reason}"
@@ -460,7 +460,7 @@ class YearAllocation(models.Model):
         db_table = 'year_allocations'
         managed = True  # Django가 관리하는 테이블
         verbose_name = '연식 할인율'
-        verbose_name_plural = 'C. ⚙️ 설정 | 05. 연식 할인율'
+        verbose_name_plural = 'C. ⚙️ 설정 | 08. 연식 할인율'
         unique_together = ['goods_code']  # 상품코드별로 유일
 
     def __str__(self):
@@ -546,7 +546,7 @@ class BrandGroup(models.Model):
         db_table = 'brand_groups'
         managed = True
         verbose_name = '브랜드 그룹'
-        verbose_name_plural = 'B. 💰 할인 | 01. 브랜드 그룹'
+        verbose_name_plural = 'Z. 🗄️ 미사용 | 01. 브랜드 그룹 (구)'
         ordering = ['brand', 'group_order', 'group_name']
         unique_together = ['brand', 'group_name']
 
@@ -565,7 +565,7 @@ class BrandGroupPattern(models.Model):
         db_table = 'brand_group_patterns'
         managed = True
         verbose_name = '그룹 패턴'
-        verbose_name_plural = 'B. 💰 할인 | 02. 그룹 패턴'
+        verbose_name_plural = 'Z. 🗄️ 미사용 | 02. 그룹 패턴 (구)'
         ordering = ['group', 'pattern']
         unique_together = ['group', 'pattern']
 
@@ -609,7 +609,7 @@ class CustomerDiscount(models.Model):
         db_table = 'customer_discounts'
         managed = True
         verbose_name = '고객 할인'
-        verbose_name_plural = 'B. 💰 할인 | 03. 고객별 할인'
+        verbose_name_plural = 'Z. 🗄️ 미사용 | 03. 고객별 할인 (구)'
         ordering = ['customer_code', 'brand', '-priority']
         unique_together = ['customer_code', 'brand', 'group']
 
@@ -703,7 +703,7 @@ class CustomerProductDiscount(models.Model):
         db_table = 'customer_product_discounts'
         managed = True
         verbose_name = '고객별 상품 할인'
-        verbose_name_plural = 'B. 💰 할인 | 04. 상품별 할인'
+        verbose_name_plural = 'B. 💰 할인 | 04. 개별 상품 할인'
         ordering = ['customer_code', 'product_code', '-priority']
         unique_together = ['customer_code', 'product_code']
 
@@ -1052,7 +1052,7 @@ class Brand(models.Model):
         db_table = 'brands'
         managed = True
         verbose_name = '브랜드'
-        verbose_name_plural = 'C. 💰 신규 할인 | 01. 브랜드'
+        verbose_name_plural = 'B. 💰 할인 | 01. 브랜드'
         ordering = ['display_order', 'name']
 
     def __str__(self):
@@ -1075,7 +1075,7 @@ class BrandPattern(models.Model):
         db_table = 'brand_patterns'
         managed = True
         verbose_name = '브랜드 패턴'
-        verbose_name_plural = 'C. 💰 신규 할인 | 02. 브랜드 패턴'
+        verbose_name_plural = 'B. 💰 할인 | 02. 브랜드 패턴'
         ordering = ['brand', 'display_order', 'pattern_name']
         unique_together = ['brand', 'pattern_name']
 
@@ -1121,7 +1121,7 @@ class CustomerBrandDiscount(models.Model):
         db_table = 'customer_brand_discounts'
         managed = True
         verbose_name = '고객별 브랜드 할인'
-        verbose_name_plural = 'C. 💰 신규 할인 | 03. 고객별 할인 관리'
+        verbose_name_plural = 'B. 💰 할인 | 03. 고객별 할인'
         ordering = ['customer', 'brand', 'pattern', '-priority']
         unique_together = ['customer', 'brand', 'pattern']
 
