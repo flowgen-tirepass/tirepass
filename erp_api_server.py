@@ -57,7 +57,12 @@ class CustomerResponse(BaseModel):
     rep: Optional[str] = None
     tel1: Optional[str] = None
     tel3: Optional[str] = None
+    tel4: Optional[str] = None
     enno: Optional[str] = None
+    address1: Optional[str] = None
+    zip1: Optional[str] = None
+    address2: Optional[str] = None
+    zip2: Optional[str] = None
 
 
 class OrderResponse(BaseModel):
@@ -268,7 +273,7 @@ def get_customers_list(
         # 쿼리 생성
         if search:
             query = """
-                SELECT CODE, NAME, REP, TEL1, TEL3, ENNO
+                SELECT CODE, NAME, REP, TEL1, TEL3, TEL4, ENNO, ADDRESS1, ZIP1, ADDRESS2, ZIP2
                 FROM CUSTOMS
                 WHERE NAME LIKE ? OR CODE LIKE ?
                 ORDER BY CODE
@@ -278,7 +283,7 @@ def get_customers_list(
             cursor.execute(query, (search_pattern, search_pattern, offset + 1, offset + limit))
         else:
             query = """
-                SELECT CODE, NAME, REP, TEL1, TEL3, ENNO
+                SELECT CODE, NAME, REP, TEL1, TEL3, TEL4, ENNO, ADDRESS1, ZIP1, ADDRESS2, ZIP2
                 FROM CUSTOMS
                 ORDER BY CODE
                 ROWS ? TO ?
@@ -287,14 +292,19 @@ def get_customers_list(
 
         customers_list = []
         for row in cursor.fetchall():
-            code, name, rep, tel1, tel3, enno = row
+            code, name, rep, tel1, tel3, tel4, enno, address1, zip1, address2, zip2 = row
             customers_list.append(CustomerResponse(
                 code=code if code else "",
                 name=name if name else "",
                 rep=rep,
                 tel1=tel1,
                 tel3=tel3,
-                enno=enno
+                tel4=tel4,
+                enno=enno,
+                address1=address1,
+                zip1=zip1,
+                address2=address2,
+                zip2=zip2
             ))
 
         cursor.close()
@@ -316,7 +326,7 @@ def get_customer_detail(code: str, api_key: str):
         cursor = conn.cursor()
 
         query = """
-            SELECT CODE, NAME, REP, TEL1, TEL3, ENNO
+            SELECT CODE, NAME, REP, TEL1, TEL3, TEL4, ENNO, ADDRESS1, ZIP1, ADDRESS2, ZIP2
             FROM CUSTOMS
             WHERE CODE = ?
         """
@@ -328,14 +338,19 @@ def get_customer_detail(code: str, api_key: str):
             conn.close()
             raise HTTPException(status_code=404, detail="Customer not found")
 
-        code, name, rep, tel1, tel3, enno = row
+        code, name, rep, tel1, tel3, tel4, enno, address1, zip1, address2, zip2 = row
         customer = CustomerResponse(
             code=code if code else "",
             name=name if name else "",
             rep=rep,
             tel1=tel1,
             tel3=tel3,
-            enno=enno
+            tel4=tel4,
+            enno=enno,
+            address1=address1,
+            zip1=zip1,
+            address2=address2,
+            zip2=zip2
         )
 
         cursor.close()

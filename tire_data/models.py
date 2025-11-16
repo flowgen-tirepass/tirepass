@@ -1083,6 +1083,95 @@ class BrandPattern(models.Model):
         return f"{self.brand.name} - {self.pattern_name}"
 
 
+class BrandPatternPerformance(models.Model):
+    """브랜드/패턴별 성능 표시 설정 (모바일 상품카드용)"""
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE,
+                             related_name='performance_settings',
+                             verbose_name='브랜드')
+    pattern = models.ForeignKey(BrandPattern, on_delete=models.CASCADE,
+                               null=True, blank=True,
+                               related_name='performance_settings',
+                               verbose_name='패턴')
+
+    # 박스1: 브랜드명 (한글) - 자동으로 brand.name 사용
+    # 박스2: 분류1 (분류1 선택)
+    classification = models.CharField(max_length=50, null=True, blank=True,
+                                     verbose_name='분류1',
+                                     help_text='예: 전체, 승용세단, 승용SUV/RV, 트럭/밴, 스포츠카')
+
+    # 박스3: 상품등급 (상품등급 선택)
+    grade = models.CharField(max_length=50, null=True, blank=True,
+                            verbose_name='상품등급',
+                            help_text='예: 전체, 가성비, 고급형, 최고급형, OE용타이어, 전기차')
+
+    # 박스4: 상품성능 (상품성능 선택)
+    performance = models.CharField(max_length=50, null=True, blank=True,
+                                  verbose_name='상품성능',
+                                  help_text='예: 전체, 스탠다드, 컴포트, 스포츠, 프리미엄스포츠')
+
+    # 박스5: 계절 (계절 선택)
+    season = models.CharField(max_length=50, null=True, blank=True,
+                             verbose_name='계절',
+                             help_text='예: 사계절용, 올웨더, 겨울용, 여름용')
+
+    # 박스5 추가: ON/OFF로드 (선택 사항)
+    road_type = models.CharField(max_length=50, null=True, blank=True,
+                                verbose_name='ON/OFF로드',
+                                help_text='예: 오프로드(MT), 온오프로드(AT), 온로드(HT)')
+
+    # 브랜드 로고 (우측 상단 표시용)
+    logo_filename = models.CharField(max_length=100, null=True, blank=True,
+                                    verbose_name='로고 파일명',
+                                    help_text='예: michelin.png (static/mobile/img/brands/ 경로)')
+
+    is_active = models.BooleanField(default=True, verbose_name='활성화')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'brand_pattern_performance'
+        managed = True
+        verbose_name = '브랜드/패턴 성능표시'
+        verbose_name_plural = 'D. 📱 모바일 | 01. 브랜드/패턴 성능표시'
+        ordering = ['brand', 'pattern']
+        unique_together = ['brand', 'pattern']
+
+    def __str__(self):
+        pattern_name = self.pattern.pattern_name if self.pattern else '전체'
+        return f"{self.brand.name}/{pattern_name}"
+
+    def get_performance_boxes(self):
+        """5개 성능 박스 반환 (모바일 상품카드용)"""
+        boxes = []
+
+        # 박스1: 브랜드명 (한글)
+        boxes.append(self.brand.name)
+
+        # 박스2: 분류1
+        if self.classification:
+            boxes.append(self.classification)
+
+        # 박스3: 상품등급
+        if self.grade:
+            boxes.append(self.grade)
+
+        # 박스4: 상품성능
+        if self.performance:
+            boxes.append(self.performance)
+
+        # 박스5: 계절 + ON/OFF로드 (결합 가능)
+        season_box = []
+        if self.season:
+            season_box.append(self.season)
+        if self.road_type:
+            season_box.append(self.road_type)
+
+        if season_box:
+            boxes.append(' | '.join(season_box))
+
+        return boxes
+
+
 class CustomerBrandDiscount(models.Model):
     """고객별 브랜드/패턴 할인율"""
     customer = models.ForeignKey(

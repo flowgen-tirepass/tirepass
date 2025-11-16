@@ -1,0 +1,256 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 작업 연속성 프롬프트 - 월요일 재개용
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+작성일: 2025-11-08 (토요일)
+사용일: 2025-11-11 (월요일)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 Claude Code에게 복사-붙여넣기 할 프롬프트:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+안녕하세요. 지난 토요일(11월 8일)에 진행하던 작업을 월요일(11월 11일)에 이어서 진행하려고 합니다.
+
+## 📌 프로젝트 개요
+
+**프로젝트명:** TirePASS (타이어패스)
+**유형:** B2B 타이어 도소매 쇼핑몰
+**배포:** PythonAnywhere (https://tirepass.pythonanywhere.com)
+**개발자:** 양정민 (59세, 비전공자, AI 협업으로 35일간 개발)
+**개발 기간:** 2024년 10월 1일 ~ 11월 4일
+**기술 스택:**
+- Django 4.2 (Python)
+- MySQL (PythonAnywhere)
+- Firebird ERP (광주 화성 로컬 PC)
+- FastAPI (ERP 게이트웨이, TgenAI PC)
+- 모바일 웹 앱 (반응형)
+
+## 🏗️ 시스템 아키텍처
+
+```
+[광주 화성 ERP PC]
+  ↓ Firebird DB (고객/상품/주문 데이터)
+  ↓ 192.168.0.113
+[TgenAI PC - FastAPI 서버]
+  ↓ Port 8000
+  ↓ ITIRE2.iptime.org:8000
+[PythonAnywhere - Django]
+  ↓ tire_data 앱
+  ↓ MySQL DB
+[모바일 웹 앱]
+```
+
+**중요:**
+- Django는 `tire_data` 앱 사용 (mobile 앱은 주석 처리됨)
+- 인증: Django User 아님, 세션 기반 (`request.session['customer_code']`)
+- ERP 연동: 실시간 FastAPI 호출
+
+## ✅ 지난 토요일까지 완료된 작업
+
+### 1. 모바일 로그인 시스템 수정
+- **문제:** "정확한 고객명 입력님" 표시 오류
+- **원인:** localStorage 오염 + API 인증 문제
+- **해결:**
+  - tire_data/templates/mobile/base.html: localStorage 동기화 로직 추가
+  - tire_data/api_views.py: 사업자번호 로그인 지원 (하이픈 처리)
+  - fetch API에 `credentials: 'same-origin'` 추가
+
+### 2. 데이터베이스 정리
+- 1,394개 잘못된 고객 레코드 삭제 (3,148명 → 1,754명)
+
+### 3. 브랜드명 한글화
+- 19개 모바일 템플릿: "TirePASS" → "타이어패스"
+
+### 4. 테스트 계정 생성
+- 고객코드: 0-1-0001
+- 상호명: 거라지21
+- 비밀번호: test1234
+- 사업자번호: 410-14-48232
+
+### 5. 휴대폰 번호 동기화 준비 (진행 중) ⭐
+
+**현재 상태:**
+- ✅ FastAPI 서버 코드 수정 완료 (TEL4 필드 추가)
+- ✅ sync_mobile_phones.py 수정 완료
+- ✅ 가이드 문서 3개 작성 완료
+- ⏸️ TgenAI PC 슬립 모드로 접근 불가 (토요일)
+- ⏸️ 월요일 광주 담당자 출근 대기 중
+
+## 🎯 오늘(월요일) 진행할 작업
+
+### 작업명: ERP TEL4 필드 → Django DB tel3 필드 동기화
+
+**배경:**
+- 광주 ERP의 CUSTOMS 테이블에 고객 휴대폰 번호가 TEL4 컬럼에 저장됨
+- 현재 FastAPI는 CODE, NAME, REP, TEL1, TEL3, ENNO만 반환 (TEL4 누락)
+- Django DB의 Customers.tel3 필드에 휴대폰 번호 저장 필요
+
+**준비된 파일:**
+1. `C:\Users\jmyang\Dropbox\1.0_tirepass\erp_api_server.py` (수정됨)
+   - CustomerResponse 모델에 tel4 필드 추가
+   - 6군데 SQL 쿼리 및 응답 생성 코드 수정
+
+2. `C:\Users\jmyang\Dropbox\1.0_tirepass\sync_mobile_phones.py` (수정됨)
+   - tel4 필드로 동기화하도록 변경
+
+3. `C:\Users\jmyang\Dropbox\1.0_tirepass\광주_담당자용_간단_수정_가이드.txt`
+   - 비전문가용 3단계 가이드
+
+4. `C:\Users\jmyang\Dropbox\1.0_tirepass\월요일_작업_체크리스트.txt`
+   - 오늘 작업 전체 흐름
+
+5. `C:\Users\jmyang\Dropbox\1.0_tirepass\check_erp_tel4.py`
+   - TEL4 필드 반환 확인용 스크립트
+
+## 📋 오늘 작업 순서
+
+### Step 1: 광주 담당자에게 FastAPI 서버 수정 요청
+```
+카톡/문자 전송:
+"월요일 출근하시면 FastAPI 서버 파일 수정 부탁드립니다. (5분 소요)
+가이드: C:\Users\jmyang\Dropbox\1.0_tirepass\광주_담당자용_간단_수정_가이드.txt"
+```
+
+### Step 2: 담당자 작업 완료 후 TEL4 필드 확인
+```bash
+cd ~/1.0_tirepass
+python check_erp_tel4.py
+```
+
+**예상 결과:**
+```
+✅ TEL4 필드 있음!
+TEL4 샘플 데이터:
+  [1] 0-1-0001      거라지21                         010-1234-5678 ✅
+```
+
+### Step 3: 휴대폰 번호 동기화 실행
+```bash
+python sync_mobile_phones.py
+```
+
+**예상 결과:**
+```
+2️⃣ 휴대폰 필드명 확인
+✅ 휴대폰 필드명: 'tel4' (광주 ERP TEL4 필드)
+
+4️⃣ 휴대폰 번호 통계
+전체: 1,754명
+010으로 시작: 500+명 ✅
+
+5️⃣ Django DB 업데이트
+✅ 업데이트 완료!
+   업데이트: 500명
+```
+
+### Step 4: 결과 검증
+- Django Admin: https://tirepass.pythonanywhere.com/admin/tire_data/customers/
+- Customers.tel3 필드에 010 번호 확인
+
+## 📂 주요 파일 위치
+
+**Django 프로젝트:**
+- 위치: `~/1.0_tirepass` (PythonAnywhere)
+- 앱: `tire_data/` (주 사용), `mobile/` (주석 처리)
+- 설정: `itire/settings.py`
+
+**모바일 템플릿:**
+- `tire_data/templates/mobile/base.html` (베이스)
+- `tire_data/templates/mobile/login.html` (로그인)
+- `tire_data/templates/mobile/intro.html` (인트로)
+
+**API Views:**
+- `tire_data/api_views.py` (로그인 API)
+- `tire_data/api_views_mobile.py` (고객 정보 API)
+- `tire_data/urls.py` (라우팅)
+
+**ERP 연동:**
+- `tire_data/erp_api_client.py` (FastAPI 클라이언트)
+- FastAPI 서버: `C:\TgenAI\erp_api_server.py` (TgenAI PC)
+- URL: `http://ITIRE2.iptime.org:8000`
+- API Key: `tirepass-erp-secret-2024`
+
+**동기화 스크립트:**
+- `sync_mobile_phones.py` (오늘 실행할 파일)
+- `check_erp_tel4.py` (확인용)
+
+## ⚠️ 주의사항
+
+1. **mobile/ 앱은 사용 안 함**
+   - `itire/urls.py`에서 주석 처리됨
+   - 모든 작업은 `tire_data/` 앱에서 진행
+
+2. **인증 방식**
+   - Django User 인증 아님
+   - 세션 기반: `request.session['customer_code']`
+   - 템플릿: `{% if request.session.customer_code %}`
+
+3. **API URL 구조**
+   - `/api/mobile/...` (올바름)
+   - `/mobile/api/...` (틀림)
+
+4. **사업자번호 형식**
+   - 하이픈 있음: `410-14-48232`
+   - 하이픈 없음: `4101448232` (둘 다 지원)
+
+5. **FastAPI 재시작 필수**
+   - 코드 수정 후 반드시 서버 재시작
+   - `stop_server.bat` → `start_server.bat`
+
+## 🔍 트러블슈팅 가이드
+
+### 문제 1: "tel4 필드가 없습니다!" 에러
+```bash
+# 확인:
+python check_erp_tel4.py
+
+# 원인: FastAPI 서버 코드 미수정 또는 재시작 안 됨
+# 해결: 광주 담당자에게 재확인 요청
+```
+
+### 문제 2: 동기화 후에도 휴대폰 번호 빈 값
+```python
+# 원인: ERP에 TEL4 데이터가 실제로 없을 수 있음
+# 확인: check_erp_tel4.py 출력에서 TEL4 샘플 데이터 확인
+# 대안: TEL2 또는 다른 필드 사용 검토
+```
+
+### 문제 3: FastAPI 연결 실패
+```bash
+# 확인:
+curl http://ITIRE2.iptime.org:8000/health
+
+# 원인: TgenAI PC 슬립 모드 또는 서버 중단
+# 해결: 광주 담당자에게 PC 및 서버 상태 확인 요청
+```
+
+## 📞 광주 담당자 정보
+
+**TgenAI PC:**
+- IP: 192.168.0.113 (로컬)
+- 공개 도메인: ITIRE2.iptime.org
+- FastAPI 서버: C:\TgenAI\erp_api_server.py
+- 포트: 8000
+
+**TeamViewer:**
+- ID: 547 995 053
+- 계정: jmyangkr@gmail.com
+
+## 🎯 오늘의 목표
+
+[ ] 광주 담당자에게 FastAPI 서버 수정 요청
+[ ] TEL4 필드 반환 확인 (check_erp_tel4.py)
+[ ] 휴대폰 번호 동기화 실행 (sync_mobile_phones.py)
+[ ] Django Admin에서 결과 검증
+[ ] 완료!
+
+## 💬 요청사항
+
+위 작업을 순서대로 진행하고, 각 단계마다 결과를 확인해주세요.
+문제가 발생하면 에러 메시지와 함께 알려주시면 즉시 해결하겠습니다.
+
+작업 시작 전에 "월요일_작업_체크리스트.txt" 파일도 함께 확인해주세요.
+
+감사합니다!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

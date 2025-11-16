@@ -5,11 +5,11 @@ ERP 서버에서 휴대폰 번호 가져와서 Django DB 휴대전화 컬럼 업
 1. 전화1 (TEL1)
 2. 전화2 (TEL2)
 3. 팩스 (FAX)
-4. 휴대폰 (TEL3 또는 MOBILE)
+4. 휴대폰 (TEL4) ← 실제 휴대폰 번호는 TEL4에 저장되어 있음
 
 Django 모델:
 - tel1: 전화1
-- tel3: 휴대전화 (여기에 ERP 휴대폰 저장)
+- tel3: 휴대전화 (여기에 ERP의 TEL4 데이터 저장)
 """
 import os
 import django
@@ -48,28 +48,18 @@ else:
 print("\n2️⃣ 휴대폰 필드명 확인")
 print("-" * 80)
 
-# ERP에서 사용하는 휴대폰 필드명 (예상)
-possible_mobile_fields = ['tel3', 'mobile', 'phone', 'hp', 'cell']
+# ERP에서 사용하는 휴대폰 필드명
+# FastAPI 서버 수정 후 tel4 필드가 반환됨
+mobile_field = 'tel4'
 
-mobile_field = None
-for field in possible_mobile_fields:
-    if field in sample_customers[0]:
-        mobile_field = field
-        print(f"✅ 휴대폰 필드명: '{mobile_field}'")
-        break
-
-if not mobile_field:
-    print("⚠️  휴대폰 필드를 자동으로 찾지 못했습니다.")
+if mobile_field in sample_customers[0]:
+    print(f"✅ 휴대폰 필드명: '{mobile_field}' (광주 ERP TEL4 필드)")
+else:
+    print("❌ tel4 필드가 없습니다!")
     print("   사용 가능한 필드:", list(sample_customers[0].keys()))
-    print("\n   아래에서 수동으로 필드명을 확인하세요:")
-
-    for customer in sample_customers[:3]:
-        print(f"\n   {customer.get('code')}:")
-        for key, value in customer.items():
-            if value and str(value).startswith('010'):
-                print(f"      → {key}: {value} ✅ (010으로 시작)")
-
-    mobile_field = input("\n   휴대폰 필드명 입력 (예: tel3): ").strip()
+    print("\n⚠️  FastAPI 서버에서 TEL4 필드를 반환하도록 수정이 필요합니다.")
+    print("   C:\\TgenAI\\erp_api_server.py 수정 후 서버 재시작하세요.")
+    exit(1)
 
 # 3. 전체 고객 데이터 가져오기
 print(f"\n3️⃣ ERP 전체 고객 데이터 가져오기 (필드: {mobile_field})")
