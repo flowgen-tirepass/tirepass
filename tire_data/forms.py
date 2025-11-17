@@ -3,7 +3,7 @@ tire_data 앱의 폼 정의
 """
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import CustomerBrandDiscount, BrandPattern, CustomerProductDiscount, BrandPatternPerformance
+from .models import CustomerBrandDiscount, BrandPattern, CustomerProductDiscount
 
 
 class BulkDiscountForm(forms.Form):
@@ -104,114 +104,10 @@ class CustomerProductDiscountForm(forms.ModelForm):
         return discount_rate
 
 
-class BrandPatternPerformanceForm(forms.ModelForm):
-    """브랜드/패턴별 성능표시 폼"""
-
-    # 성능표시.xlsx 파일 기반 선택 옵션
-    CLASSIFICATION_CHOICES = [
-        ('', '---------'),
-        ('전체', '전체'),
-        ('승용세단', '승용세단'),
-        ('승용SUV/RV', '승용SUV/RV'),
-        ('트럭/밴', '트럭/밴'),
-        ('스포츠카', '스포츠카'),
-    ]
-
-    GRADE_CHOICES = [
-        ('', '---------'),
-        ('전체', '전체'),
-        ('가성비', '가성비'),
-        ('고급형', '고급형'),
-        ('최고급형', '최고급형'),
-        ('OE용타이어', 'OE용타이어'),
-        ('전기차', '전기차'),
-    ]
-
-    PERFORMANCE_CHOICES = [
-        ('', '---------'),
-        ('전체', '전체'),
-        ('스탠다드', '스탠다드'),
-        ('컴포트', '컴포트'),
-        ('스포츠', '스포츠'),
-        ('프리미엄스포츠', '프리미엄스포츠'),
-    ]
-
-    SEASON_CHOICES = [
-        ('', '---------'),
-        ('사계절용', '사계절용'),
-        ('올웨더', '올웨더'),
-        ('겨울용', '겨울용'),
-        ('여름용', '여름용'),
-    ]
-
-    ROAD_TYPE_CHOICES = [
-        ('', '---------'),
-        ('오프로드(MT)', '오프로드(MT)'),
-        ('온오프로드(AT)', '온오프로드(AT)'),
-        ('온로드(HT)', '온로드(HT)'),
-    ]
-
-    # ChoiceField로 변경
-    classification = forms.ChoiceField(
-        choices=CLASSIFICATION_CHOICES,
-        required=False,
-        label='분류1',
-        help_text='예: 전체, 승용세단, 승용SUV/RV, 트럭/밴, 스포츠카'
-    )
-
-    grade = forms.ChoiceField(
-        choices=GRADE_CHOICES,
-        required=False,
-        label='상품등급',
-        help_text='예: 전체, 가성비, 고급형, 최고급형, OE용타이어, 전기차'
-    )
-
-    performance = forms.ChoiceField(
-        choices=PERFORMANCE_CHOICES,
-        required=False,
-        label='상품성능',
-        help_text='예: 전체, 스탠다드, 컴포트, 스포츠, 프리미엄스포츠'
-    )
-
-    season = forms.ChoiceField(
-        choices=SEASON_CHOICES,
-        required=False,
-        label='계절',
-        help_text='예: 사계절용, 올웨더, 겨울용, 여름용'
-    )
-
-    road_type = forms.ChoiceField(
-        choices=ROAD_TYPE_CHOICES,
-        required=False,
-        label='ON/OFF로드',
-        help_text='예: 오프로드(MT), 온오프로드(AT), 온로드(HT)'
-    )
-
-    class Meta:
-        model = BrandPatternPerformance
-        fields = '__all__'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # 패턴 필드는 선택 사항
-        self.fields['pattern'].required = False
-
-        # 기존 인스턴스가 있으면 해당 브랜드의 패턴만 표시
-        if self.instance and self.instance.pk and self.instance.brand:
-            self.fields['pattern'].queryset = BrandPattern.objects.filter(
-                brand=self.instance.brand,
-                is_active=True
-            ).order_by('display_order', 'pattern_name')
-        else:
-            # 새로 추가할 때는 모든 패턴 표시 (JavaScript가 필터링함)
-            self.fields['pattern'].queryset = BrandPattern.objects.filter(is_active=True)
-            self.fields['pattern'].help_text = '브랜드를 선택하면 해당 브랜드의 패턴만 표시됩니다'
-
-        # JavaScript로 동적 필터링
-        self.fields['pattern'].widget.attrs.update({
-            'data-filter-by': 'brand',
-        })
-
-    class Media:
-        js = ('admin/js/brand_pattern_filter.js',)
+# BrandPatternPerformance 모델은 삭제되었습니다 (BrandPattern에 통합됨)
+# 아래는 성능표시 선택 옵션 (향후 필요시 사용 가능)
+# CLASSIFICATION_CHOICES = [('전체', '전체'), ('승용세단', '승용세단'), ('승용SUV/RV', '승용SUV/RV'), ('트럭/밴', '트럭/밴'), ('스포츠카', '스포츠카')]
+# GRADE_CHOICES = [('전체', '전체'), ('가성비', '가성비'), ('고급형', '고급형'), ('최고급형', '최고급형'), ('OE용타이어', 'OE용타이어'), ('전기차', '전기차')]
+# PERFORMANCE_CHOICES = [('전체', '전체'), ('스탠다드', '스탠다드'), ('컴포트', '컴포트'), ('스포츠', '스포츠'), ('프리미엄스포츠', '프리미엄스포츠')]
+# SEASON_CHOICES = [('사계절용', '사계절용'), ('올웨더', '올웨더'), ('겨울용', '겨울용'), ('여름용', '여름용')]
+# ROAD_TYPE_CHOICES = [('오프로드(MT)', '오프로드(MT)'), ('온오프로드(AT)', '온오프로드(AT)'), ('온로드(HT)', '온로드(HT)')]

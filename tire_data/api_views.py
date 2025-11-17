@@ -14,7 +14,7 @@ import secrets
 import re
 import time
 
-from .models import Goods, GoodsDisplayName, Customers, ShoppingCart, Order, OrderItem, Payment, ShippingAddress, Brand, BrandPattern, BrandPatternPerformance
+from .models import Goods, GoodsDisplayName, Customers, ShoppingCart, Order, OrderItem, Payment, ShippingAddress, Brand, BrandPattern
 from .utils import calculate_discount_price, generate_order_number, update_stock
 
 
@@ -315,31 +315,28 @@ def api_products_list(request):
             'tag': pt.tag.name
         })
 
-    # 브랜드/패턴별 성능표시 정보 가져오기 (신규 시스템)
+    # 브랜드/패턴별 성능표시 정보 가져오기 (BrandPattern 기반)
     # 1. 활성화된 모든 브랜드 조회 (브랜드명 매칭용)
     all_brands = {brand.name: brand for brand in Brand.objects.filter(is_active=True)}
 
-    # 2. 모든 활성화된 성능표시 설정 조회
-    brand_performances = BrandPatternPerformance.objects.filter(
+    # 2. 모든 활성화된 브랜드 패턴 조회 (성능표시 포함)
+    brand_patterns = BrandPattern.objects.filter(
         is_active=True
-    ).select_related('brand', 'pattern')
+    ).select_related('brand')
 
-    # 3. 브랜드별, 브랜드+패턴별로 그룹화
+    # 3. 브랜드별, 패턴별로 그룹화
     brand_performance_map = {}
-    for bp in brand_performances:
+    for bp in brand_patterns:
         brand_name = bp.brand.name
-        pattern_name = bp.pattern.pattern_name if bp.pattern else None
+        pattern_name = bp.pattern_name
 
         if brand_name not in brand_performance_map:
             brand_performance_map[brand_name] = {
-                'default': None,  # 패턴 없음 (브랜드 전체)
                 'patterns': {}     # 패턴별
             }
 
-        if pattern_name:
-            brand_performance_map[brand_name]['patterns'][pattern_name] = bp
-        else:
-            brand_performance_map[brand_name]['default'] = bp
+        # 패턴별 성능표시 저장
+        brand_performance_map[brand_name]['patterns'][pattern_name] = bp
 
     # 결과 구성
     products_data = []
@@ -433,7 +430,7 @@ def api_products_list(request):
         product_brand_name = (p.bun1 or '').strip()
 
         if product_brand_name and product_brand_name in brand_performance_map:
-            # 1단계: 패턴 매칭 시도 (상품명에서 패턴명 찾기)
+            # 패턴 매칭 시도 (상품명에서 패턴명 찾기)
             matched_performance = None
             brand_patterns = brand_performance_map[product_brand_name]['patterns']
 
@@ -444,11 +441,7 @@ def api_products_list(request):
                     matched_performance = brand_patterns[pattern_name]
                     break
 
-            # 2단계: 패턴 매칭 실패 시 브랜드 기본값 사용
-            if not matched_performance:
-                matched_performance = brand_performance_map[product_brand_name]['default']
-
-            # 3단계: 성능표시 박스 생성
+            # 성능표시 박스 생성
             if matched_performance:
                 brand_performance_boxes = matched_performance.get_performance_boxes()
                 brand_logo = matched_performance.logo_filename

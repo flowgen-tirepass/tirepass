@@ -1108,31 +1108,8 @@ class BrandPattern(models.Model):
                                    verbose_name='패턴 코드')
     display_order = models.IntegerField(default=0, verbose_name='표시 순서')
     is_active = models.BooleanField(default=True, verbose_name='활성화')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
 
-    class Meta:
-        db_table = 'brand_patterns'
-        managed = True
-        verbose_name = '브랜드 패턴'
-        verbose_name_plural = 'B. 💰 할인 | 02. 브랜드 패턴'
-        ordering = ['brand', 'display_order', 'pattern_name']
-        unique_together = ['brand', 'pattern_name']
-
-    def __str__(self):
-        return f"{self.brand.name} - {self.pattern_name}"
-
-
-class BrandPatternPerformance(models.Model):
-    """브랜드/패턴별 성능 표시 설정 (모바일 상품카드용)"""
-    brand = models.ForeignKey(Brand, on_delete=models.CASCADE,
-                             related_name='performance_settings',
-                             verbose_name='브랜드')
-    pattern = models.ForeignKey(BrandPattern, on_delete=models.CASCADE,
-                               null=True, blank=True,
-                               related_name='performance_settings',
-                               verbose_name='패턴')
-
+    # 성능 표시 (5개 박스) - 모바일 상품카드용
     # 박스1: 브랜드명 (한글) - 자동으로 brand.name 사용
     # 박스2: 분류1 (분류1 선택)
     classification = models.CharField(max_length=50, null=True, blank=True,
@@ -1147,38 +1124,34 @@ class BrandPatternPerformance(models.Model):
     # 박스4: 상품성능 (상품성능 선택)
     performance = models.CharField(max_length=50, null=True, blank=True,
                                   verbose_name='상품성능',
-                                  help_text='예: 전체, 스탠다드, 컴포트, 스포츠, 프리미엄스포츠')
+                                  help_text='예: 정숙성, 주행안정성, 젖은노면제동력, 연비, 구름저항, 마일리지')
 
-    # 박스5: 계절 (계절 선택)
-    season = models.CharField(max_length=50, null=True, blank=True,
+    # 박스5: 계절 + ON/OFF로드 (계절 선택 + ON/OFF로드 선택)
+    season = models.CharField(max_length=20, null=True, blank=True,
                              verbose_name='계절',
-                             help_text='예: 사계절용, 올웨더, 겨울용, 여름용')
+                             help_text='예: 사계절, 겨울용, 여름용')
+    road_type = models.CharField(max_length=20, null=True, blank=True,
+                                verbose_name='로드타입',
+                                help_text='예: ON로드, OFF로드')
 
-    # 박스5 추가: ON/OFF로드 (선택 사항)
-    road_type = models.CharField(max_length=50, null=True, blank=True,
-                                verbose_name='ON/OFF로드',
-                                help_text='예: 오프로드(MT), 온오프로드(AT), 온로드(HT)')
-
-    # 브랜드 로고 (우측 상단 표시용)
+    # 브랜드 로고 파일명
     logo_filename = models.CharField(max_length=100, null=True, blank=True,
-                                    verbose_name='로고 파일명',
+                                    verbose_name='브랜드 로고 파일명',
                                     help_text='예: michelin.png (static/mobile/img/brands/ 경로)')
 
-    is_active = models.BooleanField(default=True, verbose_name='활성화')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
 
     class Meta:
-        db_table = 'brand_pattern_performance'
+        db_table = 'brand_patterns'
         managed = True
-        verbose_name = '브랜드/패턴 성능표시'
-        verbose_name_plural = 'B. 💰 할인 | 06. 브랜드/패턴 성능표시'
-        ordering = ['brand', 'pattern']
-        unique_together = ['brand', 'pattern']
+        verbose_name = '브랜드 패턴'
+        verbose_name_plural = 'B. 💰 할인 | 02. 브랜드 패턴'
+        ordering = ['brand', 'display_order', 'pattern_name']
+        unique_together = ['brand', 'pattern_name']
 
     def __str__(self):
-        pattern_name = self.pattern.pattern_name if self.pattern else '전체'
-        return f"{self.brand.name}/{pattern_name}"
+        return f"{self.brand.name} - {self.pattern_name}"
 
     def get_performance_boxes(self):
         """5개 성능 박스 반환 (모바일 상품카드용)"""
@@ -1199,15 +1172,14 @@ class BrandPatternPerformance(models.Model):
         if self.performance:
             boxes.append(self.performance)
 
-        # 박스5: 계절 + ON/OFF로드 (결합 가능)
-        season_box = []
+        # 박스5: 계절 + ON/OFF로드
+        season_road = []
         if self.season:
-            season_box.append(self.season)
+            season_road.append(self.season)
         if self.road_type:
-            season_box.append(self.road_type)
-
-        if season_box:
-            boxes.append(' | '.join(season_box))
+            season_road.append(self.road_type)
+        if season_road:
+            boxes.append(' / '.join(season_road))
 
         return boxes
 

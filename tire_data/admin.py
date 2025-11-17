@@ -12,10 +12,10 @@ from .models import (
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
     ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag,
     ERPSnapshot, GoodsRealtimeSnapshot,
-    Brand, BrandPattern, CustomerBrandDiscount, BrandPatternPerformance
+    Brand, BrandPattern, CustomerBrandDiscount
 )
 from .erp_api_client import ERPAPIClient
-from .forms import BulkDiscountForm, CustomerBrandDiscountForm, CustomerProductDiscountForm, BrandPatternPerformanceForm
+from .forms import BulkDiscountForm, CustomerBrandDiscountForm, CustomerProductDiscountForm
 
 
 class TireOnlyFilter(SimpleListFilter):
@@ -2446,8 +2446,9 @@ class BrandAdmin(admin.ModelAdmin):
 @admin.register(BrandPattern)
 class BrandPatternAdmin(admin.ModelAdmin):
     """브랜드 패턴 관리"""
-    list_display = ['pattern_name', 'brand', 'pattern_code', 'display_order', 'is_active', 'updated_at']
-    list_filter = ['brand', 'is_active']
+    list_display = ['pattern_name', 'brand', 'pattern_code', 'performance_display',
+                   'display_order', 'is_active', 'updated_at']
+    list_filter = ['brand', 'is_active', 'classification', 'grade', 'season']
     list_editable = ['display_order', 'is_active']
     search_fields = ['pattern_name', 'pattern_code', 'brand__name']
     ordering = ['brand', 'display_order', 'pattern_name']
@@ -2458,12 +2459,40 @@ class BrandPatternAdmin(admin.ModelAdmin):
         ('패턴 정보', {
             'fields': ('brand', 'pattern_name', 'pattern_code', 'display_order', 'is_active')
         }),
+        ('성능 표시 (모바일 상품카드용)', {
+            'fields': ('classification', 'grade', 'performance', 'season', 'road_type', 'logo_filename'),
+            'description': '박스1: 브랜드명(자동) | 박스2: 분류1 | 박스3: 상품등급 | 박스4: 상품성능 | 박스5: 계절 + ON/OFF로드',
+            'classes': ('wide',)
+        }),
         ('시스템 정보', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
     readonly_fields = ['created_at', 'updated_at']
+
+    def performance_display(self, obj):
+        """성능표시 요약 표시"""
+        from django.utils.html import format_html
+        items = []
+        if obj.classification:
+            items.append(f"분류:{obj.classification}")
+        if obj.grade:
+            items.append(f"등급:{obj.grade}")
+        if obj.performance:
+            items.append(f"성능:{obj.performance}")
+        if obj.season:
+            items.append(f"계절:{obj.season}")
+        if obj.road_type:
+            items.append(f"로드:{obj.road_type}")
+
+        if items:
+            text = ' | '.join(items)
+            return format_html('<span style="color: #2563eb;">{}</span>', text)
+        return format_html('<span style="color: #9ca3af;">미설정</span>')
+
+    performance_display.short_description = '성능표시'
+    performance_display.admin_order_field = 'classification'
 
 
 @admin.register(CustomerBrandDiscount)
@@ -2537,52 +2566,6 @@ class CustomerBrandDiscountAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-@admin.register(BrandPatternPerformance)
-class BrandPatternPerformanceAdmin(admin.ModelAdmin):
-    """브랜드/패턴별 성능표시 관리"""
-    form = BrandPatternPerformanceForm
-    list_display = ['brand', 'pattern', 'classification', 'grade', 'performance',
-                   'season', 'road_type', 'logo_filename', 'is_active', 'updated_at']
-    list_filter = ['brand', 'is_active', 'classification', 'grade', 'season']
-    list_editable = ['is_active']
-    search_fields = ['brand__name', 'pattern__pattern_name']
-    ordering = ['brand', 'pattern']
-    list_per_page = 50
-    autocomplete_fields = ['brand']
-
-    fieldsets = (
-        ('브랜드 및 패턴', {
-            'fields': ('brand', 'pattern')
-        }),
-        ('성능 표시 (5개 박스)', {
-            'fields': ('classification', 'grade', 'performance', 'season', 'road_type'),
-            'description': '박스1: 브랜드명(자동) | 박스2: 분류1 | 박스3: 상품등급 | 박스4: 상품성능 | 박스5: 계절 + ON/OFF로드'
-        }),
-        ('브랜드 로고', {
-            'fields': ('logo_filename',),
-            'description': '우측 상단에 표시될 로고 파일명 (예: michelin.png)'
-        }),
-        ('상태', {
-            'fields': ('is_active',)
-        }),
-        ('시스템 정보', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
-    readonly_fields = ['created_at', 'updated_at']
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """브랜드 선택 시 해당 브랜드의 패턴만 표시"""
-        if db_field.name == "pattern":
-            brand_id = request.GET.get('brand')
-            if brand_id:
-                kwargs["queryset"] = BrandPattern.objects.filter(brand_id=brand_id, is_active=True)
-            else:
-                kwargs["queryset"] = BrandPattern.objects.filter(is_active=True)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
-
 # 커스텀 Admin Site 인스턴스 생성
 custom_admin_site = TirePassAdminSite(name='custom_admin')
 
@@ -2606,5 +2589,3 @@ if BrandPattern not in custom_admin_site._registry:
     custom_admin_site.register(BrandPattern, BrandPatternAdmin)
 if CustomerBrandDiscount not in custom_admin_site._registry:
     custom_admin_site.register(CustomerBrandDiscount, CustomerBrandDiscountAdmin)
-if BrandPatternPerformance not in custom_admin_site._registry:
-    custom_admin_site.register(BrandPatternPerformance, BrandPatternPerformanceAdmin)
