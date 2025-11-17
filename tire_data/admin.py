@@ -873,18 +873,22 @@ class GoodsAdmin(admin.ModelAdmin):
 @admin.register(Customers)
 class CustomersAdmin(admin.ModelAdmin):
     """모바일 회원가입 고객"""
-    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'shipping_count', 'product_discount_count']
-    list_filter = ['is_registered', 'must_change_password']
+    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'membership_tier', 'shipping_count', 'product_discount_count']
+    list_filter = ['is_registered', 'must_change_password', 'membership_tier']
     search_fields = ['=code', 'code', 'name', 'rep', '=enno', 'enno']  # =code: 정확히 일치, code: 포함
     ordering = ['code']
     list_per_page = 50
-    readonly_fields = ['code', 'shipping_addresses_display']
+    readonly_fields = ['code', 'shipping_addresses_display', 'tier_updated_at']
     fieldsets = (
         ('기본 정보', {
             'fields': ('code', 'name', 'rep', 'tel1', 'tel3', 'enno')
         }),
         ('계정 상태', {
             'fields': ('is_registered', 'must_change_password')
+        }),
+        ('멤버십 등급', {
+            'fields': ('membership_tier', 'tier_updated_at'),
+            'description': '간편결제 등록 시 프리미엄 회원으로 자동 승급됩니다. 프리미엄 회원은 전 상품 2% 추가 할인 혜택이 있습니다.'
         }),
         ('등록된 배송지', {
             'fields': ('shipping_addresses_display',),
