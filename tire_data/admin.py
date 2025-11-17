@@ -2420,7 +2420,7 @@ class ExcludedGoodsAdmin(admin.ModelAdmin):
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
     """브랜드 관리"""
-    list_display = ['name', 'name_en', 'logo_filename', 'display_order', 'pattern_count', 'is_active', 'updated_at']
+    list_display = ['name', 'name_en', 'logo_preview', 'display_order', 'pattern_count', 'is_active', 'updated_at']
     list_editable = ['display_order', 'is_active']
     search_fields = ['name', 'name_en']  # autocomplete를 위한 필수 필드
     ordering = ['display_order', 'name']
@@ -2428,14 +2428,25 @@ class BrandAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('브랜드 정보', {
-            'fields': ('name', 'name_en', 'logo_filename', 'display_order', 'is_active')
+            'fields': ('name', 'name_en', 'logo_image', 'logo_preview', 'display_order', 'is_active')
         }),
         ('시스템 정보', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at', 'logo_preview']
+
+    def logo_preview(self, obj):
+        """로고 이미지 미리보기"""
+        from django.utils.html import format_html
+        if obj.logo_image:
+            return format_html(
+                '<img src="{}" style="max-height: 50px; max-width: 100px;" />',
+                obj.logo_image.url
+            )
+        return format_html('<span style="color: #9ca3af;">이미지 없음</span>')
+    logo_preview.short_description = '로고 미리보기'
 
     def pattern_count(self, obj):
         """브랜드별 패턴 개수"""

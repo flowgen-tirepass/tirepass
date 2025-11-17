@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from tire_data.admin_forms import CustomAdminAuthenticationForm
 from tire_data.admin import custom_admin_site  # 커스텀 Admin Site 임포트
 
@@ -28,3 +30,7 @@ urlpatterns = [
     # path('mobile/', include('mobile.urls')),  # 새로운 모바일 쇼핑몰 앱 (비활성화)
     path('', include('tire_data.urls')),  # admin/logout/ 오버라이드 포함 (tire_data mobile 사용)
 ]
+
+# 개발 환경에서 media 파일 서빙
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
