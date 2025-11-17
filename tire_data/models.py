@@ -1172,7 +1172,7 @@ class BrandPatternPerformance(models.Model):
         db_table = 'brand_pattern_performance'
         managed = True
         verbose_name = '브랜드/패턴 성능표시'
-        verbose_name_plural = 'C. ⚙️ 설정 | 03. 브랜드/패턴 성능표시'
+        verbose_name_plural = 'B. 💰 할인 | 02-1. 브랜드/패턴 성능표시'
         ordering = ['brand', 'pattern']
         unique_together = ['brand', 'pattern']
 
