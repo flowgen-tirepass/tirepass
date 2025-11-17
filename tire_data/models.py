@@ -1081,11 +1081,36 @@ class GoodsRealtimeSnapshot(models.Model):
 
 class Brand(models.Model):
     """브랜드 마스터"""
+
+    # 브랜드 로고 파일 선택 옵션
+    LOGO_CHOICES = [
+        ('', '--------'),
+        ('michelin.png', '미쉐린 (Michelin)'),
+        ('hankook.png', '한국타이어 (Hankook)'),
+        ('kumho.png', '금호타이어 (Kumho)'),
+        ('nexen.png', '넥센타이어 (Nexen)'),
+        ('bridgestone.png', '브리지스톤 (Bridgestone)'),
+        ('goodyear.png', '굿이어 (Goodyear)'),
+        ('continental.png', '콘티넨탈 (Continental)'),
+        ('pirelli.png', '피렐리 (Pirelli)'),
+        ('dunlop.png', '던롭 (Dunlop)'),
+        ('yokohama.png', '요코하마 (Yokohama)'),
+        ('toyo.png', '토요타이어 (Toyo)'),
+        ('maxxis.png', '맥시스 (Maxxis)'),
+        ('bf-goodrich.png', 'BF굿리치 (BF Goodrich)'),
+        ('falken.png', '팔켄 (Falken)'),
+    ]
+
     name = models.CharField(max_length=50, unique=True, verbose_name='브랜드명')
     name_en = models.CharField(max_length=50, null=True, blank=True, verbose_name='영문명')
-    logo_filename = models.CharField(max_length=100, null=True, blank=True,
-                                    verbose_name='브랜드 로고 파일명',
-                                    help_text='예: michelin.png (static/mobile/img/brands/ 경로)')
+    logo_filename = models.CharField(
+        max_length=100,
+        choices=LOGO_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='브랜드 로고',
+        help_text='static/mobile/img/brands/ 경로의 로고 파일'
+    )
     display_order = models.IntegerField(default=0, verbose_name='표시 순서')
     is_active = models.BooleanField(default=True, verbose_name='활성화')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
