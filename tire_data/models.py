@@ -288,7 +288,7 @@ class CustomerPoint(models.Model):
         db_table = 'customer_points'
         managed = True
         verbose_name = '고객 포인트'
-        verbose_name_plural = 'A. 📊 판매 | 07. 고객 포인트'
+        verbose_name_plural = 'C. ⚙️ 설정 | 03. 고객 포인트'
 
     def __str__(self):
         return f"{self.customer.name} - {self.balance:,}P"
@@ -368,7 +368,7 @@ class PointTransaction(models.Model):
         db_table = 'point_transactions'
         managed = True
         verbose_name = '포인트 거래 내역'
-        verbose_name_plural = 'A. 📊 판매 | 08. 포인트 거래 내역'
+        verbose_name_plural = 'C. ⚙️ 설정 | 04. 포인트 거래 내역'
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['customer', '-created_at']),
@@ -424,7 +424,7 @@ class PointPolicy(models.Model):
         db_table = 'point_policies'
         managed = True
         verbose_name = '포인트 정책'
-        verbose_name_plural = 'C. ⚙️ 설정 | 06. 포인트 정책'
+        verbose_name_plural = 'C. ⚙️ 설정 | 05. 포인트 정책'
 
     def __str__(self):
         return f"{self.name} (적립 {self.earn_rate}%)"
