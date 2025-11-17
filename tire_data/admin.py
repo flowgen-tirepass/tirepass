@@ -1488,7 +1488,6 @@ class CustomerDiscountAdmin(admin.ModelAdmin):  # 등록 해제 (신규 할인 �
 # 포인트 시스템 Admin
 # ============================================
 
-@admin.register(CustomerPoint)
 class CustomerPointAdmin(admin.ModelAdmin):
     """고객 포인트 관리"""
     list_display = ['customer_name', 'customer_code', 'balance_display', 'total_earned_display',
@@ -1531,7 +1530,6 @@ class CustomerPointAdmin(admin.ModelAdmin):
         return False
 
 
-@admin.register(PointTransaction)
 class PointTransactionAdmin(admin.ModelAdmin):
     """포인트 거래 내역 관리"""
     list_display = ['created_at', 'customer_name', 'transaction_type', 'amount_display',
@@ -1572,7 +1570,6 @@ class PointTransactionAdmin(admin.ModelAdmin):
         return False
 
 
-@admin.register(PointPolicy)
 class PointPolicyAdmin(admin.ModelAdmin):
     """포인트 정책 관리"""
     list_display = ['name', 'earn_rate', 'min_order_amount', 'signup_bonus',
