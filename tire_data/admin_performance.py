@@ -14,7 +14,8 @@ class PerformanceTagInline(admin.TabularInline):
     ordering = ['order', 'name']
 
 
-@admin.register(PerformanceCategory)
+# Z. 미사용 - 구 성능표기 시스템 (BrandPatternPerformance로 대체)
+# @admin.register(PerformanceCategory)
 class PerformanceCategoryAdmin(admin.ModelAdmin):
     """성능 표기 카테고리 관리"""
     list_display = ['display_name', 'name', 'order', 'tag_count', 'is_active', 'created_at']
@@ -31,7 +32,8 @@ class PerformanceCategoryAdmin(admin.ModelAdmin):
     tag_count.short_description = '태그 개수'
 
 
-@admin.register(PerformanceTag)
+# Z. 미사용 - 구 성능표기 시스템 (BrandPatternPerformance로 대체)
+# @admin.register(PerformanceTag)
 class PerformanceTagAdmin(admin.ModelAdmin):
     """성능 표기 태그 관리"""
     list_display = ['name', 'category', 'order', 'goods_count', 'is_active', 'created_at']
@@ -64,7 +66,8 @@ class GoodsPerformanceTagInline(admin.TabularInline):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-@admin.register(GoodsPerformanceTag)
+# Z. 미사용 - 구 성능표기 시스템 (BrandPatternPerformance로 대체)
+# @admin.register(GoodsPerformanceTag)
 class GoodsPerformanceTagAdmin(admin.ModelAdmin):
     """상품 성능 표기 관리"""
     list_display = ['goods_code', 'goods_name_display', 'tag', 'category_display', 'created_at']
