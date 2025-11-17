@@ -258,6 +258,182 @@ class Customers(models.Model):
             return True
         return False
 
+    @property
+    def point_balance(self):
+        """현재 포인트 잔액"""
+        try:
+            return self.customer_points.balance
+        except:
+            return 0
+
+
+# ============================================
+# 포인트 시스템
+# ============================================
+
+class CustomerPoint(models.Model):
+    """고객별 포인트 잔액"""
+    customer = models.OneToOneField(
+        Customers,
+        on_delete=models.CASCADE,
+        related_name='customer_points',
+        verbose_name='고객'
+    )
+    balance = models.IntegerField(default=0, verbose_name='포인트 잔액')
+    total_earned = models.IntegerField(default=0, verbose_name='누적 적립 포인트')
+    total_used = models.IntegerField(default=0, verbose_name='누적 사용 포인트')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='최종 업데이트')
+
+    class Meta:
+        db_table = 'customer_points'
+        managed = True
+        verbose_name = '고객 포인트'
+        verbose_name_plural = 'A. 📊 판매 | 03. 고객 포인트'
+
+    def __str__(self):
+        return f"{self.customer.name} - {self.balance:,}P"
+
+    def add_points(self, amount, transaction_type, description, order_code=None):
+        """포인트 적립"""
+        if amount <= 0:
+            return False
+
+        self.balance += amount
+        self.total_earned += amount
+        self.save()
+
+        # 트랜잭션 기록
+        PointTransaction.objects.create(
+            customer=self.customer,
+            transaction_type=transaction_type,
+            amount=amount,
+            balance_after=self.balance,
+            description=description,
+            order_code=order_code
+        )
+        return True
+
+    def use_points(self, amount, description, order_code=None):
+        """포인트 사용"""
+        if amount <= 0 or amount > self.balance:
+            return False
+
+        self.balance -= amount
+        self.total_used += amount
+        self.save()
+
+        # 트랜잭션 기록
+        PointTransaction.objects.create(
+            customer=self.customer,
+            transaction_type='USE',
+            amount=-amount,
+            balance_after=self.balance,
+            description=description,
+            order_code=order_code
+        )
+        return True
+
+
+class PointTransaction(models.Model):
+    """포인트 적립/사용 내역"""
+    TRANSACTION_TYPE_CHOICES = [
+        ('EARN_ORDER', '주문 적립'),
+        ('EARN_SIGNUP', '회원가입 적립'),
+        ('EARN_EVENT', '이벤트 적립'),
+        ('EARN_ADMIN', '관리자 지급'),
+        ('USE', '포인트 사용'),
+        ('EXPIRE', '포인트 만료'),
+        ('CANCEL', '적립 취소'),
+    ]
+
+    customer = models.ForeignKey(
+        Customers,
+        on_delete=models.CASCADE,
+        related_name='point_transactions',
+        verbose_name='고객'
+    )
+    transaction_type = models.CharField(
+        max_length=20,
+        choices=TRANSACTION_TYPE_CHOICES,
+        verbose_name='거래 유형'
+    )
+    amount = models.IntegerField(verbose_name='포인트 금액')
+    balance_after = models.IntegerField(verbose_name='거래 후 잔액')
+    description = models.CharField(max_length=200, verbose_name='설명')
+    order_code = models.CharField(max_length=50, null=True, blank=True, verbose_name='주문번호')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='거래일시')
+    expires_at = models.DateField(null=True, blank=True, verbose_name='만료일')
+
+    class Meta:
+        db_table = 'point_transactions'
+        managed = True
+        verbose_name = '포인트 거래 내역'
+        verbose_name_plural = 'A. 📊 판매 | 04. 포인트 거래 내역'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['customer', '-created_at']),
+            models.Index(fields=['order_code']),
+        ]
+
+    def __str__(self):
+        return f"{self.customer.name} - {self.get_transaction_type_display()} {self.amount:,}P"
+
+
+class PointPolicy(models.Model):
+    """포인트 정책 설정"""
+    name = models.CharField(max_length=100, unique=True, verbose_name='정책명')
+    earn_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=1.0,
+        verbose_name='적립률 (%)',
+        help_text='결제 금액의 몇 %를 포인트로 적립할지 (예: 1.0 = 1%)'
+    )
+    min_order_amount = models.IntegerField(
+        default=0,
+        verbose_name='최소 주문 금액',
+        help_text='이 금액 이상 주문 시에만 포인트 적립'
+    )
+    signup_bonus = models.IntegerField(
+        default=0,
+        verbose_name='회원가입 보너스',
+        help_text='회원가입 시 지급할 포인트'
+    )
+    point_validity_days = models.IntegerField(
+        default=365,
+        verbose_name='포인트 유효기간 (일)',
+        help_text='포인트 적립 후 며칠간 사용 가능한지'
+    )
+    min_use_amount = models.IntegerField(
+        default=1000,
+        verbose_name='최소 사용 포인트',
+        help_text='한 번에 사용 가능한 최소 포인트'
+    )
+    max_use_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=100.0,
+        verbose_name='최대 사용 비율 (%)',
+        help_text='주문 금액의 최대 몇 %까지 포인트로 결제 가능한지'
+    )
+    is_active = models.BooleanField(default=True, verbose_name='활성화')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'point_policies'
+        managed = True
+        verbose_name = '포인트 정책'
+        verbose_name_plural = 'C. ⚙️ 설정 | 05. 포인트 정책'
+
+    def __str__(self):
+        return f"{self.name} (적립 {self.earn_rate}%)"
+
+    @classmethod
+    def get_active_policy(cls):
+        """활성화된 포인트 정책 반환"""
+        return cls.objects.filter(is_active=True).first()
+
 
 class PaymentMethod(models.Model):
     """고객 결제 수단 (카드/계좌)"""

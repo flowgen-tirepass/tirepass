@@ -6,7 +6,6 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("tire_data", "0022_merge_20251117_1459"),
         (
             "tire_data",
             "0022_remove_brandpatternperformance_add_performance_to_brandpattern",

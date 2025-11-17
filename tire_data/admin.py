@@ -12,7 +12,8 @@ from .models import (
     CustomerProductDiscount, ShoppingCart, Order, OrderItem, Payment,
     ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag,
     ERPSnapshot, GoodsRealtimeSnapshot,
-    Brand, BrandPattern, CustomerBrandDiscount
+    Brand, BrandPattern, CustomerBrandDiscount,
+    CustomerPoint, PointTransaction, PointPolicy
 )
 from .erp_api_client import ERPAPIClient
 from .forms import BulkDiscountForm, CustomerBrandDiscountForm, CustomerProductDiscountForm
@@ -873,12 +874,13 @@ class GoodsAdmin(admin.ModelAdmin):
 @admin.register(Customers)
 class CustomersAdmin(admin.ModelAdmin):
     """모바일 회원가입 고객"""
-    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'membership_tier', 'shipping_count', 'product_discount_count']
+    list_display = ['code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'is_registered', 'membership_tier',
+                   'point_balance_display', 'shipping_count', 'product_discount_count']
     list_filter = ['is_registered', 'must_change_password', 'membership_tier']
     search_fields = ['=code', 'code', 'name', 'rep', '=enno', 'enno']  # =code: 정확히 일치, code: 포함
     ordering = ['code']
     list_per_page = 50
-    readonly_fields = ['code', 'shipping_addresses_display', 'tier_updated_at']
+    readonly_fields = ['code', 'shipping_addresses_display', 'tier_updated_at', 'point_balance_display']
     fieldsets = (
         ('기본 정보', {
             'fields': ('code', 'name', 'rep', 'tel1', 'tel3', 'enno')
@@ -889,6 +891,10 @@ class CustomersAdmin(admin.ModelAdmin):
         ('멤버십 등급', {
             'fields': ('membership_tier', 'tier_updated_at'),
             'description': '간편결제 등록 시 프리미엄 회원으로 자동 승급됩니다. 프리미엄 회원은 전 상품 2% 추가 할인 혜택이 있습니다.'
+        }),
+        ('포인트 정보', {
+            'fields': ('point_balance_display',),
+            'description': '고객의 포인트 잔액입니다. 포인트 적립/사용은 포인트 관리 메뉴에서 확인하세요.'
         }),
         ('등록된 배송지', {
             'fields': ('shipping_addresses_display',),
@@ -927,6 +933,18 @@ class CustomersAdmin(admin.ModelAdmin):
             return format_html('<a href="{}">{} 개</a>', url, count)
         return '0 개'
     product_discount_count.short_description = '개별 할인 상품'
+
+    def point_balance_display(self, obj):
+        """포인트 잔액 표시"""
+        from django.utils.html import format_html
+        try:
+            balance = obj.point_balance
+            if balance > 0:
+                return format_html('<span style="color: #2563eb; font-weight: bold;">{:,}P</span>', balance)
+            return format_html('<span style="color: #9ca3af;">0P</span>')
+        except Exception:
+            return format_html('<span style="color: #9ca3af;">-</span>')
+    point_balance_display.short_description = '보유 포인트'
 
     def shipping_addresses_display(self, obj):
         """등록된 배송지 목록 표시"""
@@ -1464,6 +1482,128 @@ class CustomerDiscountAdmin(admin.ModelAdmin):  # 등록 해제 (신규 할인 �
             obj.created_by = request.user.username
         obj.updated_by = request.user.username
         super().save_model(request, obj, form, change)
+
+
+# ============================================
+# 포인트 시스템 Admin
+# ============================================
+
+@admin.register(CustomerPoint)
+class CustomerPointAdmin(admin.ModelAdmin):
+    """고객 포인트 관리"""
+    list_display = ['customer_name', 'customer_code', 'balance_display', 'total_earned_display',
+                   'total_used_display', 'updated_at']
+    search_fields = ['customer__code', 'customer__name']
+    readonly_fields = ['customer', 'balance', 'total_earned', 'total_used', 'updated_at']
+    list_per_page = 50
+    ordering = ['-balance']
+
+    def customer_name(self, obj):
+        return obj.customer.name
+    customer_name.short_description = '고객명'
+
+    def customer_code(self, obj):
+        return obj.customer.code
+    customer_code.short_description = '고객코드'
+
+    def balance_display(self, obj):
+        from django.utils.html import format_html
+        color = '#2563eb' if obj.balance > 0 else '#9ca3af'
+        return format_html('<span style="color: {}; font-weight: bold;">{:,}P</span>',
+                          color, obj.balance)
+    balance_display.short_description = '보유 포인트'
+    balance_display.admin_order_field = 'balance'
+
+    def total_earned_display(self, obj):
+        return f"{obj.total_earned:,}P"
+    total_earned_display.short_description = '누적 적립'
+
+    def total_used_display(self, obj):
+        return f"{obj.total_used:,}P"
+    total_used_display.short_description = '누적 사용'
+
+    def has_add_permission(self, request):
+        """직접 추가 불가 (자동 생성)"""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """삭제 불가"""
+        return False
+
+
+@admin.register(PointTransaction)
+class PointTransactionAdmin(admin.ModelAdmin):
+    """포인트 거래 내역 관리"""
+    list_display = ['created_at', 'customer_name', 'transaction_type', 'amount_display',
+                   'balance_after_display', 'description', 'order_code']
+    list_filter = ['transaction_type', 'created_at']
+    search_fields = ['customer__code', 'customer__name', 'order_code', 'description']
+    readonly_fields = ['customer', 'transaction_type', 'amount', 'balance_after',
+                      'description', 'order_code', 'created_at', 'expires_at']
+    date_hierarchy = 'created_at'
+    list_per_page = 100
+    ordering = ['-created_at']
+
+    def customer_name(self, obj):
+        return obj.customer.name
+    customer_name.short_description = '고객명'
+
+    def amount_display(self, obj):
+        from django.utils.html import format_html
+        if obj.amount > 0:
+            return format_html('<span style="color: #16a34a; font-weight: bold;">+{:,}P</span>',
+                              obj.amount)
+        else:
+            return format_html('<span style="color: #dc2626; font-weight: bold;">{:,}P</span>',
+                              obj.amount)
+    amount_display.short_description = '포인트'
+    amount_display.admin_order_field = 'amount'
+
+    def balance_after_display(self, obj):
+        return f"{obj.balance_after:,}P"
+    balance_after_display.short_description = '잔액'
+
+    def has_add_permission(self, request):
+        """직접 추가 불가 (시스템에서만 생성)"""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """삭제 불가"""
+        return False
+
+
+@admin.register(PointPolicy)
+class PointPolicyAdmin(admin.ModelAdmin):
+    """포인트 정책 관리"""
+    list_display = ['name', 'earn_rate', 'min_order_amount', 'signup_bonus',
+                   'point_validity_days', 'min_use_amount', 'max_use_rate', 'is_active', 'updated_at']
+    list_editable = ['is_active']
+    list_filter = ['is_active']
+    fieldsets = (
+        ('기본 정보', {
+            'fields': ('name', 'is_active')
+        }),
+        ('적립 정책', {
+            'fields': ('earn_rate', 'min_order_amount', 'signup_bonus'),
+            'description': '포인트 적립 관련 설정'
+        }),
+        ('사용 정책', {
+            'fields': ('min_use_amount', 'max_use_rate', 'point_validity_days'),
+            'description': '포인트 사용 및 만료 관련 설정'
+        }),
+        ('시스템 정보', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
+
+    def save_model(self, request, obj, form, change):
+        """활성화 시 다른 정책들은 비활성화"""
+        if obj.is_active:
+            PointPolicy.objects.exclude(pk=obj.pk).update(is_active=False)
+        super().save_model(request, obj, form, change)
+
 
 @admin.register(YearAllocation)
 class YearAllocationAdmin(admin.ModelAdmin):
@@ -2600,3 +2740,11 @@ if BrandPattern not in custom_admin_site._registry:
     custom_admin_site.register(BrandPattern, BrandPatternAdmin)
 if CustomerBrandDiscount not in custom_admin_site._registry:
     custom_admin_site.register(CustomerBrandDiscount, CustomerBrandDiscountAdmin)
+
+# 포인트 시스템 모델들을 custom_admin_site에 등록
+if CustomerPoint not in custom_admin_site._registry:
+    custom_admin_site.register(CustomerPoint, CustomerPointAdmin)
+if PointTransaction not in custom_admin_site._registry:
+    custom_admin_site.register(PointTransaction, PointTransactionAdmin)
+if PointPolicy not in custom_admin_site._registry:
+    custom_admin_site.register(PointPolicy, PointPolicyAdmin)
