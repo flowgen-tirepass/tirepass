@@ -880,7 +880,7 @@ class CustomersAdmin(admin.ModelAdmin):
     search_fields = ['=code', 'code', 'name', 'rep', '=enno', 'enno']  # =code: 정확히 일치, code: 포함
     ordering = ['code']
     list_per_page = 50
-    readonly_fields = ['code', 'shipping_addresses_display', 'tier_updated_at', 'point_balance_display']
+    readonly_fields = ['code', 'shipping_addresses_display', 'tier_updated_at', 'point_balance_display', 'adjust_points_form']
     fieldsets = (
         ('기본 정보', {
             'fields': ('code', 'name', 'rep', 'tel1', 'tel3', 'enno')
@@ -893,8 +893,8 @@ class CustomersAdmin(admin.ModelAdmin):
             'description': '간편결제 등록 시 프리미엄 회원으로 자동 승급됩니다. 프리미엄 회원은 전 상품 2% 추가 할인 혜택이 있습니다.'
         }),
         ('포인트 정보', {
-            'fields': ('point_balance_display',),
-            'description': '고객의 포인트 잔액입니다. 포인트 적립/사용은 포인트 관리 메뉴에서 확인하세요.'
+            'fields': ('point_balance_display', 'adjust_points_form'),
+            'description': '고객의 포인트 잔액입니다. 아래 폼에서 포인트를 지급하거나 차감할 수 있습니다.'
         }),
         ('등록된 배송지', {
             'fields': ('shipping_addresses_display',),
@@ -945,6 +945,90 @@ class CustomersAdmin(admin.ModelAdmin):
         except Exception:
             return format_html('<span style="color: #9ca3af;">-</span>')
     point_balance_display.short_description = '보유 포인트'
+
+    def adjust_points_form(self, obj):
+        """포인트 지급/차감 폼 표시"""
+        from django.utils.html import format_html
+        from django.urls import reverse
+        from django.middleware.csrf import get_token
+        from django.template import Context, Template
+
+        if not obj.pk:
+            return '고객을 먼저 저장해주세요.'
+
+        # 현재 잔액
+        try:
+            balance = obj.point_balance
+        except:
+            balance = 0
+
+        adjust_url = reverse('admin:adjust_customer_points', args=[obj.pk])
+
+        html = f'''
+        <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb;">
+            <div style="margin-bottom: 12px;">
+                <strong style="font-size: 14px;">현재 잔액: <span style="color: #2563eb;">{balance:,}P</span></strong>
+            </div>
+
+            <form method="post" action="{adjust_url}" id="point-adjust-form" style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="hidden" name="csrfmiddlewaretoken" value="{{{{ csrf_token }}}}">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">포인트 금액</label>
+                        <input type="number" name="amount" required
+                               style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;"
+                               placeholder="예: 10000" min="1">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">유형</label>
+                        <select name="action_type" required
+                                style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                            <option value="add">➕ 포인트 지급</option>
+                            <option value="subtract">➖ 포인트 차감</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">사유</label>
+                    <input type="text" name="description" required
+                           style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;"
+                           placeholder="예: 11월 이벤트 보상, 관리자 조정 등">
+                </div>
+
+                <button type="submit"
+                        style="background: #2563eb; color: white; padding: 10px 16px; border: none;
+                               border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">
+                    포인트 적용
+                </button>
+            </form>
+
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                <a href="/admin/tire_data/pointtransaction/?customer__code={obj.code}"
+                   style="color: #2563eb; text-decoration: none; font-size: 13px;">
+                    📋 이 고객의 포인트 거래 내역 보기 →
+                </a>
+            </div>
+        </div>
+        <script>
+            // CSRF 토큰 자동 설정
+            document.addEventListener('DOMContentLoaded', function() {{
+                const form = document.getElementById('point-adjust-form');
+                if (form) {{
+                    const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
+                    if (csrfInput) {{
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                        if (csrfToken) {{
+                            csrfInput.value = csrfToken;
+                        }}
+                    }}
+                }}
+            }});
+        </script>
+        '''
+
+        return format_html(html)
+    adjust_points_form.short_description = '포인트 지급/차감'
 
     def shipping_addresses_display(self, obj):
         """등록된 배송지 목록 표시"""
@@ -2448,6 +2532,71 @@ class TirePassAdminSite(admin.AdminSite):
     site_header = 'TirePASS 관리'
     site_title = 'TirePASS 관리자'
     index_title = 'TirePASS 관리 시스템'
+
+    def get_urls(self):
+        """커스텀 URL 추가"""
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('adjust-points/<int:customer_id>/', self.admin_view(self.adjust_customer_points_view), name='adjust_customer_points'),
+        ]
+        return custom_urls + urls
+
+    def adjust_customer_points_view(self, request, customer_id):
+        """고객 포인트 조정 뷰"""
+        from django.shortcuts import get_object_or_404, redirect
+        from django.contrib import messages
+        from tire_data.models import Customers, CustomerPoint
+
+        if request.method != 'POST':
+            messages.error(request, '잘못된 요청입니다.')
+            return redirect('admin:tire_data_customers_change', customer_id)
+
+        customer = get_object_or_404(Customers, pk=customer_id)
+
+        try:
+            amount = int(request.POST.get('amount', 0))
+            action_type = request.POST.get('action_type', 'add')
+            description = request.POST.get('description', '')
+
+            if amount <= 0:
+                messages.error(request, '포인트 금액은 0보다 커야 합니다.')
+                return redirect('admin:tire_data_customers_change', customer_id)
+
+            if not description:
+                messages.error(request, '사유를 입력해주세요.')
+                return redirect('admin:tire_data_customers_change', customer_id)
+
+            # CustomerPoint 가져오거나 생성
+            customer_point, created = CustomerPoint.objects.get_or_create(customer=customer)
+
+            if action_type == 'add':
+                # 포인트 지급
+                customer_point.add_points(
+                    amount=amount,
+                    transaction_type='EARN_ADMIN',
+                    description=f'[관리자 지급] {description}',
+                    order_code=None
+                )
+                messages.success(request, f'✅ {customer.name}님에게 {amount:,}P를 지급했습니다. (현재 잔액: {customer_point.balance:,}P)')
+
+            elif action_type == 'subtract':
+                # 포인트 차감
+                if amount > customer_point.balance:
+                    messages.error(request, f'❌ 차감할 포인트({amount:,}P)가 현재 잔액({customer_point.balance:,}P)보다 많습니다.')
+                    return redirect('admin:tire_data_customers_change', customer_id)
+
+                customer_point.use_points(
+                    amount=amount,
+                    description=f'[관리자 차감] {description}',
+                    order_code=None
+                )
+                messages.success(request, f'✅ {customer.name}님의 포인트 {amount:,}P를 차감했습니다. (현재 잔액: {customer_point.balance:,}P)')
+
+        except Exception as e:
+            messages.error(request, f'❌ 포인트 조정 중 오류가 발생했습니다: {str(e)}')
+
+        return redirect('admin:tire_data_customers_change', customer_id)
 
     def get_app_list(self, request, app_label=None):
         """
