@@ -2602,9 +2602,9 @@ class TirePassAdminSite(admin.AdminSite):
         """
         사이드바 메뉴를 3개 카테고리로 재구성
 
-        A. 판매 (8개): Goods, MobileOrder, ERPPhoneOrder, OrderItem, Payment, ShoppingCart, ShippingAddress, Customers
-        B. 할인 (6개): BrandGroup, BrandGroupPattern, CustomerDiscount, CustomerProductDiscount, YearAllocation, DiscountHistory
-        C. 설정 (8개): GoodsDisplayName, PerformanceCategory, PerformanceTag, GoodsPerformanceTag, ERPSnapshot, GoodsRealtimeSnapshot, User, LogEntry
+        A. 판매: Goods, MobileOrder, ERPPhoneOrder, OrderItem, Payment, ShoppingCart, ShippingAddress, Customers
+        B. 할인: Brand, BrandPattern, CustomerBrandDiscount, BrandGroup, BrandGroupPattern, CustomerDiscount, CustomerProductDiscount, DiscountHistory
+        C. 설정: GoodsDisplayName, PerformanceCategory, PerformanceTag, GoodsPerformanceTag, ERPSnapshot, GoodsRealtimeSnapshot, YearAllocation, ExcludedGoods, CustomerPoint, PointTransaction, PointPolicy, User, LogEntry
         """
         # 기본 앱 목록 가져오기
         app_dict = self._build_app_dict(request, app_label)
@@ -2640,6 +2640,9 @@ class TirePassAdminSite(admin.AdminSite):
             'goodsrealtimesnapshot': 'C. 설정',
             'yearallocation': 'C. 설정',
             'excludedgoods': 'C. 설정',
+            'customerpoint': 'C. 설정',
+            'pointtransaction': 'C. 설정',
+            'pointpolicy': 'C. 설정',
             'user': 'C. 설정',
             'logentry': 'C. 설정',
 
