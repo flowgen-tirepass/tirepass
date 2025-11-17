@@ -444,7 +444,8 @@ def api_products_list(request):
             # 성능표시 박스 생성
             if matched_performance:
                 brand_performance_boxes = matched_performance.get_performance_boxes()
-                brand_logo = matched_performance.logo_filename
+                # 브랜드 로고는 Brand 모델에서 가져옴
+                brand_logo = matched_performance.brand.logo_filename
 
         products_data.append({
             'code': p.code,

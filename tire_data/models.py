@@ -1083,6 +1083,9 @@ class Brand(models.Model):
     """브랜드 마스터"""
     name = models.CharField(max_length=50, unique=True, verbose_name='브랜드명')
     name_en = models.CharField(max_length=50, null=True, blank=True, verbose_name='영문명')
+    logo_filename = models.CharField(max_length=100, null=True, blank=True,
+                                    verbose_name='브랜드 로고 파일명',
+                                    help_text='예: michelin.png (static/mobile/img/brands/ 경로)')
     display_order = models.IntegerField(default=0, verbose_name='표시 순서')
     is_active = models.BooleanField(default=True, verbose_name='활성화')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
@@ -1101,6 +1104,50 @@ class Brand(models.Model):
 
 class BrandPattern(models.Model):
     """브랜드별 패턴"""
+
+    # 성능표시 선택 옵션
+    CLASSIFICATION_CHOICES = [
+        ('', '--------'),
+        ('전체', '전체'),
+        ('승용세단', '승용세단'),
+        ('승용SUV/RV', '승용SUV/RV'),
+        ('트럭/밴', '트럭/밴'),
+        ('스포츠카', '스포츠카'),
+    ]
+
+    GRADE_CHOICES = [
+        ('', '--------'),
+        ('전체', '전체'),
+        ('가성비', '가성비'),
+        ('고급형', '고급형'),
+        ('최고급형', '최고급형'),
+        ('OE용타이어', 'OE용타이어'),
+        ('전기차', '전기차'),
+    ]
+
+    PERFORMANCE_CHOICES = [
+        ('', '--------'),
+        ('정숙성', '정숙성'),
+        ('주행안정성', '주행안정성'),
+        ('젖은노면제동력', '젖은노면제동력'),
+        ('연비', '연비'),
+        ('구름저항', '구름저항'),
+        ('마일리지', '마일리지'),
+    ]
+
+    SEASON_CHOICES = [
+        ('', '--------'),
+        ('사계절', '사계절'),
+        ('겨울용', '겨울용'),
+        ('여름용', '여름용'),
+    ]
+
+    ROAD_TYPE_CHOICES = [
+        ('', '--------'),
+        ('ON로드', 'ON로드'),
+        ('OFF로드', 'OFF로드'),
+    ]
+
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE,
                              related_name='patterns', verbose_name='브랜드')
     pattern_name = models.CharField(max_length=100, verbose_name='패턴명')
@@ -1111,33 +1158,48 @@ class BrandPattern(models.Model):
 
     # 성능 표시 (5개 박스) - 모바일 상품카드용
     # 박스1: 브랜드명 (한글) - 자동으로 brand.name 사용
-    # 박스2: 분류1 (분류1 선택)
-    classification = models.CharField(max_length=50, null=True, blank=True,
-                                     verbose_name='분류1',
-                                     help_text='예: 전체, 승용세단, 승용SUV/RV, 트럭/밴, 스포츠카')
+    # 박스2: 분류1
+    classification = models.CharField(
+        max_length=50,
+        choices=CLASSIFICATION_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='분류1'
+    )
 
-    # 박스3: 상품등급 (상품등급 선택)
-    grade = models.CharField(max_length=50, null=True, blank=True,
-                            verbose_name='상품등급',
-                            help_text='예: 전체, 가성비, 고급형, 최고급형, OE용타이어, 전기차')
+    # 박스3: 상품등급
+    grade = models.CharField(
+        max_length=50,
+        choices=GRADE_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='상품등급'
+    )
 
-    # 박스4: 상품성능 (상품성능 선택)
-    performance = models.CharField(max_length=50, null=True, blank=True,
-                                  verbose_name='상품성능',
-                                  help_text='예: 정숙성, 주행안정성, 젖은노면제동력, 연비, 구름저항, 마일리지')
+    # 박스4: 상품성능
+    performance = models.CharField(
+        max_length=50,
+        choices=PERFORMANCE_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='상품성능'
+    )
 
-    # 박스5: 계절 + ON/OFF로드 (계절 선택 + ON/OFF로드 선택)
-    season = models.CharField(max_length=20, null=True, blank=True,
-                             verbose_name='계절',
-                             help_text='예: 사계절, 겨울용, 여름용')
-    road_type = models.CharField(max_length=20, null=True, blank=True,
-                                verbose_name='로드타입',
-                                help_text='예: ON로드, OFF로드')
-
-    # 브랜드 로고 파일명
-    logo_filename = models.CharField(max_length=100, null=True, blank=True,
-                                    verbose_name='브랜드 로고 파일명',
-                                    help_text='예: michelin.png (static/mobile/img/brands/ 경로)')
+    # 박스5: 계절 + ON/OFF로드
+    season = models.CharField(
+        max_length=20,
+        choices=SEASON_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='계절'
+    )
+    road_type = models.CharField(
+        max_length=20,
+        choices=ROAD_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='로드타입'
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')

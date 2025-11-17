@@ -2420,7 +2420,7 @@ class ExcludedGoodsAdmin(admin.ModelAdmin):
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
     """브랜드 관리"""
-    list_display = ['name', 'name_en', 'display_order', 'pattern_count', 'is_active', 'updated_at']
+    list_display = ['name', 'name_en', 'logo_filename', 'display_order', 'pattern_count', 'is_active', 'updated_at']
     list_editable = ['display_order', 'is_active']
     search_fields = ['name', 'name_en']  # autocomplete를 위한 필수 필드
     ordering = ['display_order', 'name']
@@ -2428,7 +2428,7 @@ class BrandAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('브랜드 정보', {
-            'fields': ('name', 'name_en', 'display_order', 'is_active')
+            'fields': ('name', 'name_en', 'logo_filename', 'display_order', 'is_active')
         }),
         ('시스템 정보', {
             'fields': ('created_at', 'updated_at'),
@@ -2460,8 +2460,8 @@ class BrandPatternAdmin(admin.ModelAdmin):
             'fields': ('brand', 'pattern_name', 'pattern_code', 'display_order', 'is_active')
         }),
         ('성능 표시 (모바일 상품카드용)', {
-            'fields': ('classification', 'grade', 'performance', 'season', 'road_type', 'logo_filename'),
-            'description': '박스1: 브랜드명(자동) | 박스2: 분류1 | 박스3: 상품등급 | 박스4: 상품성능 | 박스5: 계절 + ON/OFF로드',
+            'fields': ('classification', 'grade', 'performance', 'season', 'road_type'),
+            'description': '박스1: 브랜드명(자동) | 박스2: 분류1 | 박스3: 상품등급 | 박스4: 상품성능 | 박스5: 계절 + ON/OFF로드 | 브랜드 로고는 브랜드 메뉴에서 설정',
             'classes': ('wide',)
         }),
         ('시스템 정보', {
