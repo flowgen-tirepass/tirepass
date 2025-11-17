@@ -1947,7 +1947,8 @@ from .admin_performance import (
 # ERP 스냅샷 관리
 # ============================================
 
-@admin.register(ERPSnapshot)
+# Z. 미사용 - 개발용 모델 (관리자 페이지에서 숨김)
+# @admin.register(ERPSnapshot)
 class ERPSnapshotAdmin(admin.ModelAdmin):
     """ERP 상태 스냅샷 관리"""
 
@@ -2068,7 +2069,8 @@ class ERPSnapshotAdmin(admin.ModelAdmin):
 # 실시간 재고 변화 추적
 # ============================================
 
-@admin.register(GoodsRealtimeSnapshot)
+# Z. 미사용 - 개발용 모델 (관리자 페이지에서 숨김)
+# @admin.register(GoodsRealtimeSnapshot)
 class GoodsRealtimeSnapshotAdmin(admin.ModelAdmin):
     """실시간 재고 변화 추적 (관리자 실시간성 증명용)"""
 
@@ -2393,7 +2395,8 @@ class TirePassAdminSite(admin.AdminSite):
         return app_list
 
 
-@admin.register(ExcludedGoods)
+# Z. 미사용 - 개발용 모델 (관리자 페이지에서 숨김)
+# @admin.register(ExcludedGoods)
 class ExcludedGoodsAdmin(admin.ModelAdmin):
     """ERP 동기화 제외 상품 관리"""
     list_display = ['code', 'reason', 'excluded_at', 'excluded_by']
