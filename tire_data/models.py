@@ -1127,25 +1127,26 @@ class BrandPattern(models.Model):
 
     PERFORMANCE_CHOICES = [
         ('', '--------'),
-        ('정숙성', '정숙성'),
-        ('주행안정성', '주행안정성'),
-        ('젖은노면제동력', '젖은노면제동력'),
-        ('연비', '연비'),
-        ('구름저항', '구름저항'),
-        ('마일리지', '마일리지'),
+        ('전체', '전체'),
+        ('스탠다드', '스탠다드'),
+        ('컴포트', '컴포트'),
+        ('스포츠', '스포츠'),
+        ('프리미엄스포츠', '프리미엄스포츠'),
     ]
 
     SEASON_CHOICES = [
         ('', '--------'),
-        ('사계절', '사계절'),
+        ('사계절용', '사계절용'),
+        ('올웨더', '올웨더'),
         ('겨울용', '겨울용'),
         ('여름용', '여름용'),
     ]
 
     ROAD_TYPE_CHOICES = [
         ('', '--------'),
-        ('ON로드', 'ON로드'),
-        ('OFF로드', 'OFF로드'),
+        ('오프로드(MT)', '오프로드(MT)'),
+        ('온오프로드(AT)', '온오프로드(AT)'),
+        ('온로드(HT)', '온로드(HT)'),
     ]
 
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE,
@@ -1198,7 +1199,7 @@ class BrandPattern(models.Model):
         choices=ROAD_TYPE_CHOICES,
         null=True,
         blank=True,
-        verbose_name='로드타입'
+        verbose_name='ON/OFF로드'
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
