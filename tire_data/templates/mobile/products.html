@@ -16,20 +16,29 @@
 }
 
 .brand-logo-container {
-    position: absolute;
-    top: clamp(10px, 3vw, 15px);
-    right: clamp(10px, 3vw, 15px);
-    width: clamp(35px, 10vw, 50px);
-    height: clamp(20px, 6vw, 30px);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: clamp(8px, 2vw, 10px);
+    width: clamp(70px, 20vw, 100px);
+    height: clamp(40px, 12vw, 60px);
 }
 
 .performance-tags {
     display: flex;
     gap: clamp(3px, 0.8vw, 4px);
     margin-bottom: clamp(10px, 3vw, 15px);
-    max-width: calc(100% - clamp(40px, 12vw, 60px));
+    max-width: 100%;
     justify-content: flex-start;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.performance-tags::-webkit-scrollbar {
+    display: none;
 }
 
 .performance-tag {
