@@ -2572,18 +2572,22 @@ class TirePassAdminSite(admin.AdminSite):
         from django.urls import path
         from django.views.decorators.csrf import csrf_exempt
         urls = super().get_urls()
+
+        # CSRF 토큰 없이도 작동하도록 설정
+        # admin_view() 안에 csrf_exempt를 넣으면 작동 안 함
+        # csrf_exempt를 먼저 감싸야 함
         custom_urls = [
-            # csrf_exempt 사용하여 CSRF 검증 우회 (Admin 인증으로 보안 유지)
-            path('adjust-points/<str:customer_id>/', csrf_exempt(self.admin_view(self.adjust_customer_points_view)), name='adjust_customer_points'),
+            path('adjust-points/<str:customer_id>/',
+                 self.admin_view(csrf_exempt(lambda request, customer_id: self.adjust_customer_points_view(request, customer_id))),
+                 name='adjust_customer_points'),
         ]
         return custom_urls + urls
 
     def adjust_customer_points_view(self, request, customer_id):
-        """고객 포인트 조정 뷰 (CSRF 검증 완료)"""
+        """고객 포인트 조정 뷰"""
         from django.shortcuts import get_object_or_404, redirect
         from django.contrib import messages
         from tire_data.models import Customers, CustomerPoint
-        from django.views.decorators.csrf import csrf_exempt
 
         # Admin 로그인된 사용자만 허용
         if not request.user.is_authenticated or not request.user.is_staff:
