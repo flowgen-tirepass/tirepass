@@ -793,7 +793,8 @@ function renderProducts(products) {
         const discount = product.discount_rate || 0;
         const originalPrice = product.price || 0;
         const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
-        const brandLogo = getBrandLogo(product.brand, product.brand_logo);
+        // brand_logo_url 우선 사용 (Brand 모델의 실제 업로드 로고), 없으면 brand_logo 사용
+        const brandLogo = product.brand_logo_url || getBrandLogo(product.brand, product.brand_logo);
 
         // 한글명: korean_name이 있으면 사용, 없으면 "브랜드명(한글) + NAME(전체)" 조합
         const koreanName = product.korean_name || (product.brand ? `${product.brand} ${product.name}` : product.name);
