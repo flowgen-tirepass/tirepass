@@ -883,10 +883,10 @@ class CustomersAdmin(admin.ModelAdmin):
     readonly_fields = ['code', 'shipping_addresses_display', 'tier_updated_at', 'point_balance_display', 'adjust_points_form']
     fieldsets = (
         ('기본 정보', {
-            'fields': ('code', 'name', 'rep', 'tel1', 'tel3', 'enno')
+            'fields': ('code', 'name', 'rep', 'tel1', 'tel3', 'enno', 'password')
         }),
         ('계정 상태', {
-            'fields': ('is_registered', 'must_change_password')
+            'fields': ('is_registered', 'user_id', 'must_change_password')
         }),
         ('멤버십 등급', {
             'fields': ('membership_tier', 'tier_updated_at'),
