@@ -973,14 +973,14 @@ class CustomersAdmin(admin.ModelAdmin):
                 <div>
                     <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">포인트 금액</label>
                     <input type="number" name="amount" required
-                           style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;"
+                           style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; font-size: 14px;"
                            placeholder="예: 10000" min="1">
                 </div>
 
                 <div>
                     <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">유형</label>
                     <select name="action_type" required
-                            style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;">
+                            style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; font-size: 14px;">
                         <option value="add">➕ 포인트 지급</option>
                         <option value="subtract">➖ 포인트 차감</option>
                     </select>
@@ -989,7 +989,7 @@ class CustomersAdmin(admin.ModelAdmin):
                 <div>
                     <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">사유</label>
                     <input type="text" name="description" required
-                           style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;"
+                           style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; font-size: 14px;"
                            placeholder="예: 11월 이벤트 보상, 관리자 조정 등">
                 </div>
 
