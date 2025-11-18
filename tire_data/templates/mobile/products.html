@@ -767,6 +767,11 @@ function extractProductNameWithoutSize(name) {
 function getBrandLogo(brand, logoFilename) {
     // API에서 로고 파일명이 지정되어 있으면 그것을 사용
     if (logoFilename) {
+        // 이미 전체 경로인 경우 그대로 사용
+        if (logoFilename.startsWith('/static/') || logoFilename.startsWith('http')) {
+            return logoFilename;
+        }
+        // 파일명만 있는 경우 경로 추가
         return `/static/mobile/img/brands/${logoFilename}`;
     }
     // 없으면 기존 방식 (브랜드명 기반)
