@@ -18,10 +18,17 @@
 .brand-logo-container {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: flex-end;
     margin-bottom: clamp(8px, 2vw, 10px);
-    width: clamp(70px, 20vw, 100px);
+    width: 100%;
     height: clamp(40px, 12vw, 60px);
+}
+
+.brand-logo-container img {
+    width: auto;
+    max-width: clamp(70px, 20vw, 100px);
+    height: 100%;
+    object-fit: contain;
 }
 
 .performance-tags {
