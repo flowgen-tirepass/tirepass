@@ -289,7 +289,7 @@ def api_products_erp(request):
 
                 # 2024년
                 if ya.year_2024 > 0:
-                    total_discount_2024 = base_discount + float(ya.discount_2024)
+                    total_discount_2024 = base_discount + float(ya.year_2024_discount)
                     price_2024 = int(base_price * (1 - total_discount_2024 / 100))
                     dot_inventory.append({
                         'year': 2024,
@@ -300,7 +300,7 @@ def api_products_erp(request):
 
                 # 2023년
                 if ya.year_2023 > 0:
-                    total_discount_2023 = base_discount + float(ya.discount_2023)
+                    total_discount_2023 = base_discount + float(ya.year_2023_discount)
                     price_2023 = int(base_price * (1 - total_discount_2023 / 100))
                     dot_inventory.append({
                         'year': 2023,
@@ -311,7 +311,7 @@ def api_products_erp(request):
 
                 # 2022년
                 if ya.year_2022 > 0:
-                    total_discount_2022 = base_discount + float(ya.discount_2022)
+                    total_discount_2022 = base_discount + float(ya.year_2022_discount)
                     price_2022 = int(base_price * (1 - total_discount_2022 / 100))
                     dot_inventory.append({
                         'year': 2022,
@@ -320,13 +320,13 @@ def api_products_erp(request):
                         'price': price_2022
                     })
 
-                # 2021년
-                if ya.year_2021 > 0:
-                    total_discount_2021 = base_discount + float(ya.discount_2021)
+                # 2021년 이전
+                if ya.year_2021_before > 0:
+                    total_discount_2021 = base_discount + float(ya.year_2021_before_discount)
                     price_2021 = int(base_price * (1 - total_discount_2021 / 100))
                     dot_inventory.append({
                         'year': 2021,
-                        'stock': ya.year_2021,
+                        'stock': ya.year_2021_before,
                         'discount': total_discount_2021,
                         'price': price_2021
                     })
