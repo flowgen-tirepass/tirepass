@@ -1008,16 +1008,40 @@ class CustomersAdmin(admin.ModelAdmin):
             </div>
         </div>
         <script>
-            // CSRF 토큰 자동 설정
+            // CSRF 토큰 자동 설정 (여러 방법 시도)
             (function() {{
-                const form = document.getElementById('point-adjust-form-{obj.pk}');
-                if (form) {{
-                    // Django admin 페이지의 CSRF 토큰 가져오기
-                    const mainCsrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-                    const formCsrfInput = form.querySelector('.csrf-token-field');
+                function setCsrfToken() {{
+                    const form = document.getElementById('point-adjust-form-{obj.pk}');
+                    if (!form) return false;
 
-                    if (mainCsrfInput && formCsrfInput) {{
+                    const formCsrfInput = form.querySelector('.csrf-token-field');
+                    if (!formCsrfInput) return false;
+
+                    // 방법 1: Django admin의 기존 CSRF 토큰 찾기
+                    const mainCsrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                    if (mainCsrfInput && mainCsrfInput.value) {{
                         formCsrfInput.value = mainCsrfInput.value;
+                        return true;
+                    }}
+
+                    // 방법 2: 쿠키에서 CSRF 토큰 가져오기
+                    const csrfCookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+                    if (csrfCookie) {{
+                        formCsrfInput.value = csrfCookie.split('=')[1];
+                        return true;
+                    }}
+
+                    return false;
+                }}
+
+                // 즉시 실행
+                if (!setCsrfToken()) {{
+                    // 페이지 로드 완료 후 재시도
+                    if (document.readyState === 'loading') {{
+                        document.addEventListener('DOMContentLoaded', setCsrfToken);
+                    }} else {{
+                        // 약간의 딜레이 후 재시도
+                        setTimeout(setCsrfToken, 100);
                     }}
                 }}
             }})();
