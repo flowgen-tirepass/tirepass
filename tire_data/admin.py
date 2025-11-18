@@ -1041,7 +1041,7 @@ class CustomersAdmin(admin.ModelAdmin):
                 return '등록된 배송지가 없습니다.'
 
             from django.urls import reverse
-            from django.utils.html import format_html
+            from django.utils.safestring import mark_safe
 
             html = '<table style="width: 100%; border-collapse: collapse;">'
             html += '<thead><tr style="background: #f3f4f6;">'
@@ -1074,7 +1074,7 @@ class CustomersAdmin(admin.ModelAdmin):
             list_url = reverse('admin:tire_data_shippingaddress_changelist') + f'?customer_code={obj.enno}'
             html += f'<p style="margin-top: 10px;"><a href="{list_url}">전체 배송지 목록 보기 →</a></p>'
 
-            return format_html(html)
+            return mark_safe(html)
         except Exception as e:
             return f'배송지 정보를 불러올 수 없습니다: {str(e)}'
     shipping_addresses_display.short_description = '등록된 배송지'
