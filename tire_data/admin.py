@@ -980,7 +980,7 @@ class CustomersAdmin(admin.ModelAdmin):
                 <div>
                     <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">유형</label>
                     <select name="action_type" required
-                            style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; font-size: 14px;">
+                            style="width: 100%; padding: 12px 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; font-size: 14px; height: 44px; line-height: 20px;">
                         <option value="add">➕ 포인트 지급</option>
                         <option value="subtract">➖ 포인트 차감</option>
                     </select>
