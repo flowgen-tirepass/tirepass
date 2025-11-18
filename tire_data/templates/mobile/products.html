@@ -21,39 +21,30 @@
     justify-content: flex-end;
     margin-bottom: clamp(8px, 2vw, 10px);
     width: 100%;
-    height: clamp(40px, 12vw, 60px);
 }
 
 .brand-logo-container img {
-    width: auto;
-    max-width: clamp(70px, 20vw, 100px);
-    height: 100%;
+    width: 20%;
+    aspect-ratio: 1.43 / 1;
     object-fit: contain;
 }
 
 .performance-tags {
     display: flex;
-    gap: clamp(3px, 0.8vw, 4px);
+    gap: clamp(2px, 0.5vw, 3px);
     margin-bottom: clamp(10px, 3vw, 15px);
-    max-width: 100%;
+    width: 100%;
     justify-content: flex-start;
     flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-}
-
-.performance-tags::-webkit-scrollbar {
-    display: none;
 }
 
 .performance-tag {
-    flex: 0 0 auto;
-    padding: clamp(5px, 1.5vw, 6px) clamp(8px, 2vw, 10px);
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: clamp(4px, 1.2vw, 5px) clamp(6px, 1.5vw, 8px);
     border: 1.5px solid #1f2937;
-    border-radius: clamp(4px, 1vw, 6px);
-    font-size: clamp(9px, 2.5vw, 10px);
+    border-radius: clamp(3px, 0.8vw, 5px);
+    font-size: clamp(8px, 2.2vw, 9px);
     font-weight: 600;
     background: white;
     text-align: center;
@@ -61,7 +52,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: clamp(24px, 7vw, 28px);
+    min-height: clamp(20px, 6vw, 24px);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .product-title-container {
