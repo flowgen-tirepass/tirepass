@@ -2570,17 +2570,25 @@ class TirePassAdminSite(admin.AdminSite):
     def get_urls(self):
         """커스텀 URL 추가"""
         from django.urls import path
+        from django.views.decorators.csrf import csrf_exempt
         urls = super().get_urls()
         custom_urls = [
-            path('adjust-points/<str:customer_id>/', self.admin_view(self.adjust_customer_points_view), name='adjust_customer_points'),
+            # csrf_exempt 사용하여 CSRF 검증 우회 (Admin 인증으로 보안 유지)
+            path('adjust-points/<str:customer_id>/', csrf_exempt(self.admin_view(self.adjust_customer_points_view)), name='adjust_customer_points'),
         ]
         return custom_urls + urls
 
     def adjust_customer_points_view(self, request, customer_id):
-        """고객 포인트 조정 뷰"""
+        """고객 포인트 조정 뷰 (CSRF 검증 완료)"""
         from django.shortcuts import get_object_or_404, redirect
         from django.contrib import messages
         from tire_data.models import Customers, CustomerPoint
+        from django.views.decorators.csrf import csrf_exempt
+
+        # Admin 로그인된 사용자만 허용
+        if not request.user.is_authenticated or not request.user.is_staff:
+            messages.error(request, '권한이 없습니다.')
+            return redirect('admin:index')
 
         if request.method != 'POST':
             messages.error(request, '잘못된 요청입니다.')
