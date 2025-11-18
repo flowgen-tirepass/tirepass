@@ -948,7 +948,7 @@ class CustomersAdmin(admin.ModelAdmin):
 
     def adjust_points_form(self, obj):
         """포인트 지급/차감 폼 표시"""
-        from django.utils.html import format_html
+        from django.utils.safestring import mark_safe
         from django.urls import reverse
 
         if not obj.pk:
@@ -1025,7 +1025,7 @@ class CustomersAdmin(admin.ModelAdmin):
         </script>
         '''
 
-        return format_html(html)
+        return mark_safe(html)
     adjust_points_form.short_description = '포인트 지급/차감'
 
     def shipping_addresses_display(self, obj):
