@@ -950,6 +950,8 @@ class CustomersAdmin(admin.ModelAdmin):
         """포인트 지급/차감 폼 표시"""
         from django.utils.safestring import mark_safe
         from django.urls import reverse
+        from django.middleware.csrf import get_token
+        from django.http import HttpRequest
 
         if not obj.pk:
             return '고객을 먼저 저장해주세요.'
@@ -960,6 +962,9 @@ class CustomersAdmin(admin.ModelAdmin):
         except:
             balance = 0
 
+        # CSRF 토큰 생성 (현재 요청에서 가져오기)
+        # Admin 페이지는 ModelAdmin의 컨텍스트에서 렌더링되므로
+        # 템플릿 태그를 사용하는 대신 빈 값으로 두고 JavaScript로 설정
         adjust_url = reverse('admin:adjust_customer_points', args=[obj.pk])
 
         html = f'''
@@ -968,7 +973,7 @@ class CustomersAdmin(admin.ModelAdmin):
                 <strong style="font-size: 14px;">현재 잔액: <span style="color: #2563eb;">{balance:,}P</span></strong>
             </div>
 
-            <form method="post" action="{adjust_url}" id="point-adjust-form-{obj.pk}" style="display: flex; flex-direction: column; gap: 12px;">
+            <form method="post" action="{adjust_url}" id="point-adjust-form-{obj.pk}" style="display: flex; flex-direction: column; gap: 12px;" onsubmit="return setCsrfBeforeSubmit(this);">
                 <input type="hidden" name="csrfmiddlewaretoken" value="" class="csrf-token-field">
                 <div>
                     <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">포인트 금액</label>
@@ -1008,43 +1013,51 @@ class CustomersAdmin(admin.ModelAdmin):
             </div>
         </div>
         <script>
-            // CSRF 토큰 자동 설정 (여러 방법 시도)
-            (function() {{
-                function setCsrfToken() {{
-                    const form = document.getElementById('point-adjust-form-{obj.pk}');
-                    if (!form) return false;
-
-                    const formCsrfInput = form.querySelector('.csrf-token-field');
-                    if (!formCsrfInput) return false;
-
-                    // 방법 1: Django admin의 기존 CSRF 토큰 찾기
-                    const mainCsrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-                    if (mainCsrfInput && mainCsrfInput.value) {{
-                        formCsrfInput.value = mainCsrfInput.value;
-                        return true;
-                    }}
-
-                    // 방법 2: 쿠키에서 CSRF 토큰 가져오기
-                    const csrfCookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
-                    if (csrfCookie) {{
-                        formCsrfInput.value = csrfCookie.split('=')[1];
-                        return true;
-                    }}
-
+            // 폼 제출 전에 CSRF 토큰 설정
+            function setCsrfBeforeSubmit(form) {{
+                const formCsrfInput = form.querySelector('.csrf-token-field');
+                if (!formCsrfInput) {{
+                    alert('CSRF 토큰 필드를 찾을 수 없습니다.');
                     return false;
                 }}
 
-                // 즉시 실행
-                if (!setCsrfToken()) {{
-                    // 페이지 로드 완료 후 재시도
-                    if (document.readyState === 'loading') {{
-                        document.addEventListener('DOMContentLoaded', setCsrfToken);
-                    }} else {{
-                        // 약간의 딜레이 후 재시도
-                        setTimeout(setCsrfToken, 100);
+                // 방법 1: Django admin의 메인 폼에서 CSRF 토큰 가져오기
+                const mainForms = document.querySelectorAll('form');
+                for (let mainForm of mainForms) {{
+                    if (mainForm.id !== form.id) {{
+                        const mainCsrfInput = mainForm.querySelector('input[name="csrfmiddlewaretoken"]');
+                        if (mainCsrfInput && mainCsrfInput.value) {{
+                            formCsrfInput.value = mainCsrfInput.value;
+                            console.log('CSRF token set from main form:', mainCsrfInput.value);
+                            return true;
+                        }}
                     }}
                 }}
-            }})();
+
+                // 방법 2: 쿠키에서 CSRF 토큰 가져오기
+                const cookies = document.cookie.split('; ');
+                for (let cookie of cookies) {{
+                    if (cookie.startsWith('csrftoken=')) {{
+                        const token = cookie.split('=')[1];
+                        formCsrfInput.value = token;
+                        console.log('CSRF token set from cookie:', token);
+                        return true;
+                    }}
+                }}
+
+                // 방법 3: 페이지의 모든 csrfmiddlewaretoken 검색
+                const allCsrfInputs = document.querySelectorAll('input[name="csrfmiddlewaretoken"]');
+                for (let input of allCsrfInputs) {{
+                    if (input.value && input !== formCsrfInput) {{
+                        formCsrfInput.value = input.value;
+                        console.log('CSRF token set from page input:', input.value);
+                        return true;
+                    }}
+                }}
+
+                alert('CSRF 토큰을 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+                return false;
+            }}
         </script>
         '''
 
