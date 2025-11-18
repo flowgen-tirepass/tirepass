@@ -367,10 +367,21 @@ def api_products_erp(request):
             brand_logo_url = None
             product_brand_name = (goods.get('bun1') or '').strip()
 
-            if product_brand_name and product_brand_name in brand_performance_map:
+            # 한글 브랜드명을 영문으로 변환 (BRAND_MAPPING 활용)
+            normalized_brand_name = product_brand_name
+            for eng_brand, mapping in BRAND_MAPPING.items():
+                if product_brand_name in mapping['keywords']:
+                    # Brand 모델에서 실제 브랜드명 찾기
+                    for brand_key in all_brands.keys():
+                        if brand_key.upper() == eng_brand.upper():
+                            normalized_brand_name = brand_key
+                            break
+                    break
+
+            if normalized_brand_name and normalized_brand_name in brand_performance_map:
                 # 패턴 매칭 시도 (상품명에서 패턴명 찾기)
                 matched_performance = None
-                brand_patterns_dict = brand_performance_map[product_brand_name]['patterns']
+                brand_patterns_dict = brand_performance_map[normalized_brand_name]['patterns']
 
                 # 상품명에서 패턴명 검색 (가장 긴 패턴명부터 매칭)
                 sorted_patterns = sorted(brand_patterns_dict.keys(), key=len, reverse=True)
