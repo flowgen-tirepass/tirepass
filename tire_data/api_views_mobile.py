@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
 from .erp_api_client import ERPAPIClient
-from .models import YearAllocation, ShoppingCart, Customers, PaymentMethod
+from .models import YearAllocation, ShoppingCart, Customers, PaymentMethod, GoodsDisplayName, Brand, BrandPattern
 import json
 import logging
 import requests
@@ -261,6 +261,32 @@ def api_products_erp(request):
         year_allocations_list = YearAllocation.objects.filter(goods_code__in=goods_codes)
         year_allocations = {ya.goods_code: ya for ya in year_allocations_list}
 
+        # GoodsDisplayName 정보 가져오기 (한글명/영문명)
+        display_names = {dn.goods_code: dn for dn in GoodsDisplayName.objects.filter(goods_code__in=goods_codes)}
+
+        # 브랜드/패턴별 성능표시 정보 가져오기 (BrandPattern 기반)
+        # 1. 활성화된 모든 브랜드 조회 (브랜드명 매칭용)
+        all_brands = {brand.name: brand for brand in Brand.objects.filter(is_active=True)}
+
+        # 2. 모든 활성화된 브랜드 패턴 조회 (성능표시 포함)
+        brand_patterns = BrandPattern.objects.filter(
+            is_active=True
+        ).select_related('brand')
+
+        # 3. 브랜드별, 패턴별로 그룹화
+        brand_performance_map = {}
+        for bp in brand_patterns:
+            brand_name = bp.brand.name
+            pattern_name = bp.pattern_name
+
+            if brand_name not in brand_performance_map:
+                brand_performance_map[brand_name] = {
+                    'patterns': {}     # 패턴별
+                }
+
+            # 패턴별 성능표시 저장
+            brand_performance_map[brand_name]['patterns'][pattern_name] = bp
+
         # 결과 구성
         products = []
         for goods in products_page:
@@ -331,15 +357,48 @@ def api_products_erp(request):
                         'price': price_2021
                     })
 
+            # 한글명/영문명 가져오기
+            dn = display_names.get(code)
+            korean_name = dn.korean_name if dn else None
+            english_name = dn.english_name if dn else None
+
+            # 브랜드/패턴별 성능표시 찾기
+            brand_performance_boxes = []
+            brand_logo_url = None
+            product_brand_name = (goods.get('bun1') or '').strip()
+
+            if product_brand_name and product_brand_name in brand_performance_map:
+                # 패턴 매칭 시도 (상품명에서 패턴명 찾기)
+                matched_performance = None
+                brand_patterns_dict = brand_performance_map[product_brand_name]['patterns']
+
+                # 상품명에서 패턴명 검색 (가장 긴 패턴명부터 매칭)
+                sorted_patterns = sorted(brand_patterns_dict.keys(), key=len, reverse=True)
+                product_name = goods.get('name', '')
+                for pattern_name in sorted_patterns:
+                    if pattern_name in product_name or pattern_name in (korean_name or ''):
+                        matched_performance = brand_patterns_dict[pattern_name]
+                        break
+
+                # 성능표시 박스 생성
+                if matched_performance:
+                    brand_performance_boxes = matched_performance.get_performance_boxes()
+                    # 브랜드 로고는 Brand 모델에서 가져옴 (이미지 URL)
+                    brand_logo_url = matched_performance.brand.logo_url
+
             products.append({
                 'code': code,
                 'name': goods.get('name', ''),
+                'korean_name': korean_name,
+                'english_name': english_name,
                 'brand': goods.get('bun1', ''),
                 'price': int(goods.get('fixp', 0)),
                 'discount_rate': base_discount,
                 'stock': int(goods.get('jaego', 0)),
                 'brand_logo': f"/static/mobile/img/brands/{goods.get('bun1', 'default').lower()}.png",
-                'dot_inventory': dot_inventory
+                'dot_inventory': dot_inventory,
+                'brand_performance_boxes': brand_performance_boxes,
+                'brand_logo_url': brand_logo_url
             })
 
         return JsonResponse({
