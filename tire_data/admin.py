@@ -950,8 +950,6 @@ class CustomersAdmin(admin.ModelAdmin):
         """포인트 지급/차감 폼 표시"""
         from django.utils.html import format_html
         from django.urls import reverse
-        from django.middleware.csrf import get_token
-        from django.template import Context, Template
 
         if not obj.pk:
             return '고객을 먼저 저장해주세요.'
@@ -970,8 +968,8 @@ class CustomersAdmin(admin.ModelAdmin):
                 <strong style="font-size: 14px;">현재 잔액: <span style="color: #2563eb;">{balance:,}P</span></strong>
             </div>
 
-            <form method="post" action="{adjust_url}" id="point-adjust-form" style="display: flex; flex-direction: column; gap: 12px;">
-                <input type="hidden" name="csrfmiddlewaretoken" value="{{{{ csrf_token }}}}">
+            <form method="post" action="{adjust_url}" id="point-adjust-form-{obj.pk}" style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="hidden" name="csrfmiddlewaretoken" value="" class="csrf-token-field">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div>
                         <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">포인트 금액</label>
@@ -1012,18 +1010,18 @@ class CustomersAdmin(admin.ModelAdmin):
         </div>
         <script>
             // CSRF 토큰 자동 설정
-            document.addEventListener('DOMContentLoaded', function() {{
-                const form = document.getElementById('point-adjust-form');
+            (function() {{
+                const form = document.getElementById('point-adjust-form-{obj.pk}');
                 if (form) {{
-                    const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
-                    if (csrfInput) {{
-                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-                        if (csrfToken) {{
-                            csrfInput.value = csrfToken;
-                        }}
+                    // Django admin 페이지의 CSRF 토큰 가져오기
+                    const mainCsrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                    const formCsrfInput = form.querySelector('.csrf-token-field');
+
+                    if (mainCsrfInput && formCsrfInput) {{
+                        formCsrfInput.value = mainCsrfInput.value;
                     }}
                 }}
-            }});
+            }})();
         </script>
         '''
 
