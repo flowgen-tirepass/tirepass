@@ -970,21 +970,20 @@ class CustomersAdmin(admin.ModelAdmin):
 
             <form method="post" action="{adjust_url}" id="point-adjust-form-{obj.pk}" style="display: flex; flex-direction: column; gap: 12px;">
                 <input type="hidden" name="csrfmiddlewaretoken" value="" class="csrf-token-field">
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
-                    <div>
-                        <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">포인트 금액</label>
-                        <input type="number" name="amount" required
-                               style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;"
-                               placeholder="예: 10000" min="1">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">유형</label>
-                        <select name="action_type" required
-                                style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;">
-                            <option value="add">➕ 지급</option>
-                            <option value="subtract">➖ 차감</option>
-                        </select>
-                    </div>
+                <div>
+                    <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">포인트 금액</label>
+                    <input type="number" name="amount" required
+                           style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;"
+                           placeholder="예: 10000" min="1">
+                </div>
+
+                <div>
+                    <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">유형</label>
+                    <select name="action_type" required
+                            style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;">
+                        <option value="add">➕ 포인트 지급</option>
+                        <option value="subtract">➖ 포인트 차감</option>
+                    </select>
                 </div>
 
                 <div>
