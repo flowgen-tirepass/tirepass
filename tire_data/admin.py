@@ -968,21 +968,20 @@ class CustomersAdmin(admin.ModelAdmin):
         html = f'''
         <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb;">
             <div style="margin-bottom: 12px;">
-                <strong style="font-size: 14px;">현재 잔액: <span style="color: #2563eb;">{balance:,}P</span></strong>
+                <strong style="font-size: 14px;">현재 잔액: <span style="color: #2563eb;" id="balance-{obj.pk}">{balance:,}P</span></strong>
             </div>
 
-            <form method="post" action="{adjust_url}" id="point-adjust-form-{obj.pk}" style="display: flex; flex-direction: column; gap: 12px;" onsubmit="return setCsrfBeforeSubmit(this);">
-                <input type="hidden" name="csrfmiddlewaretoken" value="" class="csrf-token-field">
+            <div id="point-adjust-form-{obj.pk}" style="display: flex; flex-direction: column; gap: 12px;">
                 <div>
                     <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">포인트 금액</label>
-                    <input type="number" name="amount" required
+                    <input type="number" id="amount-{obj.pk}" required
                            style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; font-size: 14px;"
                            placeholder="예: 10000" min="1">
                 </div>
 
                 <div>
                     <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">유형</label>
-                    <select name="action_type" required
+                    <select id="action-type-{obj.pk}" required
                             style="width: 100%; padding: 12px 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; font-size: 14px; height: 44px; line-height: 20px;">
                         <option value="add">➕ 포인트 지급</option>
                         <option value="subtract">➖ 포인트 차감</option>
@@ -991,17 +990,18 @@ class CustomersAdmin(admin.ModelAdmin):
 
                 <div>
                     <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">사유</label>
-                    <input type="text" name="description" required
+                    <input type="text" id="description-{obj.pk}" required
                            style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box; font-size: 14px;"
                            placeholder="예: 11월 이벤트 보상, 관리자 조정 등">
                 </div>
 
-                <button type="submit"
+                <button type="button" onclick="submitPointAdjustment('{obj.pk}', '{adjust_url}')"
                         style="background: #2563eb; color: white; padding: 10px 16px; border: none;
                                border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 14px;">
                     포인트 적용
                 </button>
-            </form>
+                <div id="message-{obj.pk}" style="display: none; padding: 10px; border-radius: 4px; font-size: 13px; margin-top: 8px;"></div>
+            </div>
 
             <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
                 <a href="/admin/tire_data/pointtransaction/?customer__code={obj.code}"
@@ -1011,50 +1011,76 @@ class CustomersAdmin(admin.ModelAdmin):
             </div>
         </div>
         <script>
-            // 폼 제출 전에 CSRF 토큰 설정
-            function setCsrfBeforeSubmit(form) {{
-                const formCsrfInput = form.querySelector('.csrf-token-field');
-                if (!formCsrfInput) {{
-                    alert('CSRF 토큰 필드를 찾을 수 없습니다.');
-                    return false;
+            function submitPointAdjustment(customerId, adjustUrl) {{
+                const amount = document.getElementById('amount-' + customerId).value;
+                const actionType = document.getElementById('action-type-' + customerId).value;
+                const description = document.getElementById('description-' + customerId).value;
+                const messageDiv = document.getElementById('message-' + customerId);
+
+                // 유효성 검사
+                if (!amount || amount <= 0) {{
+                    alert('포인트 금액을 입력해주세요.');
+                    return;
+                }}
+                if (!description) {{
+                    alert('사유를 입력해주세요.');
+                    return;
                 }}
 
-                // 방법 1: Django admin의 메인 폼에서 CSRF 토큰 가져오기
-                const mainForms = document.querySelectorAll('form');
-                for (let mainForm of mainForms) {{
-                    if (mainForm.id !== form.id) {{
-                        const mainCsrfInput = mainForm.querySelector('input[name="csrfmiddlewaretoken"]');
-                        if (mainCsrfInput && mainCsrfInput.value) {{
-                            formCsrfInput.value = mainCsrfInput.value;
-                            console.log('CSRF token set from main form:', mainCsrfInput.value);
-                            return true;
+                // CSRF 토큰 가져오기
+                function getCsrfToken() {{
+                    // 방법 1: 쿠키에서
+                    const cookies = document.cookie.split('; ');
+                    for (let cookie of cookies) {{
+                        if (cookie.startsWith('csrftoken=')) {{
+                            return cookie.split('=')[1];
                         }}
                     }}
-                }}
-
-                // 방법 2: 쿠키에서 CSRF 토큰 가져오기
-                const cookies = document.cookie.split('; ');
-                for (let cookie of cookies) {{
-                    if (cookie.startsWith('csrftoken=')) {{
-                        const token = cookie.split('=')[1];
-                        formCsrfInput.value = token;
-                        console.log('CSRF token set from cookie:', token);
-                        return true;
+                    // 방법 2: 페이지의 input에서
+                    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                    if (csrfInput) {{
+                        return csrfInput.value;
                     }}
+                    return null;
                 }}
 
-                // 방법 3: 페이지의 모든 csrfmiddlewaretoken 검색
-                const allCsrfInputs = document.querySelectorAll('input[name="csrfmiddlewaretoken"]');
-                for (let input of allCsrfInputs) {{
-                    if (input.value && input !== formCsrfInput) {{
-                        formCsrfInput.value = input.value;
-                        console.log('CSRF token set from page input:', input.value);
-                        return true;
+                const csrfToken = getCsrfToken();
+
+                // AJAX 요청
+                fetch(adjustUrl, {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': csrfToken
+                    }},
+                    body: `amount=${{amount}}&action_type=${{actionType}}&description=${{encodeURIComponent(description)}}`
+                }})
+                .then(response => response.json())
+                .then(data => {{
+                    messageDiv.style.display = 'block';
+                    if (data.success) {{
+                        messageDiv.style.background = '#d1fae5';
+                        messageDiv.style.color = '#065f46';
+                        messageDiv.textContent = data.message;
+                        // 잔액 업데이트
+                        if (data.new_balance !== undefined) {{
+                            document.getElementById('balance-' + customerId).textContent = data.new_balance.toLocaleString() + 'P';
+                        }}
+                        // 입력 필드 초기화
+                        document.getElementById('amount-' + customerId).value = '';
+                        document.getElementById('description-' + customerId).value = '';
+                    }} else {{
+                        messageDiv.style.background = '#fee2e2';
+                        messageDiv.style.color = '#991b1b';
+                        messageDiv.textContent = '❌ ' + data.message;
                     }}
-                }}
-
-                alert('CSRF 토큰을 찾을 수 없습니다. 페이지를 새로고침해주세요.');
-                return false;
+                }})
+                .catch(error => {{
+                    messageDiv.style.display = 'block';
+                    messageDiv.style.background = '#fee2e2';
+                    messageDiv.style.color = '#991b1b';
+                    messageDiv.textContent = '❌ 오류 발생: ' + error.message;
+                }});
             }}
         </script>
         '''

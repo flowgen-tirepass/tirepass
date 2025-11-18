@@ -319,8 +319,7 @@ def adjust_customer_points_view(request, customer_id):
         return redirect('/admin/')
 
     if request.method != 'POST':
-        messages.error(request, '잘못된 요청입니다.')
-        return redirect('admin:tire_data_customers_change', customer_id)
+        return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=400)
 
     customer = get_object_or_404(Customers, pk=customer_id)
 
@@ -330,12 +329,10 @@ def adjust_customer_points_view(request, customer_id):
         description = request.POST.get('description', '')
 
         if amount <= 0:
-            messages.error(request, '포인트 금액은 0보다 커야 합니다.')
-            return redirect('admin:tire_data_customers_change', customer_id)
+            return JsonResponse({'success': False, 'message': '포인트 금액은 0보다 커야 합니다.'}, status=400)
 
         if not description:
-            messages.error(request, '사유를 입력해주세요.')
-            return redirect('admin:tire_data_customers_change', customer_id)
+            return JsonResponse({'success': False, 'message': '사유를 입력해주세요.'}, status=400)
 
         # CustomerPoint 가져오거나 생성
         customer_point, created = CustomerPoint.objects.get_or_create(customer=customer)
@@ -348,22 +345,30 @@ def adjust_customer_points_view(request, customer_id):
                 description=f'[관리자 지급] {description}',
                 order_code=None
             )
-            messages.success(request, f'✅ {customer.name}님에게 {amount:,}P를 지급했습니다. (현재 잔액: {customer_point.balance:,}P)')
+            return JsonResponse({
+                'success': True,
+                'message': f'✅ {customer.name}님에게 {amount:,}P를 지급했습니다.',
+                'new_balance': customer_point.balance
+            })
 
         elif action_type == 'subtract':
             # 포인트 차감
             if amount > customer_point.balance:
-                messages.error(request, f'❌ 차감할 포인트({amount:,}P)가 현재 잔액({customer_point.balance:,}P)보다 많습니다.')
-                return redirect('admin:tire_data_customers_change', customer_id)
+                return JsonResponse({
+                    'success': False,
+                    'message': f'차감할 포인트({amount:,}P)가 현재 잔액({customer_point.balance:,}P)보다 많습니다.'
+                }, status=400)
 
             customer_point.use_points(
                 amount=amount,
                 description=f'[관리자 차감] {description}',
                 order_code=None
             )
-            messages.success(request, f'✅ {customer.name}님의 포인트 {amount:,}P를 차감했습니다. (현재 잔액: {customer_point.balance:,}P)')
+            return JsonResponse({
+                'success': True,
+                'message': f'✅ {customer.name}님의 포인트 {amount:,}P를 차감했습니다.',
+                'new_balance': customer_point.balance
+            })
 
     except Exception as e:
-        messages.error(request, f'❌ 포인트 조정 중 오류가 발생했습니다: {str(e)}')
-
-    return redirect('admin:tire_data_customers_change', customer_id)
+        return JsonResponse({'success': False, 'message': f'포인트 조정 중 오류가 발생했습니다: {str(e)}'}, status=500)
