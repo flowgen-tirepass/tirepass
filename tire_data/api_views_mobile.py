@@ -266,9 +266,70 @@ def api_products_erp(request):
         for goods in products_page:
             code = goods.get('code')
             base_discount = 0.00
+            ya = year_allocations.get(code) if code else None
 
-            if code and code in year_allocations:
-                base_discount = float(year_allocations[code].base_discount)
+            if ya:
+                base_discount = float(ya.base_discount)
+
+            # DOT 재고 정보 구성
+            dot_inventory = []
+            if ya:
+                base_price = int(goods.get('fixp', 0))
+
+                # 2025년 (DOT 할인 없음, 상품 기본할인만)
+                if ya.year_2025 > 0:
+                    total_discount_2025 = base_discount
+                    price_2025 = int(base_price * (1 - total_discount_2025 / 100))
+                    dot_inventory.append({
+                        'year': 2025,
+                        'stock': ya.year_2025,
+                        'discount': total_discount_2025,
+                        'price': price_2025
+                    })
+
+                # 2024년
+                if ya.year_2024 > 0:
+                    total_discount_2024 = base_discount + float(ya.discount_2024)
+                    price_2024 = int(base_price * (1 - total_discount_2024 / 100))
+                    dot_inventory.append({
+                        'year': 2024,
+                        'stock': ya.year_2024,
+                        'discount': total_discount_2024,
+                        'price': price_2024
+                    })
+
+                # 2023년
+                if ya.year_2023 > 0:
+                    total_discount_2023 = base_discount + float(ya.discount_2023)
+                    price_2023 = int(base_price * (1 - total_discount_2023 / 100))
+                    dot_inventory.append({
+                        'year': 2023,
+                        'stock': ya.year_2023,
+                        'discount': total_discount_2023,
+                        'price': price_2023
+                    })
+
+                # 2022년
+                if ya.year_2022 > 0:
+                    total_discount_2022 = base_discount + float(ya.discount_2022)
+                    price_2022 = int(base_price * (1 - total_discount_2022 / 100))
+                    dot_inventory.append({
+                        'year': 2022,
+                        'stock': ya.year_2022,
+                        'discount': total_discount_2022,
+                        'price': price_2022
+                    })
+
+                # 2021년
+                if ya.year_2021 > 0:
+                    total_discount_2021 = base_discount + float(ya.discount_2021)
+                    price_2021 = int(base_price * (1 - total_discount_2021 / 100))
+                    dot_inventory.append({
+                        'year': 2021,
+                        'stock': ya.year_2021,
+                        'discount': total_discount_2021,
+                        'price': price_2021
+                    })
 
             products.append({
                 'code': code,
@@ -277,7 +338,8 @@ def api_products_erp(request):
                 'price': int(goods.get('fixp', 0)),
                 'discount_rate': base_discount,
                 'stock': int(goods.get('jaego', 0)),
-                'brand_logo': f"/static/mobile/img/brands/{goods.get('bun1', 'default').lower()}.png"
+                'brand_logo': f"/static/mobile/img/brands/{goods.get('bun1', 'default').lower()}.png",
+                'dot_inventory': dot_inventory
             })
 
         return JsonResponse({
