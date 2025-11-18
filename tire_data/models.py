@@ -1422,14 +1422,12 @@ class BrandPattern(models.Model):
         if self.performance:
             boxes.append(self.performance)
 
-        # 박스5: 계절 + ON/OFF로드
-        season_road = []
+        # 박스5: 계절 또는 ON/OFF로드 (하나만 표시)
+        # 우선순위: 계절 > 로드타입
         if self.season:
-            season_road.append(self.season)
-        if self.road_type:
-            season_road.append(self.road_type)
-        if season_road:
-            boxes.append(' / '.join(season_road))
+            boxes.append(self.season)
+        elif self.road_type:
+            boxes.append(self.road_type)
 
         return boxes
 

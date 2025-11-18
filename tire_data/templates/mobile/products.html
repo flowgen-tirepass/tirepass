@@ -16,25 +16,27 @@
 }
 
 .brand-logo-container {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    margin-bottom: clamp(8px, 2vw, 10px);
-    width: 100%;
+    position: absolute;
+    top: clamp(10px, 3vw, 15px);
+    left: clamp(10px, 3vw, 15px);
+    width: 20%;
+    aspect-ratio: 1.43 / 1;
 }
 
 .brand-logo-container img {
-    width: 20%;
-    aspect-ratio: 1.43 / 1;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
 }
 
 .performance-tags {
+    position: absolute;
+    top: clamp(10px, 3vw, 15px);
+    right: clamp(10px, 3vw, 15px);
     display: flex;
     gap: clamp(2px, 0.5vw, 3px);
-    margin-bottom: clamp(10px, 3vw, 15px);
-    width: 100%;
-    justify-content: flex-start;
+    max-width: calc(75% - clamp(10px, 3vw, 15px));
+    justify-content: flex-end;
     flex-wrap: nowrap;
 }
 
