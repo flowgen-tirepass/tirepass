@@ -19,8 +19,12 @@ class AdminPointsCSRFExemptMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
+
         # Admin 포인트 조정 URL인 경우 CSRF 검증 제외
         if '/admin/adjust-points/' in request.path:
+            logger.info(f"🔓 CSRF 검증 제외: {request.path} (method: {request.method})")
             setattr(request, '_dont_enforce_csrf_checks', True)
 
         response = self.get_response(request)
