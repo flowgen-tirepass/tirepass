@@ -347,7 +347,7 @@ def adjust_customer_points_view(request, customer_id):
             )
             return JsonResponse({
                 'success': True,
-                'message': f'✅ {customer.name}님에게 {amount:,}P를 지급했습니다.',
+                'message': f'✅ {customer.name}님에게 {amount}P를 지급했습니다.',
                 'new_balance': customer_point.balance
             })
 
@@ -356,7 +356,7 @@ def adjust_customer_points_view(request, customer_id):
             if amount > customer_point.balance:
                 return JsonResponse({
                     'success': False,
-                    'message': f'차감할 포인트({amount:,}P)가 현재 잔액({customer_point.balance:,}P)보다 많습니다.'
+                    'message': f'차감할 포인트({amount}P)가 현재 잔액({customer_point.balance}P)보다 많습니다.'
                 }, status=400)
 
             customer_point.use_points(
@@ -366,7 +366,7 @@ def adjust_customer_points_view(request, customer_id):
             )
             return JsonResponse({
                 'success': True,
-                'message': f'✅ {customer.name}님의 포인트 {amount:,}P를 차감했습니다.',
+                'message': f'✅ {customer.name}님의 포인트 {amount}P를 차감했습니다.',
                 'new_balance': customer_point.balance
             })
 
