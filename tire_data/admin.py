@@ -962,10 +962,8 @@ class CustomersAdmin(admin.ModelAdmin):
         except:
             balance = 0
 
-        # CSRF 토큰 생성 (현재 요청에서 가져오기)
-        # Admin 페이지는 ModelAdmin의 컨텍스트에서 렌더링되므로
-        # 템플릿 태그를 사용하는 대신 빈 값으로 두고 JavaScript로 설정
-        adjust_url = reverse('admin:adjust_customer_points', args=[obj.pk])
+        # 포인트 조정 URL (일반 URL 패턴 사용, CSRF는 미들웨어에서 처리)
+        adjust_url = reverse('admin_adjust_customer_points', args=[obj.pk])
 
         html = f'''
         <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb;">

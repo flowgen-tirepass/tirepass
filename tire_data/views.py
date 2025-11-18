@@ -298,3 +298,72 @@ def save_discount_rate(request):
             }, status=400)
 
     return JsonResponse({'success': False, 'message': 'POST 요청만 허용됩니다.'}, status=405)
+
+def adjust_customer_points_view(request, customer_id):
+    """
+    고객 포인트 조정 뷰
+
+    CSRF 검증은 AdminPointsCSRFExemptMiddleware에서 우회
+    """
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages
+    from tire_data.models import Customers, CustomerPoint
+
+    # Admin 로그인 및 권한 체크
+    if not request.user.is_authenticated:
+        messages.error(request, '로그인이 필요합니다.')
+        return redirect('/admin/login/')
+
+    if not request.user.is_staff:
+        messages.error(request, 'Staff 권한이 필요합니다.')
+        return redirect('/admin/')
+
+    if request.method != 'POST':
+        messages.error(request, '잘못된 요청입니다.')
+        return redirect('admin:tire_data_customers_change', customer_id)
+
+    customer = get_object_or_404(Customers, pk=customer_id)
+
+    try:
+        amount = int(request.POST.get('amount', 0))
+        action_type = request.POST.get('action_type', 'add')
+        description = request.POST.get('description', '')
+
+        if amount <= 0:
+            messages.error(request, '포인트 금액은 0보다 커야 합니다.')
+            return redirect('admin:tire_data_customers_change', customer_id)
+
+        if not description:
+            messages.error(request, '사유를 입력해주세요.')
+            return redirect('admin:tire_data_customers_change', customer_id)
+
+        # CustomerPoint 가져오거나 생성
+        customer_point, created = CustomerPoint.objects.get_or_create(customer=customer)
+
+        if action_type == 'add':
+            # 포인트 지급
+            customer_point.add_points(
+                amount=amount,
+                transaction_type='EARN_ADMIN',
+                description=f'[관리자 지급] {description}',
+                order_code=None
+            )
+            messages.success(request, f'✅ {customer.name}님에게 {amount:,}P를 지급했습니다. (현재 잔액: {customer_point.balance:,}P)')
+
+        elif action_type == 'subtract':
+            # 포인트 차감
+            if amount > customer_point.balance:
+                messages.error(request, f'❌ 차감할 포인트({amount:,}P)가 현재 잔액({customer_point.balance:,}P)보다 많습니다.')
+                return redirect('admin:tire_data_customers_change', customer_id)
+
+            customer_point.use_points(
+                amount=amount,
+                description=f'[관리자 차감] {description}',
+                order_code=None
+            )
+            messages.success(request, f'✅ {customer.name}님의 포인트 {amount:,}P를 차감했습니다. (현재 잔액: {customer_point.balance:,}P)')
+
+    except Exception as e:
+        messages.error(request, f'❌ 포인트 조정 중 오류가 발생했습니다: {str(e)}')
+
+    return redirect('admin:tire_data_customers_change', customer_id)

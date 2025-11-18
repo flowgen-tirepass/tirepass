@@ -14,6 +14,9 @@ urlpatterns = [
     # Admin 로그아웃 오버라이드
     path('admin/logout/', admin_logout_view, name='admin_logout'),
 
+    # Admin 포인트 조정 (CSRF exempt는 미들웨어에서 처리)
+    path('admin/adjust-points/<str:customer_id>/', views.adjust_customer_points_view, name='admin_adjust_customer_points'),
+
     # Mobile Web URLs (tire_data 원래 모바일 시스템)
     path('mobile/', mobile_views.mobile_intro, name='mobile_intro'),
     path('mobile/home/', mobile_views.mobile_home, name='mobile_home'),
