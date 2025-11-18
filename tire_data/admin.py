@@ -2538,7 +2538,7 @@ class TirePassAdminSite(admin.AdminSite):
         from django.urls import path
         urls = super().get_urls()
         custom_urls = [
-            path('adjust-points/<int:customer_id>/', self.admin_view(self.adjust_customer_points_view), name='adjust_customer_points'),
+            path('adjust-points/<str:customer_id>/', self.admin_view(self.adjust_customer_points_view), name='adjust_customer_points'),
         ]
         return custom_urls + urls
 
