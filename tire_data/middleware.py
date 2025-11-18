@@ -1,9 +1,30 @@
 """
-읽기 전용 모드 미들웨어
+TirePass 커스텀 미들웨어
 """
 from django.conf import settings
 from django.http import HttpResponseForbidden
 from django.contrib import messages
+
+
+class AdminPointsCSRFExemptMiddleware:
+    """
+    Admin 포인트 조정 URL에 대해 CSRF 검증 제외
+
+    보안:
+    - Admin 로그인 필수 (뷰에서 체크)
+    - Staff 권한 필수 (뷰에서 체크)
+    - 특정 URL만 제외
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Admin 포인트 조정 URL인 경우 CSRF 검증 제외
+        if '/admin/adjust-points/' in request.path:
+            setattr(request, '_dont_enforce_csrf_checks', True)
+
+        response = self.get_response(request)
+        return response
 
 
 class ReadOnlyMiddleware:
