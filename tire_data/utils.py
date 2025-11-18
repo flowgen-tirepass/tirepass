@@ -155,7 +155,7 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
 
 def get_customer_discount(customer_code, product):
     """
-    고객별 브랜드/그룹 할인율 조회
+    고객별 브랜드/패턴 할인율 조회
 
     Args:
         customer_code: 고객 코드
@@ -164,30 +164,41 @@ def get_customer_discount(customer_code, product):
     Returns:
         Decimal: 할인율 (0.00 ~ 100.00)
     """
-    brand = product.bun1
-    if not brand:
+    brand_name = product.bun1
+    if not brand_name:
         return Decimal('0.00')
 
-    # 상품이 속한 그룹 찾기
-    product_groups = find_product_groups(product)
+    # Brand 모델에서 브랜드 찾기
+    try:
+        from .models import Brand, BrandPattern, CustomerBrandDiscount
+        brand = Brand.objects.get(name=brand_name, is_active=True)
+    except Brand.DoesNotExist:
+        return Decimal('0.00')
 
-    # 고객 할인 정보 조회 (우선순위 높은 순)
-    discounts = CustomerDiscount.objects.filter(
-        customer_code=customer_code,
+    # 고객별 브랜드 할인 조회 (우선순위: 패턴 할인 > 브랜드 전체 할인)
+    discounts = CustomerBrandDiscount.objects.filter(
+        customer__code=customer_code,
         brand=brand,
         is_active=True
     ).order_by('-priority')
 
+    # 1. 패턴별 할인 찾기 (상품명에 패턴명이 포함된 경우)
     for discount in discounts:
         if not discount.is_valid:
             continue
 
-        # 그룹이 지정된 경우
-        if discount.group:
-            if discount.group.id in product_groups:
+        if discount.pattern:
+            # 상품명이나 코드에 패턴명이 포함되어 있는지 확인
+            pattern_name = discount.pattern.pattern_name
+            if pattern_name and (pattern_name in product.name or pattern_name in product.code):
                 return discount.discount_rate
-        # 브랜드 전체 할인
-        else:
+
+    # 2. 브랜드 전체 할인 찾기
+    for discount in discounts:
+        if not discount.is_valid:
+            continue
+
+        if not discount.pattern:  # 패턴이 지정되지 않은 경우 = 브랜드 전체 할인
             return discount.discount_rate
 
     return Decimal('0.00')
