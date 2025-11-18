@@ -19,15 +19,15 @@
     position: absolute;
     top: clamp(10px, 3vw, 15px);
     right: clamp(10px, 3vw, 15px);
-    width: clamp(70px, 20vw, 100px);
-    height: clamp(40px, 12vw, 60px);
+    width: clamp(35px, 10vw, 50px);
+    height: clamp(20px, 6vw, 30px);
 }
 
 .performance-tags {
     display: flex;
     gap: clamp(3px, 0.8vw, 4px);
     margin-bottom: clamp(10px, 3vw, 15px);
-    max-width: 100%;
+    max-width: calc(100% - clamp(40px, 12vw, 60px));
     justify-content: flex-start;
     flex-wrap: wrap;
 }
