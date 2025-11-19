@@ -44,10 +44,10 @@
 .performance-tag {
     flex: 0 1 auto;
     min-width: 0;
-    padding: clamp(4px, 1.2vw, 5px) clamp(6px, 1.5vw, 8px);
+    padding: clamp(6px, 1.8vw, 8px) clamp(9px, 2.2vw, 12px);
     border: 1.5px solid #1f2937;
-    border-radius: clamp(3px, 0.8vw, 5px);
-    font-size: clamp(8px, 2.2vw, 9px);
+    border-radius: clamp(4px, 1.2vw, 7px);
+    font-size: clamp(12px, 3.3vw, 14px);
     font-weight: 600;
     background: white;
     text-align: center;
@@ -55,13 +55,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: clamp(20px, 6vw, 24px);
+    min-height: clamp(30px, 9vw, 36px);
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .product-title-container {
-    margin-top: clamp(50px, 15vw, 70px);
+    margin-top: clamp(60px, 18vw, 85px);
     margin-bottom: clamp(10px, 3vw, 15px);
     padding-right: 0;
     width: 100%;
@@ -76,24 +76,24 @@
 }
 
 .product-name {
-    font-size: clamp(11px, 3.5vw, 19px);
+    font-size: clamp(16px, 5vw, 28px);
     font-weight: 700;
     color: #000;
     line-height: 1.3;
     white-space: nowrap;
     display: block;
-    width: 100%;
+    width: calc(100% - clamp(70px, 18vw, 95px));
 }
 
 .product-name-english {
-    font-size: clamp(11px, 3vw, 14px);
+    font-size: clamp(8px, 2.5vw, 14px);
     font-weight: 400;
     color: #374151;
     margin-top: 4px;
     line-height: 1.4;
     white-space: nowrap;
     display: block;
-    width: 100%;
+    width: calc(100% - clamp(70px, 18vw, 95px));
 }
 
 .dot-button {
@@ -930,34 +930,28 @@ function adjustProductNameFontSize() {
     // 한글명 조절
     const koreanNames = document.querySelectorAll('.product-name');
     koreanNames.forEach(element => {
-        const container = element.parentElement;
-        const maxWidth = container.offsetWidth - 10; // 10px 여백
+        const availableWidth = element.offsetWidth;
 
-        // 초기 폰트 크기 설정 (최대값)
-        let fontSize = 19;
+        // 초기 폰트 크기 설정 (최대값 28px)
+        let fontSize = 28;
         element.style.fontSize = fontSize + 'px';
 
-        // 텍스트가 넘치면 폰트 크기를 줄임
-        while (element.scrollWidth > maxWidth && fontSize > 11) {
+        // 텍스트가 넘치면 폰트 크기를 줄임 (최소 16px)
+        while (element.scrollWidth > availableWidth && fontSize > 16) {
             fontSize -= 0.5;
             element.style.fontSize = fontSize + 'px';
         }
     });
 
-    // 영문명 조절
+    // 영문명 조절 (한글명의 1/2 크기)
     const englishNames = document.querySelectorAll('.product-name-english');
-    englishNames.forEach(element => {
-        const container = element.parentElement;
-        const maxWidth = container.offsetWidth - 10; // 10px 여백
-
-        // 초기 폰트 크기 설정 (최대값)
-        let fontSize = 14;
-        element.style.fontSize = fontSize + 'px';
-
-        // 텍스트가 넘치면 폰트 크기를 줄임
-        while (element.scrollWidth > maxWidth && fontSize > 10) {
-            fontSize -= 0.5;
-            element.style.fontSize = fontSize + 'px';
+    englishNames.forEach((element, index) => {
+        const koreanElement = koreanNames[index];
+        if (koreanElement) {
+            // 한글명의 현재 폰트 크기를 가져와서 1/2로 설정
+            const koreanFontSize = parseFloat(window.getComputedStyle(koreanElement).fontSize);
+            const englishFontSize = Math.max(8, koreanFontSize / 2);
+            element.style.fontSize = englishFontSize + 'px';
         }
     });
 }
