@@ -735,7 +735,8 @@ async function loadProducts(page = 1) {
             page_size: 10,
             tire_only: tireOnly,
             in_stock: inStock,
-            search: searchQuery
+            search: searchQuery,
+            customer_code: customerCode  // 고객 코드 추가 (최종 할인가 계산용)
         });
 
         // 다중 브랜드 필터 추가
@@ -805,7 +806,8 @@ function renderProducts(products) {
         const tireSize = extractTireSize(product.name);
         const discount = product.discount_rate || 0;
         const originalPrice = product.price || 0;
-        const discountedPrice = discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice;
+        // final_price가 있으면 사용 (기본+브랜드패턴+고객상품추가할인 적용된 가격), 없으면 계산
+        const discountedPrice = product.final_price || (discount > 0 ? Math.round(originalPrice * (1 - discount / 100)) : originalPrice);
         // brand_logo_url 우선 사용 (Brand 모델의 실제 업로드 로고), 없으면 brand_logo 사용
         const brandLogo = product.brand_logo_url || getBrandLogo(product.brand, product.brand_logo);
 
