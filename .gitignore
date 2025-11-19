@@ -32,10 +32,14 @@ db.sqlite3-journal
 staticfiles/
 media/
 
-# Environment variables
+# Environment variables (보안 중요!)
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+*.env
+!.env.example
 
 # IDE
 .vscode/

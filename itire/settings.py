@@ -13,23 +13,34 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-tirepass-2024-secret-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'  # 기본값 False로 변경 (보안 강화)
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*,localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'tirepass.pythonanywhere.com,localhost,127.0.0.1').split(',')
 
 # ============================================
-# Toss Payments 설정 (실제 운영 키)
+# Toss Payments 설정
+# ⚠️ 보안: 환경변수 필수 설정 (기본값 제거)
 # ============================================
-TOSS_PAYMENTS_CLIENT_KEY = os.environ.get('TOSS_PAYMENTS_CLIENT_KEY', 'live_ck_jExPeJWYVQ1zDYG7N7PEV49R5gvN')
-TOSS_PAYMENTS_SECRET_KEY = os.environ.get('TOSS_PAYMENTS_SECRET_KEY', 'live_sk_ex6BJGQOVDxgWD1LEMnaVW4w2zNb')
-TOSS_PAYMENTS_SECURITY_KEY = os.environ.get('TOSS_PAYMENTS_SECURITY_KEY', 'bddf753aff5f8aadb8aec10a1da97cae1cf5b06494ae82d18683e9a339e56971')
+TOSS_PAYMENTS_CLIENT_KEY = os.environ.get('TOSS_PAYMENTS_CLIENT_KEY')
+TOSS_PAYMENTS_SECRET_KEY = os.environ.get('TOSS_PAYMENTS_SECRET_KEY')
+TOSS_PAYMENTS_SECURITY_KEY = os.environ.get('TOSS_PAYMENTS_SECURITY_KEY')
 TOSS_PAYMENTS_API_URL = 'https://api.tosspayments.com/v1'
+
+# 필수 환경변수 검증 (프로덕션 환경에서만)
+if not DEBUG:
+    if not TOSS_PAYMENTS_CLIENT_KEY or not TOSS_PAYMENTS_SECRET_KEY:
+        raise Exception('❌ TOSS_PAYMENTS_CLIENT_KEY와 TOSS_PAYMENTS_SECRET_KEY는 환경변수로 설정해야 합니다!')
 
 # ============================================
 # ERP 실시간 동기화 API 설정
+# ⚠️ 보안: 환경변수 필수 설정 (기본값 제거)
 # ============================================
 ERP_SYNC_API_URL = os.environ.get('ERP_SYNC_API_URL', 'http://itire2.iptime.org:8000')
-ERP_SYNC_API_KEY = os.environ.get('ERP_SYNC_API_KEY', 'tirepass_erp_sync_key_2024_change_in_production')
+ERP_SYNC_API_KEY = os.environ.get('ERP_SYNC_API_KEY')
+
+# 필수 환경변수 검증
+if not DEBUG and not ERP_SYNC_API_KEY:
+    raise Exception('❌ ERP_SYNC_API_KEY는 환경변수로 설정해야 합니다!')
 ERP_SYNC_TIMEOUT = 5  # 연결 타임아웃 (초)
 ERP_SYNC_RETRY_COUNT = 3  # 재시도 횟수
 ERP_SYNC_RETRY_DELAY = 2  # 재시도 대기 시간 (초)
