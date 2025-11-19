@@ -7,6 +7,7 @@ from django.views.decorators.http import require_http_methods
 from django.conf import settings
 from .erp_api_client import ERPAPIClient
 from .models import YearAllocation, ShoppingCart, Customers, PaymentMethod, GoodsDisplayName, Brand, BrandPattern
+from .utils import calculate_discount_price
 import json
 import logging
 import requests
@@ -53,6 +54,7 @@ def api_products_erp(request):
         search = request.GET.get('search', '')
         brand = request.GET.get('brand', '').lower()
         brands = request.GET.get('brands', '')  # 다중 브랜드 지원
+        customer_code = request.GET.get('customer_code', '')  # 고객 코드 추가
         page = int(request.GET.get('page', 1))
         page_size = int(request.GET.get('page_size', 20))
 
@@ -292,13 +294,26 @@ def api_products_erp(request):
         for goods in products_page:
             code = goods.get('code')
             base_discount = 0.00
-            ya = year_allocations.get(code) if code else None
+            final_discount_rate = 0.00
+            final_price = int(goods.get('fixp', 0))
 
-            if ya:
-                base_discount = float(ya.base_discount)
+            # 고객 코드가 있으면 최종 할인가 계산 (기본할인+브랜드패턴할인+고객상품추가할인)
+            if customer_code and code:
+                discount_info = calculate_discount_price(code, customer_code)
+                final_discount_rate = float(discount_info['total_discount_rate'])
+                final_price = discount_info['discounted_price']
+                base_discount = float(discount_info['basic_discount_rate'])
+            else:
+                # 고객 코드 없으면 기본할인만
+                ya = year_allocations.get(code) if code else None
+                if ya:
+                    base_discount = float(ya.base_discount)
+                    final_discount_rate = base_discount
+                    final_price = int(int(goods.get('fixp', 0)) * (1 - base_discount / 100))
 
             # DOT 재고 정보 구성
             dot_inventory = []
+            ya = year_allocations.get(code) if code else None
             if ya:
                 base_price = int(goods.get('fixp', 0))
 
@@ -404,7 +419,8 @@ def api_products_erp(request):
                 'english_name': english_name,
                 'brand': goods.get('bun1', ''),
                 'price': int(goods.get('fixp', 0)),
-                'discount_rate': base_discount,
+                'discount_rate': final_discount_rate,  # 최종 할인율 (기본+브랜드패턴+고객상품추가)
+                'final_price': final_price,  # 최종 할인가
                 'stock': int(goods.get('jaego', 0)),
                 'brand_logo': f"/static/mobile/img/brands/{goods.get('bun1', 'default').lower()}.png",
                 'dot_inventory': dot_inventory,
