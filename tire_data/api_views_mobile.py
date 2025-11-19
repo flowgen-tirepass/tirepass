@@ -299,10 +299,19 @@ def api_products_erp(request):
 
             # 고객 코드가 있으면 최종 할인가 계산 (기본할인+브랜드패턴할인+고객상품추가할인)
             if customer_code and code:
-                discount_info = calculate_discount_price(code, customer_code)
-                final_discount_rate = float(discount_info['total_discount_rate'])
-                final_price = discount_info['discounted_price']
-                base_discount = float(discount_info['basic_discount_rate'])
+                try:
+                    discount_info = calculate_discount_price(code, customer_code)
+                    final_discount_rate = float(discount_info['total_discount_rate'])
+                    final_price = discount_info['discounted_price']
+                    base_discount = float(discount_info['basic_discount_rate'])
+                except Exception as e:
+                    logger.error(f"할인가 계산 오류 (code={code}, customer={customer_code}): {str(e)}")
+                    # 오류 시 기본할인만 적용
+                    ya = year_allocations.get(code) if code else None
+                    if ya:
+                        base_discount = float(ya.base_discount)
+                        final_discount_rate = base_discount
+                        final_price = int(int(goods.get('fixp', 0)) * (1 - base_discount / 100))
             else:
                 # 고객 코드 없으면 기본할인만
                 ya = year_allocations.get(code) if code else None
