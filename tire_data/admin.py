@@ -1191,6 +1191,19 @@ class CustomersAdmin(admin.ModelAdmin):
             except Exception as e:
                 messages.warning(request, f'주문 업데이트 중 오류: {str(e)}')
 
+    def get_urls(self):
+        """커스텀 URL 추가 - 포인트 조정"""
+        from django.urls import path
+        from tire_data import views  # views.py의 AJAX 함수 사용
+
+        urls = super().get_urls()
+        custom_urls = [
+            path('<path:object_id>/adjust-points/',
+                 self.admin_view(views.adjust_customer_points_view),
+                 name='customers_adjust_points'),
+        ]
+        return custom_urls + urls
+
 
 @admin.register(PaymentMethod)
 class PaymentMethodAdmin(admin.ModelAdmin):
@@ -2585,9 +2598,6 @@ class TirePassAdminSite(admin.AdminSite):
     site_header = 'TirePASS 관리'
     site_title = 'TirePASS 관리자'
     index_title = 'TirePASS 관리 시스템'
-
-    # 포인트 조정은 tire_data/urls.py와 tire_data/views.py에서 처리
-    # (AdminPointsCSRFExemptMiddleware를 통해 CSRF 검증 제외)
 
     def get_app_list(self, request, app_label=None):
         """
