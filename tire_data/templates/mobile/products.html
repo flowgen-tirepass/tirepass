@@ -19,8 +19,9 @@
     position: absolute;
     top: clamp(10px, 3vw, 15px);
     left: clamp(10px, 3vw, 15px);
-    width: 20%;
+    width: clamp(60px, 15vw, 80px);
     aspect-ratio: 1.43 / 1;
+    max-width: 80px;
 }
 
 .brand-logo-container img {
@@ -823,10 +824,10 @@ function renderProducts(products) {
                 ${product.brand ? `<img src="${brandLogo}" alt="${product.brand}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.style.display='none'">` : ''}
             </div>
 
-            <!-- 성능 표시 (5개 박스: 브랜드명 + 분류1 + 상품등급 + 상품성능 + 계절/온오프로드) -->
+            <!-- 성능 표시 (최대 5개 박스: 브랜드명 + 분류1 + 상품등급 + 상품성능 + 계절/온오프로드) -->
             ${product.brand_performance_boxes && product.brand_performance_boxes.length > 0 ? `
                 <div class="performance-tags">
-                    ${product.brand_performance_boxes.map(box => `
+                    ${product.brand_performance_boxes.slice(0, 5).map(box => `
                         <span class="performance-tag">${box}</span>
                     `).join('')}
                 </div>
