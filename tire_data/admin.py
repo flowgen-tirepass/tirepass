@@ -1199,7 +1199,7 @@ class CustomersAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path('<path:object_id>/adjust-points/',
-                 self.admin_view(views.adjust_customer_points_view),
+                 views.adjust_customer_points_view,
                  name='customers_adjust_points'),
         ]
         return custom_urls + urls
