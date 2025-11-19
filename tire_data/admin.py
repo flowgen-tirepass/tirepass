@@ -940,7 +940,7 @@ class CustomersAdmin(admin.ModelAdmin):
         try:
             balance = obj.point_balance
             if balance > 0:
-                return format_html('<span style="color: #2563eb; font-weight: bold;">{:,}P</span>', balance)
+                return format_html('<span style="color: #2563eb; font-weight: bold;">{}P</span>', balance)
             return format_html('<span style="color: #9ca3af;">0P</span>')
         except Exception:
             return format_html('<span style="color: #9ca3af;">-</span>')
@@ -968,7 +968,7 @@ class CustomersAdmin(admin.ModelAdmin):
         html = f'''
         <div style="background: #f9fafb; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb;">
             <div style="margin-bottom: 12px;">
-                <strong style="font-size: 14px;">현재 잔액: <span style="color: #2563eb;" id="balance-{obj.pk}">{balance:,}P</span></strong>
+                <strong style="font-size: 14px;">현재 잔액: <span style="color: #2563eb;" id="balance-{obj.pk}">{balance}P</span></strong>
             </div>
 
             <div id="point-adjust-form-{obj.pk}" style="display: flex; flex-direction: column; gap: 12px;">
@@ -1650,17 +1650,17 @@ class CustomerPointAdmin(admin.ModelAdmin):
     def balance_display(self, obj):
         from django.utils.html import format_html
         color = '#2563eb' if obj.balance > 0 else '#9ca3af'
-        return format_html('<span style="color: {}; font-weight: bold;">{:,}P</span>',
+        return format_html('<span style="color: {}; font-weight: bold;">{}P</span>',
                           color, obj.balance)
     balance_display.short_description = '보유 포인트'
     balance_display.admin_order_field = 'balance'
 
     def total_earned_display(self, obj):
-        return f"{obj.total_earned:,}P"
+        return f"{obj.total_earned}P"
     total_earned_display.short_description = '누적 적립'
 
     def total_used_display(self, obj):
-        return f"{obj.total_used:,}P"
+        return f"{obj.total_used}P"
     total_used_display.short_description = '누적 사용'
 
     def has_add_permission(self, request):
@@ -1691,16 +1691,16 @@ class PointTransactionAdmin(admin.ModelAdmin):
     def amount_display(self, obj):
         from django.utils.html import format_html
         if obj.amount > 0:
-            return format_html('<span style="color: #16a34a; font-weight: bold;">+{:,}P</span>',
+            return format_html('<span style="color: #16a34a; font-weight: bold;">+{}P</span>',
                               obj.amount)
         else:
-            return format_html('<span style="color: #dc2626; font-weight: bold;">{:,}P</span>',
+            return format_html('<span style="color: #dc2626; font-weight: bold;">{}P</span>',
                               obj.amount)
     amount_display.short_description = '포인트'
     amount_display.admin_order_field = 'amount'
 
     def balance_after_display(self, obj):
-        return f"{obj.balance_after:,}P"
+        return f"{obj.balance_after}P"
     balance_after_display.short_description = '잔액'
 
     def has_add_permission(self, request):
@@ -2294,11 +2294,9 @@ class ERPSnapshotAdmin(admin.ModelAdmin):
     def erp_goods_count_display(self, obj):
         """상품 수 표시"""
         if obj.erp_goods_count > 0:
-            # 숫자를 먼저 포맷팅
-            formatted_count = f'{obj.erp_goods_count:,}'
             return format_html(
                 '<strong style="color: #2563eb;">{}개</strong>',
-                formatted_count
+                obj.erp_goods_count
             )
         return '-'
     erp_goods_count_display.short_description = 'ERP 상품 수'
@@ -2421,10 +2419,9 @@ class GoodsRealtimeSnapshotAdmin(admin.ModelAdmin):
 
     def jaego_display(self, obj):
         """재고수량 표시"""
-        formatted_jaego = f'{obj.jaego:,}'
         return format_html(
             '<strong style="color: #059669;">{}개</strong>',
-            formatted_jaego
+            obj.jaego
         )
     jaego_display.short_description = '재고수량'
     jaego_display.admin_order_field = 'jaego'
@@ -2433,17 +2430,15 @@ class GoodsRealtimeSnapshotAdmin(admin.ModelAdmin):
         """변화량 표시 (색상 + 아이콘)"""
         if obj.change_from_prev > 0:
             # 증가 (녹색)
-            formatted_change = f'+{obj.change_from_prev:,}'
             return format_html(
-                '<span style="color: #10b981; font-weight: bold; font-size: 14px;">🟢 {}</span>',
-                formatted_change
+                '<span style="color: #10b981; font-weight: bold; font-size: 14px;">🟢 +{}</span>',
+                obj.change_from_prev
             )
         elif obj.change_from_prev < 0:
             # 감소 (빨강)
-            formatted_change = f'{obj.change_from_prev:,}'
             return format_html(
                 '<span style="color: #ef4444; font-weight: bold; font-size: 14px;">🔴 {}</span>',
-                formatted_change
+                obj.change_from_prev
             )
         else:
             # 변화 없음 (회색)
@@ -2648,12 +2643,12 @@ class TirePassAdminSite(admin.AdminSite):
                     description=f'[관리자 지급] {description}',
                     order_code=None
                 )
-                messages.success(request, f'✅ {customer.name}님에게 {amount:,}P를 지급했습니다. (현재 잔액: {customer_point.balance:,}P)')
+                messages.success(request, f'✅ {customer.name}님에게 {amount}P를 지급했습니다. (현재 잔액: {customer_point.balance}P)')
 
             elif action_type == 'subtract':
                 # 포인트 차감
                 if amount > customer_point.balance:
-                    messages.error(request, f'❌ 차감할 포인트({amount:,}P)가 현재 잔액({customer_point.balance:,}P)보다 많습니다.')
+                    messages.error(request, f'❌ 차감할 포인트({amount}P)가 현재 잔액({customer_point.balance}P)보다 많습니다.')
                     return redirect('admin:tire_data_customers_change', customer_id)
 
                 customer_point.use_points(
@@ -2661,7 +2656,7 @@ class TirePassAdminSite(admin.AdminSite):
                     description=f'[관리자 차감] {description}',
                     order_code=None
                 )
-                messages.success(request, f'✅ {customer.name}님의 포인트 {amount:,}P를 차감했습니다. (현재 잔액: {customer_point.balance:,}P)')
+                messages.success(request, f'✅ {customer.name}님의 포인트 {amount}P를 차감했습니다. (현재 잔액: {customer_point.balance}P)')
 
         except Exception as e:
             messages.error(request, f'❌ 포인트 조정 중 오류가 발생했습니다: {str(e)}')
