@@ -57,17 +57,14 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
     result['brand'] = product.bun1 or ''
     result['product_name'] = product.name
 
-    # 2. 기본 할인율 조회 (YearAllocation의 base_discount 우선, 없으면 Goods의 discount_rate)
+    # 2. 기본 할인율 조회 (Goods의 discount_rate를 무조건 사용)
+    # ⚠️ 중요: YearAllocation은 DOT 할인만 담당, 기본할인은 Goods 테이블에서만 관리
+    result['basic_discount_rate'] = product.discount_rate
+
+    # YearAllocation 조회 (DOT 할인율용)
     try:
         year_allocation = YearAllocation.objects.get(goods_code=product_code)
-        # YearAllocation의 base_discount가 있으면 사용
-        if year_allocation.base_discount is not None and year_allocation.base_discount > 0:
-            result['basic_discount_rate'] = year_allocation.base_discount
-        else:
-            result['basic_discount_rate'] = product.discount_rate
     except YearAllocation.DoesNotExist:
-        # YearAllocation이 없으면 Goods의 discount_rate 사용
-        result['basic_discount_rate'] = product.discount_rate
         year_allocation = None
 
     # 3. 고객 브랜드/그룹 할인율 조회

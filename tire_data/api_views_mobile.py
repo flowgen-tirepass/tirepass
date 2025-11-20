@@ -8,6 +8,7 @@ from django.conf import settings
 from .erp_api_client import ERPAPIClient
 from .models import YearAllocation, ShoppingCart, Customers, PaymentMethod, GoodsDisplayName, Brand, BrandPattern
 from .utils import calculate_discount_price
+from .mobile_auth import mobile_login_required
 import json
 import logging
 import requests
@@ -306,19 +307,23 @@ def api_products_erp(request):
                     base_discount = float(discount_info['basic_discount_rate'])
                 except Exception as e:
                     logger.error(f"할인가 계산 오류 (code={code}, customer={customer_code}): {str(e)}")
-                    # 오류 시 기본할인만 적용
-                    ya = year_allocations.get(code) if code else None
-                    if ya:
-                        base_discount = float(ya.base_discount)
+                    # 오류 시 기본할인만 적용 (Goods 테이블에서 조회)
+                    try:
+                        goods_obj = Goods.objects.get(code=code)
+                        base_discount = float(goods_obj.discount_rate)
                         final_discount_rate = base_discount
                         final_price = int(int(goods.get('fixp', 0)) * (1 - base_discount / 100))
+                    except Goods.DoesNotExist:
+                        pass  # 기본값 유지
             else:
-                # 고객 코드 없으면 기본할인만
-                ya = year_allocations.get(code) if code else None
-                if ya:
-                    base_discount = float(ya.base_discount)
+                # 고객 코드 없으면 기본할인만 (Goods 테이블에서 조회)
+                try:
+                    goods_obj = Goods.objects.get(code=code)
+                    base_discount = float(goods_obj.discount_rate)
                     final_discount_rate = base_discount
                     final_price = int(int(goods.get('fixp', 0)) * (1 - base_discount / 100))
+                except Goods.DoesNotExist:
+                    pass  # 기본값 유지
 
             # DOT 재고 정보 구성
             dot_inventory = []
@@ -473,12 +478,12 @@ def api_product_detail_erp(request, code):
 
         goods = erp_goods_list[0]
 
-        # YearAllocation에서 할인율 가져오기
+        # Goods 테이블에서 기본 할인율 가져오기
         base_discount = 0.00
         try:
-            year_allocation = YearAllocation.objects.get(goods_code=code)
-            base_discount = float(year_allocation.base_discount)
-        except YearAllocation.DoesNotExist:
+            goods_obj = Goods.objects.get(code=code)
+            base_discount = float(goods_obj.discount_rate)
+        except Goods.DoesNotExist:
             pass
 
         # 할인가 계산
@@ -509,22 +514,26 @@ def api_product_detail_erp(request, code):
         }, status=500)
 
 
-@csrf_exempt
+@mobile_login_required
 @require_http_methods(["POST"])
 def api_cart_add_simple(request):
     """
     장바구니 담기 (간단 버전)
+
+    ✅ 보안: CSRF 보호 활성화, 세션 기반 인증
     """
     try:
+        # 세션에서 customer_code 가져오기 (클라이언트 입력 무시)
+        customer_code = request.session.get('customer_code')
+
         data = json.loads(request.body)
-        customer_code = data.get('customer_code')
         product_code = data.get('product_code')
         quantity = int(data.get('quantity', 1))
 
-        if not customer_code or not product_code:
+        if not product_code:
             return JsonResponse({
                 'success': False,
-                'error': '필수 파라미터가 없습니다.'
+                'error': '상품 코드가 필요합니다.'
             }, status=400)
 
         # 고객 확인
@@ -533,7 +542,7 @@ def api_cart_add_simple(request):
         except Customers.DoesNotExist:
             return JsonResponse({
                 'success': False,
-                'error': '고객을 찾을 수 없습니다.'
+                'error': '고객 정보를 찾을 수 없습니다.'
             }, status=404)
 
         # 장바구니 추가 또는 업데이트
@@ -557,26 +566,30 @@ def api_cart_add_simple(request):
         })
 
     except Exception as e:
-        logger.error(f"장바구니 추가 오류: {str(e)}")
+        logger.error(f"장바구니 추가 오류: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': '장바구니 추가 중 오류가 발생했습니다.'
         }, status=500)
 
 
-@csrf_exempt
+@mobile_login_required
 @require_http_methods(["POST"])
 def api_payment_prepare_toss(request):
     """
-    �佺���̸��� ���� �غ�
+    토스페이먼츠 결제 준비
+
+    ✅ 보안: CSRF 보호 활성화, 세션 기반 인증
     """
     try:
-        data = json.loads(request.body)
-        customer_code = data.get('customer_code')
-        amount = int(data.get('amount'))
-        order_name = data.get('order_name', 'Ÿ�̾� �ֹ�')
+        # 세션에서 customer_code 가져오기
+        customer_code = request.session.get('customer_code')
 
-        # �ֹ���ȣ ����
+        data = json.loads(request.body)
+        amount = int(data.get('amount'))
+        order_name = data.get('order_name', '타이어 주문')
+
+        # 주문번호 생성
         import uuid
         order_id = f"ORDER_{uuid.uuid4().hex[:12].upper()}"
 
@@ -591,18 +604,20 @@ def api_payment_prepare_toss(request):
         })
 
     except Exception as e:
-        logger.error(f"���� �غ� ����: {str(e)}")
+        logger.error(f"결제 준비 오류: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': '결제 준비 중 오류가 발생했습니다.'
         }, status=500)
 
 
-@csrf_exempt
+@mobile_login_required
 @require_http_methods(["POST"])
 def api_payment_confirm_toss(request):
     """
-    �佺���̸��� ���� ����
+    토스페이먼츠 결제 확인
+
+    ✅ 보안: CSRF 보호 활성화, 세션 기반 인증
     """
     try:
         data = json.loads(request.body)
@@ -610,12 +625,12 @@ def api_payment_confirm_toss(request):
         order_id = data.get('orderId')
         amount = int(data.get('amount'))
 
-        # �����δ� �佺���̸��� API�� ���� ��û
-        # �׽�Ʈ ȯ�濡���� �ٷ� ���� ��ȯ
-        
+        # 실제로는 토스페이먼츠 API로 확인 요청
+        # 테스트 환경에서는 바로 성공 반환
+
         return JsonResponse({
             'success': True,
-            'message': '������ ���εǾ����ϴ�.',
+            'message': '결제가 완료되었습니다.',
             'data': {
                 'payment_key': payment_key,
                 'order_id': order_id,
@@ -625,23 +640,29 @@ def api_payment_confirm_toss(request):
         })
 
     except Exception as e:
-        logger.error(f"���� ���� ����: {str(e)}")
+        logger.error(f"결제 확인 오류: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': '결제 확인 중 오류가 발생했습니다.'
         }, status=500)
 
 
+@mobile_login_required
 @require_http_methods(["GET"])
 def api_payment_methods_list(request):
-    """결제 수단 목록 조회"""
+    """
+    결제 수단 목록 조회
+
+    ✅ 보안: CSRF 보호 활성화, 세션 기반 인증
+    """
     try:
-        customer_code = request.GET.get('customer_code')
+        # 세션에서 customer_code 가져오기
+        customer_code = request.session.get('customer_code')
         if not customer_code:
             return JsonResponse({
                 'success': False,
-                'message': '고객코드가 필요합니다'
-            }, status=400)
+                'message': '로그인이 필요합니다'
+            }, status=401)
 
         methods = PaymentMethod.objects.filter(
             customer_code=customer_code,
@@ -669,27 +690,24 @@ def api_payment_methods_list(request):
         })
 
     except Exception as e:
-        logger.error(f"결제 수단 조회 오류: {str(e)}")
+        logger.error(f"결제 수단 조회 오류: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'message': '조회 중 오류가 발생했습니다',
-            'error': str(e)
+            'message': '조회 중 오류가 발생했습니다'
         }, status=500)
 
 
-@csrf_exempt
+@mobile_login_required
 @require_http_methods(["DELETE"])
 def api_payment_method_delete(request, method_id):
-    """결제 수단 삭제"""
-    try:
-        data = json.loads(request.body)
-        customer_code = data.get('customer_code')
+    """
+    결제 수단 삭제
 
-        if not customer_code:
-            return JsonResponse({
-                'success': False,
-                'message': '고객코드가 필요합니다'
-            }, status=400)
+    ✅ 보안: CSRF 보호 활성화, 세션 기반 인증
+    """
+    try:
+        # 세션에서 customer_code 가져오기
+        customer_code = request.session.get('customer_code')
 
         method = PaymentMethod.objects.filter(
             id=method_id,
@@ -710,28 +728,27 @@ def api_payment_method_delete(request, method_id):
         })
 
     except Exception as e:
-        logger.error(f"결제 수단 삭제 오류: {str(e)}")
+        logger.error(f"결제 수단 삭제 오류: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'message': '삭제 중 오류가 발생했습니다',
-            'error': str(e)
+            'message': '삭제 중 오류가 발생했습니다'
         }, status=500)
 
 
-@csrf_exempt
+@mobile_login_required
 @require_http_methods(["POST"])
 def api_payment_method_update_nickname(request, method_id):
-    """결제 수단 별칭 수정"""
-    try:
-        data = json.loads(request.body)
-        customer_code = data.get('customer_code')
-        nickname = data.get('nickname', '')
+    """
+    결제 수단 별칭 수정
 
-        if not customer_code:
-            return JsonResponse({
-                'success': False,
-                'message': '고객코드가 필요합니다'
-            }, status=400)
+    ✅ 보안: CSRF 보호 활성화, 세션 기반 인증
+    """
+    try:
+        # 세션에서 customer_code 가져오기
+        customer_code = request.session.get('customer_code')
+
+        data = json.loads(request.body)
+        nickname = data.get('nickname', '')
 
         # 별칭 길이 체크
         if len(nickname) > 50:
@@ -764,32 +781,37 @@ def api_payment_method_update_nickname(request, method_id):
         })
 
     except Exception as e:
-        logger.error(f"결제 수단 별칭 수정 오류: {str(e)}")
+        logger.error(f"결제 수단 별칭 수정 오류: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'message': '수정 중 오류가 발생했습니다',
-            'error': str(e)
+            'message': '수정 중 오류가 발생했습니다'
         }, status=500)
 
 
-@csrf_exempt
+@mobile_login_required
 @require_http_methods(["POST"])
 def api_payment_method_billing_auth(request):
-    """빌링키 발급 (authKey 방식 - 토스페이먼츠 위젯)"""
+    """
+    빌링키 발급 (authKey 방식 - 토스페이먼츠 위젯)
+
+    ✅ 보안: CSRF 보호 활성화, 세션 기반 인증
+    """
     try:
+        # 세션에서 customer_code 가져오기
+        customer_code = request.session.get('customer_code')
+
         data = json.loads(request.body)
         auth_key = data.get('auth_key')
-        customer_key = data.get('customer_key')
 
-        if not auth_key or not customer_key:
+        if not auth_key:
             return JsonResponse({
                 'success': False,
-                'message': '필수 파라미터가 누락되었습니다 (auth_key, customer_key)'
+                'message': '필수 파라미터가 누락되었습니다 (auth_key)'
             }, status=400)
 
         # 고객 확인
         try:
-            customer = Customers.objects.get(code=customer_key)
+            customer = Customers.objects.get(code=customer_code)
         except Customers.DoesNotExist:
             return JsonResponse({
                 'success': False,
@@ -815,10 +837,10 @@ def api_payment_method_billing_auth(request):
 
             payload = {
                 'authKey': auth_key,
-                'customerKey': customer_key
+                'customerKey': customer_code
             }
 
-            logger.info(f"빌링키 발급 요청 (authKey 방식): customerKey={customer_key}")
+            logger.info(f"빌링키 발급 요청 (authKey 방식): customerKey={customer_code}")
 
             response = requests.post(url, json=payload, headers=headers)
             response_data = response.json()
@@ -835,14 +857,14 @@ def api_payment_method_billing_auth(request):
                 if not billing_key:
                     raise ValueError('빌링키를 받지 못했습니다')
 
-                logger.info(f"빌링키 발급 성공: customer_key={customer_key}, billing_key={billing_key[:20]}...")
+                logger.info(f"빌링키 발급 성공: customer_code={customer_code}, billing_key={billing_key[:20]}...")
 
                 # 카드 마지막 4자리 추출
                 card_last4 = card_number[-4:] if len(card_number) >= 4 else '0000'
 
                 # PaymentMethod 생성
                 method = PaymentMethod.objects.create(
-                    customer_code=customer_key,
+                    customer_code=customer_code,
                     payment_type='CARD',
                     billing_key=billing_key,
                     card_company=card_company,
@@ -887,27 +909,32 @@ def api_payment_method_billing_auth(request):
             }, status=500)
 
     except Exception as e:
-        logger.error(f"빌링키 발급 처리 오류: {str(e)}")
+        logger.error(f"빌링키 발급 처리 오류: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'message': '등록 중 오류가 발생했습니다',
-            'error': str(e)
+            'message': '등록 중 오류가 발생했습니다'
         }, status=500)
 
 
-@csrf_exempt
+@mobile_login_required
 @require_http_methods(["POST"])
 def api_payment_method_add(request):
-    """결제 수단 등록 (카드/계좌)"""
+    """
+    결제 수단 등록 (카드/계좌)
+
+    ✅ 보안: CSRF 보호 활성화, 세션 기반 인증
+    """
     try:
+        # 세션에서 customer_code 가져오기
+        customer_code = request.session.get('customer_code')
+
         data = json.loads(request.body)
-        customer_code = data.get('customer_code')
         payment_type = data.get('payment_type')  # 'CARD' or 'ACCOUNT'
 
-        if not customer_code or not payment_type:
+        if not payment_type:
             return JsonResponse({
                 'success': False,
-                'message': '필수 파라미터가 누락되었습니다'
+                'message': '결제 유형이 누락되었습니다'
             }, status=400)
 
         # 고객 확인
@@ -1081,10 +1108,10 @@ def api_payment_method_add(request):
                     'message': '카드 등록 중 네트워크 오류가 발생했습니다'
                 }, status=500)
             except Exception as e:
-                logger.error(f"카드 등록 오류: {str(e)}")
+                logger.error(f"카드 등록 오류: {str(e)}", exc_info=True)
                 return JsonResponse({
                     'success': False,
-                    'message': f'카드 등록 중 오류가 발생했습니다: {str(e)}'
+                    'message': '카드 등록 중 오류가 발생했습니다'
                 }, status=500)
 
         elif payment_type == 'ACCOUNT':
@@ -1134,34 +1161,23 @@ def api_payment_method_add(request):
             }, status=400)
 
     except Exception as e:
-        logger.error(f"결제 수단 등록 오류: {str(e)}")
+        logger.error(f"결제 수단 등록 오류: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'message': '등록 중 오류가 발생했습니다',
-            'error': str(e)
+            'message': '등록 중 오류가 발생했습니다'
         }, status=500)
 
 
-@csrf_exempt
+@mobile_login_required
+@require_http_methods(["GET"])
 def api_customer_info(request):
     """
     로그인한 사용자의 고객 정보 조회
-    GET /api/mobile/customer/info/
-    """
-    if request.method != 'GET':
-        return JsonResponse({
-            'success': False,
-            'message': 'GET 요청만 가능합니다'
-        }, status=405)
 
+    ✅ 보안: CSRF 보호 활성화, 세션 기반 인증
+    """
     # 세션에서 customer_code 가져오기
     customer_code = request.session.get('customer_code')
-
-    if not customer_code:
-        return JsonResponse({
-            'success': False,
-            'message': '로그인이 필요합니다'
-        }, status=401)
 
     try:
         from .models import Customers
@@ -1187,9 +1203,8 @@ def api_customer_info(request):
         }, status=404)
 
     except Exception as e:
-        logger.error(f"고객 정보 조회 오류: {str(e)}")
+        logger.error(f"고객 정보 조회 오류: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'message': '조회 중 오류가 발생했습니다',
-            'error': str(e)
+            'message': '조회 중 오류가 발생했습니다'
         }, status=500)
