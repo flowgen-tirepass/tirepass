@@ -1500,6 +1500,42 @@ class CustomerBrandDiscount(models.Model):
         return True
 
 
+class PolicyPage(models.Model):
+    """정책 페이지 (이용약관, 개인정보처리방침, 환불정책 등)"""
+    POLICY_TYPE_CHOICES = [
+        ('terms', '이용약관'),
+        ('privacy', '개인정보처리방침'),
+        ('refund', '환불정책'),
+        ('shipping', '배송정책'),
+        ('other', '기타'),
+    ]
+
+    slug = models.SlugField(max_length=50, unique=True, verbose_name='URL 슬러그')
+    title = models.CharField(max_length=100, verbose_name='제목')
+    policy_type = models.CharField(
+        max_length=20,
+        choices=POLICY_TYPE_CHOICES,
+        default='other',
+        verbose_name='정책 유형'
+    )
+    content = models.TextField(verbose_name='내용')
+    is_active = models.BooleanField(default=True, verbose_name='활성화')
+    show_in_footer = models.BooleanField(default=True, verbose_name='푸터에 표시')
+    display_order = models.IntegerField(default=0, verbose_name='표시 순서')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='수정일시')
+
+    class Meta:
+        db_table = 'policy_pages'
+        managed = True
+        verbose_name = '정책 페이지'
+        verbose_name_plural = 'C. ⚙️ 설정 | 02. 정책 페이지 관리'
+        ordering = ['display_order', 'title']
+
+    def __str__(self):
+        return f"{self.title} ({self.get_policy_type_display()})"
+
+
 # ============================================
 # 쇼핑/주문 관련 모델
 # ============================================

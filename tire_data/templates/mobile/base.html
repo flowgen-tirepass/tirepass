@@ -396,10 +396,16 @@
 
     <!-- Footer -->
     <div class="footer">
-        <!-- 이용약관 및 개인정보처리방침 -->
+        <!-- 정책 페이지 링크 (동적) -->
         <div class="footer-links">
-            <a href="/mobile/terms/">이용약관</a>
-            <a href="/mobile/privacy/">개인정보처리방침</a>
+            {% load policy_tags %}
+            {% get_footer_policies as footer_policies %}
+            {% for policy in footer_policies %}
+                <a href="{% url 'mobile_policy' slug=policy.slug %}">{{ policy.title }}</a>
+            {% empty %}
+                <a href="/mobile/policy/terms/">이용약관</a>
+                <a href="/mobile/policy/privacy/">개인정보처리방침</a>
+            {% endfor %}
         </div>
 
         <hr class="footer-divider">
