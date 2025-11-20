@@ -67,8 +67,12 @@ class Goods(models.Model):
 
     @property
     def discount_rate(self):
-        """기본 할인율 (기본값 0)"""
-        return 0.00
+        """기본 할인율 (YearAllocation.base_discount에서 조회)"""
+        try:
+            year_allocation = YearAllocation.objects.get(goods_code=self.code)
+            return year_allocation.base_discount if year_allocation.base_discount else 0.00
+        except YearAllocation.DoesNotExist:
+            return 0.00
 
     @property
     def formatted_price(self):
