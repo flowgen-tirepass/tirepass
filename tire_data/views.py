@@ -274,16 +274,10 @@ def save_discount_rate(request):
                     'message': '할인율은 0~100% 사이여야 합니다.'
                 }, status=400)
 
-            # YearAllocation 객체 가져오거나 생성
-            year_allocation, created = YearAllocation.objects.get_or_create(
-                goods_code=goods_code,
-                defaults={'base_discount': discount_rate}
-            )
-
-            # 이미 존재하면 base_discount 업데이트
-            if not created:
-                year_allocation.base_discount = discount_rate
-                year_allocation.save()
+            # Goods 테이블의 discount_rate 업데이트 (기본 할인율은 Goods에서 관리)
+            goods = Goods.objects.get(code=goods_code)
+            goods.discount_rate = discount_rate
+            goods.save()
 
             return JsonResponse({
                 'success': True,

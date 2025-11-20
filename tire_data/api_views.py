@@ -343,12 +343,9 @@ def api_products_list(request):
     for p in products_page:
         ya = year_allocations.get(p.code)
 
-        # 할인율 결정: YearAllocation의 base_discount 우선, 없으면 Goods의 discount_rate 사용
-        base_discount = 0.00
-        if ya and hasattr(ya, 'base_discount') and ya.base_discount:
-            base_discount = float(ya.base_discount)
-        elif p.discount_rate:
-            base_discount = float(p.discount_rate)
+        # 할인율 결정: Goods의 discount_rate를 기본으로 사용
+        # ⚠️ 중요: YearAllocation은 DOT 할인만 담당, 기본할인은 Goods 테이블에서만 관리
+        base_discount = float(p.discount_rate) if p.discount_rate else 0.00
 
         # DOT 재고 정보 (제조년도별)
         # 중요: 모든 할인은 공장도가 기준으로 단순 합산 (cascading 방식 아님)

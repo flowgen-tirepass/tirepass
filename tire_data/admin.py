@@ -665,13 +665,13 @@ class GoodsAdmin(admin.ModelAdmin):
         year_allocations_list = YearAllocation.objects.filter(goods_code__in=goods_codes)
         year_allocations = {ya.goods_code: ya for ya in year_allocations_list}
 
-        # 각 상품에 base_discount 추가
+        # 각 상품에 base_discount 추가 (Goods 테이블에서 조회)
+        goods_codes_to_fetch = [g.get('code') for g in erp_goods_list if g.get('code')]
+        goods_discounts = {g.code: float(g.discount_rate) for g in Goods.objects.filter(code__in=goods_codes_to_fetch)}
+
         for goods in erp_goods_list:
             goods_code = goods.get('code')
-            if goods_code and goods_code in year_allocations:
-                goods['base_discount'] = float(year_allocations[goods_code].base_discount)
-            else:
-                goods['base_discount'] = 0.00
+            goods['base_discount'] = goods_discounts.get(goods_code, 0.00)
 
         # 컨텍스트에 ERP 데이터 추가
         extra_context['erp_goods_count'] = display_count
@@ -797,32 +797,19 @@ class GoodsAdmin(admin.ModelAdmin):
 
         discount_rate = form.cleaned_data['discount_rate']
         updated_count = 0
-        created_count = 0
 
         for goods_code in selected_codes:
-            # YearAllocation 레코드 가져오기 또는 생성
-            year_allocation, created = YearAllocation.objects.get_or_create(
-                goods_code=goods_code,
-                defaults={'base_discount': Decimal(str(discount_rate))}
-            )
-
-            if created:
-                created_count += 1
-            else:
-                # 기존 레코드 업데이트
-                year_allocation.base_discount = Decimal(str(discount_rate))
-                year_allocation.save()
+            # Goods 테이블의 discount_rate 업데이트 (기본 할인율은 Goods에서 관리)
+            try:
+                goods = Goods.objects.get(code=goods_code)
+                goods.discount_rate = Decimal(str(discount_rate))
+                goods.save()
                 updated_count += 1
+            except Goods.DoesNotExist:
+                logger.warning(f"상품 코드 {goods_code}를 찾을 수 없습니다.")
 
         # 결과 메시지
-        total = created_count + updated_count
-        message_parts = []
-        if created_count > 0:
-            message_parts.append(f"{created_count}개 상품 할인율 신규 설정")
-        if updated_count > 0:
-            message_parts.append(f"{updated_count}개 상품 할인율 업데이트")
-
-        message = f"{discount_rate}% 적용 완료: " + ", ".join(message_parts) + f" (총 {total}개)"
+        message = f"{discount_rate}% 할인율 적용 완료: {updated_count}개 상품 업데이트"
         self.message_user(request, message, messages.SUCCESS)
 
         # 상품 목록 페이지로 리다이렉트

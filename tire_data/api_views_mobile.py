@@ -307,19 +307,23 @@ def api_products_erp(request):
                     base_discount = float(discount_info['basic_discount_rate'])
                 except Exception as e:
                     logger.error(f"할인가 계산 오류 (code={code}, customer={customer_code}): {str(e)}")
-                    # 오류 시 기본할인만 적용
-                    ya = year_allocations.get(code) if code else None
-                    if ya:
-                        base_discount = float(ya.base_discount)
+                    # 오류 시 기본할인만 적용 (Goods 테이블에서 조회)
+                    try:
+                        goods_obj = Goods.objects.get(code=code)
+                        base_discount = float(goods_obj.discount_rate)
                         final_discount_rate = base_discount
                         final_price = int(int(goods.get('fixp', 0)) * (1 - base_discount / 100))
+                    except Goods.DoesNotExist:
+                        pass  # 기본값 유지
             else:
-                # 고객 코드 없으면 기본할인만
-                ya = year_allocations.get(code) if code else None
-                if ya:
-                    base_discount = float(ya.base_discount)
+                # 고객 코드 없으면 기본할인만 (Goods 테이블에서 조회)
+                try:
+                    goods_obj = Goods.objects.get(code=code)
+                    base_discount = float(goods_obj.discount_rate)
                     final_discount_rate = base_discount
                     final_price = int(int(goods.get('fixp', 0)) * (1 - base_discount / 100))
+                except Goods.DoesNotExist:
+                    pass  # 기본값 유지
 
             # DOT 재고 정보 구성
             dot_inventory = []
@@ -474,12 +478,12 @@ def api_product_detail_erp(request, code):
 
         goods = erp_goods_list[0]
 
-        # YearAllocation에서 할인율 가져오기
+        # Goods 테이블에서 기본 할인율 가져오기
         base_discount = 0.00
         try:
-            year_allocation = YearAllocation.objects.get(goods_code=code)
-            base_discount = float(year_allocation.base_discount)
-        except YearAllocation.DoesNotExist:
+            goods_obj = Goods.objects.get(code=code)
+            base_discount = float(goods_obj.discount_rate)
+        except Goods.DoesNotExist:
             pass
 
         # 할인가 계산
