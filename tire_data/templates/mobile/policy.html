@@ -1,0 +1,126 @@
+{% extends 'mobile/base.html' %}
+
+{% block title %}{{ policy.title }} - 타이어패스{% endblock %}
+
+{% block header_title %}{{ policy.title }}{% endblock %}
+
+{% block content %}
+<style>
+    .policy-container {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .policy-header {
+        border-bottom: 2px solid #2563eb;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+
+    .policy-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 8px;
+    }
+
+    .policy-type {
+        display: inline-block;
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .policy-content {
+        font-size: 15px;
+        line-height: 1.8;
+        color: #374151;
+        white-space: pre-wrap;
+        word-break: keep-all;
+    }
+
+    .policy-content h1,
+    .policy-content h2,
+    .policy-content h3 {
+        margin-top: 24px;
+        margin-bottom: 12px;
+        color: #1f2937;
+    }
+
+    .policy-content h1 {
+        font-size: 20px;
+        font-weight: 700;
+    }
+
+    .policy-content h2 {
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .policy-content h3 {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .policy-content p {
+        margin-bottom: 12px;
+    }
+
+    .policy-content ul,
+    .policy-content ol {
+        margin-left: 20px;
+        margin-bottom: 12px;
+    }
+
+    .policy-content li {
+        margin-bottom: 6px;
+    }
+
+    .policy-updated {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+        color: #6b7280;
+        font-size: 13px;
+        text-align: right;
+    }
+
+    .back-button {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 12px 24px;
+        background: #6b7280;
+        color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .back-button:hover {
+        background: #4b5563;
+    }
+</style>
+
+<div class="policy-container">
+    <div class="policy-header">
+        <h1 class="policy-title">{{ policy.title }}</h1>
+        <span class="policy-type">{{ policy.get_policy_type_display }}</span>
+    </div>
+
+    <div class="policy-content">
+        {{ policy.content|safe|linebreaks }}
+    </div>
+
+    <div class="policy-updated">
+        최종 수정일: {{ policy.updated_at|date:"Y년 m월 d일" }}
+    </div>
+
+    <a href="javascript:history.back();" class="back-button">← 돌아가기</a>
+</div>
+{% endblock %}
