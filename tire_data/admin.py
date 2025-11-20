@@ -797,19 +797,32 @@ class GoodsAdmin(admin.ModelAdmin):
 
         discount_rate = form.cleaned_data['discount_rate']
         updated_count = 0
+        created_count = 0
 
         for goods_code in selected_codes:
-            # Goods 테이블의 discount_rate 업데이트 (기본 할인율은 Goods에서 관리)
-            try:
-                goods = Goods.objects.get(code=goods_code)
-                goods.discount_rate = Decimal(str(discount_rate))
-                goods.save()
+            # YearAllocation 테이블의 base_discount 업데이트 (기본 할인율 저장용)
+            year_allocation, created = YearAllocation.objects.get_or_create(
+                goods_code=goods_code,
+                defaults={'base_discount': Decimal(str(discount_rate))}
+            )
+
+            if created:
+                created_count += 1
+            else:
+                # 기존 레코드 업데이트
+                year_allocation.base_discount = Decimal(str(discount_rate))
+                year_allocation.save()
                 updated_count += 1
-            except Goods.DoesNotExist:
-                logger.warning(f"상품 코드 {goods_code}를 찾을 수 없습니다.")
 
         # 결과 메시지
-        message = f"{discount_rate}% 할인율 적용 완료: {updated_count}개 상품 업데이트"
+        total = created_count + updated_count
+        message_parts = []
+        if created_count > 0:
+            message_parts.append(f"{created_count}개 신규 설정")
+        if updated_count > 0:
+            message_parts.append(f"{updated_count}개 업데이트")
+
+        message = f"{discount_rate}% 할인율 적용 완료: " + ", ".join(message_parts) + f" (총 {total}개)"
         self.message_user(request, message, messages.SUCCESS)
 
         # 상품 목록 페이지로 리다이렉트
