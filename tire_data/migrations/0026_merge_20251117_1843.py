@@ -6,8 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("tire_data", "0022_merge_20251117_1459"),
-        ("tire_data", "0025_remove_brand_logo_filename_brand_logo_image_and_more"),
+        ("tire_data", "0023_merge_20251117_1557"),
+        ("tire_data", "0024_add_point_system"),
     ]
 
     operations = []

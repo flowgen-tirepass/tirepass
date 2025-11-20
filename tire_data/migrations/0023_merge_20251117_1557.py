@@ -6,10 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        (
-            "tire_data",
-            "0022_remove_brandpatternperformance_add_performance_to_brandpattern",
-        ),
+        ("tire_data", "0022_remove_brandpatternperformance_add_performance_to_brandpattern"),
     ]
 
     operations = []
