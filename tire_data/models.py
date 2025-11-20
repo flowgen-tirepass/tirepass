@@ -1529,7 +1529,7 @@ class PolicyPage(models.Model):
         db_table = 'policy_pages'
         managed = True
         verbose_name = '정책 페이지'
-        verbose_name_plural = 'C. ⚙️ 설정 | 06. 정책 페이지 관리'
+        verbose_name_plural = 'C. ⚙️ 설정 | 10. 정책 페이지 관리'
         ordering = ['display_order', 'title']
 
     def __str__(self):
