@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
 from .erp_api_client import ERPAPIClient
-from .models import YearAllocation, ShoppingCart, Customers, PaymentMethod, GoodsDisplayName, Brand, BrandPattern
+from .models import YearAllocation, ShoppingCart, Customers, PaymentMethod, GoodsDisplayName, Brand, BrandPattern, Goods
 from .utils import calculate_discount_price
 from .mobile_auth import mobile_login_required
 import json
