@@ -62,9 +62,10 @@
 
 .product-title-container {
     margin-top: clamp(45px, 13vw, 60px);
-    margin-bottom: clamp(10px, 3vw, 15px);
+    margin-bottom: clamp(150px, 45vw, 225px);
     padding-right: 0;
     width: 100%;
+    min-height: clamp(150px, 45vw, 225px);
 }
 
 .tire-size {
@@ -944,17 +945,7 @@ function adjustProductNameFontSize() {
         }
     });
 
-    // 영문명 조절 (한글명의 1/2 크기)
-    const englishNames = document.querySelectorAll('.product-name-english');
-    englishNames.forEach((element, index) => {
-        const koreanElement = koreanNames[index];
-        if (koreanElement) {
-            // 한글명의 현재 폰트 크기를 가져와서 1/2로 설정
-            const koreanFontSize = parseFloat(window.getComputedStyle(koreanElement).fontSize);
-            const englishFontSize = Math.max(8, koreanFontSize / 2);
-            element.style.fontSize = englishFontSize + 'px';
-        }
-    });
+    // 영문명은 CSS에서 관리 (JavaScript 오버라이드 제거)
 }
 
 // DOT 재고 정보 토글
