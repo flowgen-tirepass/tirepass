@@ -367,3 +367,16 @@ def order_detail_view(request, order_id):
         'shipping': shipping,
     }
     return render(request, 'mobile/order_detail.html', context)
+
+
+def policy_page_view(request, slug):
+    """정책 페이지 뷰"""
+    from tire_data.models import PolicyPage
+    from django.shortcuts import get_object_or_404
+
+    policy = get_object_or_404(PolicyPage, slug=slug, is_active=True)
+
+    context = {
+        'policy': policy,
+    }
+    return render(request, 'mobile/policy.html', context)

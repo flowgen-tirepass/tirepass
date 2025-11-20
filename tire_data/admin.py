@@ -13,7 +13,7 @@ from .models import (
     ShippingAddress, PerformanceCategory, PerformanceTag, GoodsPerformanceTag,
     ERPSnapshot, GoodsRealtimeSnapshot,
     Brand, BrandPattern, CustomerBrandDiscount,
-    CustomerPoint, PointTransaction, PointPolicy
+    CustomerPoint, PointTransaction, PointPolicy, PolicyPage
 )
 from .erp_api_client import ERPAPIClient
 from .forms import BulkDiscountForm, CustomerBrandDiscountForm, CustomerProductDiscountForm
@@ -2899,3 +2899,35 @@ if PointTransaction not in custom_admin_site._registry:
     custom_admin_site.register(PointTransaction, PointTransactionAdmin)
 if PointPolicy not in custom_admin_site._registry:
     custom_admin_site.register(PointPolicy, PointPolicyAdmin)
+
+
+# ============================================
+# PolicyPage Admin (정책 페이지 관리)
+# ============================================
+@admin.register(PolicyPage, site=custom_admin_site)
+class PolicyPageAdmin(admin.ModelAdmin):
+    """정책 페이지 관리"""
+    list_display = ['title', 'policy_type', 'slug', 'is_active', 'show_in_footer', 'display_order', 'updated_at']
+    list_filter = ['policy_type', 'is_active', 'show_in_footer']
+    search_fields = ['title', 'slug', 'content']
+    list_editable = ['is_active', 'show_in_footer', 'display_order']
+    ordering = ['display_order', 'title']
+
+    fieldsets = (
+        ('기본 정보', {
+            'fields': ('title', 'policy_type', 'slug')
+        }),
+        ('내용', {
+            'fields': ('content',),
+            'classes': ('wide',)
+        }),
+        ('설정', {
+            'fields': ('is_active', 'show_in_footer', 'display_order')
+        }),
+    )
+
+    def get_readonly_fields(self, request, obj=None):
+        # 수정 시 slug 변경 불가
+        if obj:
+            return ['slug']
+        return []
