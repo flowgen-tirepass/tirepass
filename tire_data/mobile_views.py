@@ -216,3 +216,15 @@ def mobile_payment_success(request):
 def mobile_fix_storage(request):
     """localStorage 초기화 긴급 수정 페이지"""
     return render(request, 'mobile/fix_storage.html')
+
+
+def policy_page_view(request, slug):
+    """정책 페이지 뷰"""
+    from django.shortcuts import get_object_or_404
+    from .models import PolicyPage
+
+    policy = get_object_or_404(PolicyPage, slug=slug, is_active=True)
+
+    return render(request, 'mobile/policy.html', {
+        'policy': policy,
+    })

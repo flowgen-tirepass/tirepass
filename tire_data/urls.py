@@ -33,6 +33,7 @@ urlpatterns = [
     path('mobile/quote/', mobile_views.mobile_quote, name='mobile_quote'),
     path('mobile/terms/', mobile_views.mobile_terms, name='mobile_terms'),
     path('mobile/privacy/', mobile_views.mobile_privacy, name='mobile_privacy'),
+    path('mobile/policy/<slug:slug>/', mobile_views.policy_page_view, name='mobile_policy'),
     path('mobile/payment/success/', mobile_views.mobile_payment_success, name='mobile_payment_success'),
     path('mobile/fix-storage/', mobile_views.mobile_fix_storage, name='mobile_fix_storage'),
 
