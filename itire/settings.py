@@ -33,14 +33,18 @@ if not DEBUG:
 
 # ============================================
 # ERP 실시간 동기화 API 설정
-# ⚠️ 보안: 환경변수 필수 설정 (기본값 제거)
 # ============================================
 ERP_SYNC_API_URL = os.environ.get('ERP_SYNC_API_URL', 'http://itire2.iptime.org:8000')
-ERP_SYNC_API_KEY = os.environ.get('ERP_SYNC_API_KEY')
+ERP_SYNC_API_KEY = os.environ.get('ERP_SYNC_API_KEY', 'test_api_key_12345')  # 기본값 설정
 
-# 필수 환경변수 검증
-if not DEBUG and not ERP_SYNC_API_KEY:
-    raise Exception('❌ ERP_SYNC_API_KEY는 환경변수로 설정해야 합니다!')
+# ERP 동기화 API 사용 여부 (환경변수로 제어 가능)
+ERP_SYNC_ENABLED = os.environ.get('ERP_SYNC_ENABLED', 'False') == 'True'
+
+# 필수 환경변수 검증 (ERP 동기화를 사용하는 경우에만)
+# 현재는 광주 ERP에서 이 API를 사용하지 않으므로 검증 비활성화
+if not DEBUG and ERP_SYNC_ENABLED and not os.environ.get('ERP_SYNC_API_KEY'):
+    raise Exception('❌ ERP_SYNC_ENABLED=True인 경우 ERP_SYNC_API_KEY를 환경변수로 설정해야 합니다!')
+
 ERP_SYNC_TIMEOUT = 5  # 연결 타임아웃 (초)
 ERP_SYNC_RETRY_COUNT = 3  # 재시도 횟수
 ERP_SYNC_RETRY_DELAY = 2  # 재시도 대기 시간 (초)
