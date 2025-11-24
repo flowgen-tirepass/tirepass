@@ -839,7 +839,11 @@ async function processGeneralPayment(tossPaymentMethod, paymentMethodValue) {
         closeCheckoutModal();
 
         // 2. 토스페이먼츠 결제창 호출
-        const clientKey = data.data.client_key || 'live_ck_jExPeJWYVQ1zDYG7N7PEV49R5gvN';
+        const clientKey = data.data.client_key;
+        if (!clientKey) {
+            showAlert('결제 설정 오류: 클라이언트 키가 없습니다. 관리자에게 문의하세요.', 'error');
+            return;
+        }
 
         // TossPayments SDK 로드 확인
         if (typeof TossPayments === 'undefined') {
