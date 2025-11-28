@@ -190,9 +190,6 @@
                maxlength="20">
         <button class="search-btn" onclick="performSearch()">🔍</button>
     </div>
-    <button class="view-all-btn" onclick="viewAllProducts()">
-        📋 전체 상품 보기
-    </button>
 </div>
 
 <!-- 브랜드 선택 -->
@@ -311,10 +308,6 @@ function performSearch() {
     }
 }
 
-// 전체 상품 보기 (타이어만)
-function viewAllProducts() {
-    location.href = '/mobile/products/?tire_only=1';
-}
 
 // Enter 키로 검색
 document.getElementById('searchInput').addEventListener('keypress', (e) => {
