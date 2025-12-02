@@ -66,7 +66,7 @@ def require_session_auth(view_func):
     return wrapper
 
 
-# 브랜드명 영문-한글 매핑
+# 브랜드명 영문-한글 매핑 (DB에 저장된 값과 매핑)
 BRAND_NAME_MAP = {
     'GOODYEAR': '굿이어',
     'KUMHO': '금호',
@@ -77,7 +77,7 @@ BRAND_NAME_MAP = {
     'YOKOHAMA': '요코하마',
     'CONTINENTAL': '콘티넨탈',
     'PIRELLI': '피렐리',
-    'HANKOOK': '한국타이어',
+    'HANKOOK': '한국',  # DB에 '한국'으로 저장된 경우
     'HANKOOKTIRE': '한국타이어',
     'TOYO': '토요',
     'FIRESTONE': '파이어스톤',
@@ -85,6 +85,24 @@ BRAND_NAME_MAP = {
     'BFGOODRICH': 'BFG',
     'LAUFENN': '라우펜',
     'ANNAITE': '아나이트',
+}
+
+# 추가 브랜드명 변형 (DB에 다양한 형태로 저장된 경우)
+BRAND_ALIASES = {
+    'GOODYEAR': ['굿이어', 'GOODYEAR', '굿 이어'],
+    'KUMHO': ['금호', 'KUMHO', '금호타이어'],
+    'NEXEN': ['넥센', 'NEXEN', '넥센타이어'],
+    'CONTINENTAL': ['콘티넨탈', 'CONTINENTAL', '콘티'],
+    'PIRELLI': ['피렐리', 'PIRELLI'],
+    'MICHELIN': ['미쉐린', 'MICHELIN', '미슐랭'],
+    'BRIDGESTONE': ['브리지스톤', 'BRIDGESTONE', '브릿지스톤'],
+    'HANKOOK': ['한국', '한국타이어', 'HANKOOK', '한국 타이어'],
+    'LAUFENN': ['라우펜', 'LAUFENN'],
+    'ANNAITE': ['아나이트', 'ANNAITE'],
+    'DUNLOP': ['던롭', 'DUNLOP'],
+    'YOKOHAMA': ['요코하마', 'YOKOHAMA'],
+    'TOYO': ['토요', 'TOYO'],
+    'FIRESTONE': ['파이어스톤', 'FIRESTONE'],
 }
 
 
@@ -238,30 +256,34 @@ def api_products_list(request):
 
     # 브랜드 필터
     if brands:
+        import logging
+        logger = logging.getLogger(__name__)
+
         # 다중 브랜드 검색 (교차 정렬)
         brand_list_eng = [b.strip().upper() for b in brands.split(',') if b.strip()]
 
-        # 영문 브랜드명을 한글로 변환
-        brand_list = []
-        for brand_eng in brand_list_eng:
-            brand_kor = BRAND_NAME_MAP.get(brand_eng, brand_eng)
-            brand_list.append(brand_kor)
+        logger.info(f"[브랜드 필터] 요청: {brands}, 영문 브랜드 목록: {brand_list_eng}")
 
-        if len(brand_list) > 0:
+        if len(brand_list_eng) > 0:
             # 각 브랜드별로 상품 조회 (재고 많은 순 → 공장도가 높은 순)
             brand_products = []
 
-            for idx, brand_name in enumerate(brand_list):
-                brand_eng = brand_list_eng[idx] if idx < len(brand_list_eng) else ''
+            for brand_eng in brand_list_eng:
+                # BRAND_ALIASES에서 모든 가능한 브랜드명 변형 가져오기
+                aliases = BRAND_ALIASES.get(brand_eng, [brand_eng, BRAND_NAME_MAP.get(brand_eng, brand_eng)])
+
+                # 모든 별칭에 대해 OR 쿼리 생성
+                brand_q = Q()
+                for alias in aliases:
+                    brand_q |= Q(bun1=alias)
+                    brand_q |= Q(bun1__iexact=alias)
+                    brand_q |= Q(bun1__icontains=alias)
+
                 # 정렬: 1순위 재고 내림차순, 2순위 공장도가(fixp) 내림차순
-                # 한글명(정확/포함) 또는 영문명(대소문자 무시, 포함)으로 검색
-                brand_items = products.filter(
-                    Q(bun1=brand_name) |
-                    Q(bun1__icontains=brand_name) |
-                    Q(bun1__iexact=brand_eng) |
-                    Q(bun1__icontains=brand_eng)
-                ).order_by('-jaego', '-fixp')
-                brand_products.append(list(brand_items))
+                brand_items = products.filter(brand_q).order_by('-jaego', '-fixp')
+                brand_items_list = list(brand_items)
+                logger.info(f"[브랜드 필터] {brand_eng} (별칭: {aliases}): {len(brand_items_list)}개 상품 찾음")
+                brand_products.append(brand_items_list)
 
             # 브랜드별로 1개씩 교차 출력 (선택한 브랜드 순서대로)
             interleaved_products = []
@@ -473,6 +495,18 @@ def api_products_list(request):
             'brand_logo': brand_logo  # 신규: 브랜드 로고 파일명
         })
 
+    # 디버그: 검색된 브랜드별 상품 수 (다중 브랜드 선택 시)
+    debug_info = None
+    if brands:
+        # DB에 저장된 고유 브랜드명 목록 (재고 있는 것만)
+        unique_brands = list(Goods.objects.filter(jaego__gt=0).values_list('bun1', flat=True).distinct().order_by('bun1'))
+        debug_info = {
+            'requested_brands': brands,
+            'brand_list_eng': brand_list_eng if 'brand_list_eng' in locals() else [],
+            'db_unique_brands': unique_brands[:50],  # 처음 50개만
+            'brand_product_counts': {brand_list_eng[i]: len(bp) for i, bp in enumerate(brand_products)} if 'brand_products' in locals() and 'brand_list_eng' in locals() else {}
+        }
+
     result = {
         'success': True,
         'data': {
@@ -483,6 +517,9 @@ def api_products_list(request):
             'total_pages': (total_count + page_size - 1) // page_size
         }
     }
+
+    if debug_info:
+        result['debug'] = debug_info
 
     return JsonResponse(result)
 
