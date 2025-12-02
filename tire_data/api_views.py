@@ -77,12 +77,14 @@ BRAND_NAME_MAP = {
     'YOKOHAMA': '요코하마',
     'CONTINENTAL': '콘티넨탈',
     'PIRELLI': '피렐리',
-    'HANKOOK': '한국',
-    'HANKOOKTIRE': '한국',
+    'HANKOOK': '한국타이어',
+    'HANKOOKTIRE': '한국타이어',
     'TOYO': '토요',
     'FIRESTONE': '파이어스톤',
     'BFG': 'BFG',
     'BFGOODRICH': 'BFG',
+    'LAUFENN': '라우펜',
+    'ANNAITE': '아나이트',
 }
 
 
@@ -249,9 +251,13 @@ def api_products_list(request):
             # 각 브랜드별로 상품 조회 (재고 많은 순 → 공장도가 높은 순)
             brand_products = []
 
-            for brand_name in brand_list:
+            for idx, brand_name in enumerate(brand_list):
+                brand_eng = brand_list_eng[idx] if idx < len(brand_list_eng) else ''
                 # 정렬: 1순위 재고 내림차순, 2순위 공장도가(fixp) 내림차순
-                brand_items = products.filter(bun1=brand_name).order_by('-jaego', '-fixp')
+                # 한글명 또는 영문명(대소문자 무시)으로 검색
+                brand_items = products.filter(
+                    Q(bun1=brand_name) | Q(bun1__iexact=brand_eng)
+                ).order_by('-jaego', '-fixp')
                 brand_products.append(list(brand_items))
 
             # 브랜드별로 1개씩 교차 출력 (선택한 브랜드 순서대로)
