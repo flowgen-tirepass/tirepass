@@ -326,14 +326,16 @@ def api_products_erp(request):
                     pass  # 기본값 유지
 
             # DOT 재고 정보 구성
+            # 상품카드: 기본할인+브랜드/패턴할인+고객개별상품할인 (final_discount_rate)
+            # 장바구니: 위 3가지 + DOT 할인
             dot_inventory = []
             ya = year_allocations.get(code) if code else None
             if ya:
                 base_price = int(goods.get('fixp', 0))
 
-                # 2025년 (DOT 할인 없음, 상품 기본할인만)
+                # 2025년 (DOT 할인 없음, 전체 할인율 적용)
                 if ya.year_2025 > 0:
-                    total_discount_2025 = base_discount
+                    total_discount_2025 = final_discount_rate
                     price_2025 = int(base_price * (1 - total_discount_2025 / 100))
                     dot_inventory.append({
                         'year': 2025,
@@ -342,9 +344,9 @@ def api_products_erp(request):
                         'price': price_2025
                     })
 
-                # 2024년
+                # 2024년 (전체 할인율 + DOT 할인)
                 if ya.year_2024 > 0:
-                    total_discount_2024 = base_discount + float(ya.year_2024_discount)
+                    total_discount_2024 = final_discount_rate + float(ya.year_2024_discount)
                     price_2024 = int(base_price * (1 - total_discount_2024 / 100))
                     dot_inventory.append({
                         'year': 2024,
@@ -353,9 +355,9 @@ def api_products_erp(request):
                         'price': price_2024
                     })
 
-                # 2023년
+                # 2023년 (전체 할인율 + DOT 할인)
                 if ya.year_2023 > 0:
-                    total_discount_2023 = base_discount + float(ya.year_2023_discount)
+                    total_discount_2023 = final_discount_rate + float(ya.year_2023_discount)
                     price_2023 = int(base_price * (1 - total_discount_2023 / 100))
                     dot_inventory.append({
                         'year': 2023,
@@ -364,9 +366,9 @@ def api_products_erp(request):
                         'price': price_2023
                     })
 
-                # 2022년
+                # 2022년 (전체 할인율 + DOT 할인)
                 if ya.year_2022 > 0:
-                    total_discount_2022 = base_discount + float(ya.year_2022_discount)
+                    total_discount_2022 = final_discount_rate + float(ya.year_2022_discount)
                     price_2022 = int(base_price * (1 - total_discount_2022 / 100))
                     dot_inventory.append({
                         'year': 2022,
@@ -375,9 +377,9 @@ def api_products_erp(request):
                         'price': price_2022
                     })
 
-                # 2021년 이전
+                # 2021년 이전 (전체 할인율 + DOT 할인)
                 if ya.year_2021_before > 0:
-                    total_discount_2021 = base_discount + float(ya.year_2021_before_discount)
+                    total_discount_2021 = final_discount_rate + float(ya.year_2021_before_discount)
                     price_2021 = int(base_price * (1 - total_discount_2021 / 100))
                     dot_inventory.append({
                         'year': 2021,
