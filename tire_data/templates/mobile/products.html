@@ -83,6 +83,8 @@
     white-space: nowrap;
     display: block;
     width: calc(100% - clamp(70px, 18vw, 95px));
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .product-name-english {
@@ -94,6 +96,8 @@
     white-space: nowrap;
     display: block;
     width: calc(100% - clamp(70px, 18vw, 95px));
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dot-button {
@@ -921,20 +925,51 @@ function adjustProductNameFontSize() {
     // 한글명 조절
     const koreanNames = document.querySelectorAll('.product-name');
     koreanNames.forEach(element => {
-        const availableWidth = element.offsetWidth;
+        // 부모 카드의 너비를 기준으로 사용 가능한 너비 계산
+        const card = element.closest('.product-card');
+        if (!card) return;
 
-        // 초기 폰트 크기 설정 (최대값 28px)
-        let fontSize = 28;
+        const cardWidth = card.offsetWidth;
+        const cardPadding = parseInt(window.getComputedStyle(card).paddingLeft) + parseInt(window.getComputedStyle(card).paddingRight);
+        const logoWidth = 95; // 브랜드 로고 공간
+        const availableWidth = cardWidth - cardPadding - logoWidth;
+
+        // 요소 너비 설정
+        element.style.maxWidth = availableWidth + 'px';
+
+        // 초기 폰트 크기 설정 (최대값 24px로 조정)
+        let fontSize = 24;
         element.style.fontSize = fontSize + 'px';
 
-        // 텍스트가 넘치면 폰트 크기를 줄임 (최소 16px)
-        while (element.scrollWidth > availableWidth && fontSize > 16) {
+        // 텍스트가 넘치면 폰트 크기를 줄임 (최소 14px)
+        while (element.scrollWidth > availableWidth && fontSize > 14) {
             fontSize -= 0.5;
             element.style.fontSize = fontSize + 'px';
         }
     });
 
-    // 영문명은 CSS에서 관리 (JavaScript 오버라이드 제거)
+    // 영문명 조절
+    const englishNames = document.querySelectorAll('.product-name-english');
+    englishNames.forEach(element => {
+        const card = element.closest('.product-card');
+        if (!card) return;
+
+        const cardWidth = card.offsetWidth;
+        const cardPadding = parseInt(window.getComputedStyle(card).paddingLeft) + parseInt(window.getComputedStyle(card).paddingRight);
+        const logoWidth = 95;
+        const availableWidth = cardWidth - cardPadding - logoWidth;
+
+        element.style.maxWidth = availableWidth + 'px';
+
+        // 영문명 폰트 크기 (최대 12px, 최소 9px)
+        let fontSize = 12;
+        element.style.fontSize = fontSize + 'px';
+
+        while (element.scrollWidth > availableWidth && fontSize > 9) {
+            fontSize -= 0.5;
+            element.style.fontSize = fontSize + 'px';
+        }
+    });
 }
 
 // DOT 재고 정보 토글
