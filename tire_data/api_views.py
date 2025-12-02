@@ -254,9 +254,12 @@ def api_products_list(request):
             for idx, brand_name in enumerate(brand_list):
                 brand_eng = brand_list_eng[idx] if idx < len(brand_list_eng) else ''
                 # 정렬: 1순위 재고 내림차순, 2순위 공장도가(fixp) 내림차순
-                # 한글명 또는 영문명(대소문자 무시)으로 검색
+                # 한글명(정확/포함) 또는 영문명(대소문자 무시, 포함)으로 검색
                 brand_items = products.filter(
-                    Q(bun1=brand_name) | Q(bun1__iexact=brand_eng)
+                    Q(bun1=brand_name) |
+                    Q(bun1__icontains=brand_name) |
+                    Q(bun1__iexact=brand_eng) |
+                    Q(bun1__icontains=brand_eng)
                 ).order_by('-jaego', '-fixp')
                 brand_products.append(list(brand_items))
 
