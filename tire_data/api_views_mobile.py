@@ -294,7 +294,7 @@ def api_products_erp(request):
         products = []
         for goods in products_page:
             code = goods.get('code')
-            base_discount = 0.00
+            final_discount_rate = 0.00
             final_discount_rate = 0.00
             final_price = int(goods.get('fixp', 0))
 
@@ -304,24 +304,24 @@ def api_products_erp(request):
                     discount_info = calculate_discount_price(code, customer_code)
                     final_discount_rate = float(discount_info['total_discount_rate'])
                     final_price = discount_info['discounted_price']
-                    base_discount = float(discount_info['basic_discount_rate'])
+                    # 삭제: basic_discount_rate 덮어쓰기 버그
                 except Exception as e:
                     logger.error(f"할인가 계산 오류 (code={code}, customer={customer_code}): {str(e)}")
                     # 오류 시 기본할인만 적용 (Goods 테이블에서 조회)
                     try:
                         goods_obj = Goods.objects.get(code=code)
-                        base_discount = float(goods_obj.discount_rate)
-                        final_discount_rate = base_discount
-                        final_price = int(int(goods.get('fixp', 0)) * (1 - base_discount / 100))
+                        final_discount_rate = float(goods_obj.discount_rate)
+                        final_discount_rate = final_discount_rate
+                        final_price = int(int(goods.get('fixp', 0)) * (1 - final_discount_rate / 100))
                     except Goods.DoesNotExist:
                         pass  # 기본값 유지
             else:
                 # 고객 코드 없으면 기본할인만 (Goods 테이블에서 조회)
                 try:
                     goods_obj = Goods.objects.get(code=code)
-                    base_discount = float(goods_obj.discount_rate)
-                    final_discount_rate = base_discount
-                    final_price = int(int(goods.get('fixp', 0)) * (1 - base_discount / 100))
+                    final_discount_rate = float(goods_obj.discount_rate)
+                    final_discount_rate = final_discount_rate
+                    final_price = int(int(goods.get('fixp', 0)) * (1 - final_discount_rate / 100))
                 except Goods.DoesNotExist:
                     pass  # 기본값 유지
 
@@ -333,7 +333,7 @@ def api_products_erp(request):
 
                 # 2025년 (DOT 할인 없음, 상품 기본할인만)
                 if ya.year_2025 > 0:
-                    total_discount_2025 = base_discount
+                    total_discount_2025 = final_discount_rate
                     price_2025 = int(base_price * (1 - total_discount_2025 / 100))
                     dot_inventory.append({
                         'year': 2025,
@@ -344,7 +344,7 @@ def api_products_erp(request):
 
                 # 2024년
                 if ya.year_2024 > 0:
-                    total_discount_2024 = base_discount + float(ya.year_2024_discount)
+                    total_discount_2024 = final_discount_rate + float(ya.year_2024_discount)
                     price_2024 = int(base_price * (1 - total_discount_2024 / 100))
                     dot_inventory.append({
                         'year': 2024,
@@ -355,7 +355,7 @@ def api_products_erp(request):
 
                 # 2023년
                 if ya.year_2023 > 0:
-                    total_discount_2023 = base_discount + float(ya.year_2023_discount)
+                    total_discount_2023 = final_discount_rate + float(ya.year_2023_discount)
                     price_2023 = int(base_price * (1 - total_discount_2023 / 100))
                     dot_inventory.append({
                         'year': 2023,
@@ -366,7 +366,7 @@ def api_products_erp(request):
 
                 # 2022년
                 if ya.year_2022 > 0:
-                    total_discount_2022 = base_discount + float(ya.year_2022_discount)
+                    total_discount_2022 = final_discount_rate + float(ya.year_2022_discount)
                     price_2022 = int(base_price * (1 - total_discount_2022 / 100))
                     dot_inventory.append({
                         'year': 2022,
@@ -377,7 +377,7 @@ def api_products_erp(request):
 
                 # 2021년 이전
                 if ya.year_2021_before > 0:
-                    total_discount_2021 = base_discount + float(ya.year_2021_before_discount)
+                    total_discount_2021 = final_discount_rate + float(ya.year_2021_before_discount)
                     price_2021 = int(base_price * (1 - total_discount_2021 / 100))
                     dot_inventory.append({
                         'year': 2021,
@@ -479,16 +479,16 @@ def api_product_detail_erp(request, code):
         goods = erp_goods_list[0]
 
         # Goods 테이블에서 기본 할인율 가져오기
-        base_discount = 0.00
+        final_discount_rate = 0.00
         try:
             goods_obj = Goods.objects.get(code=code)
-            base_discount = float(goods_obj.discount_rate)
+            final_discount_rate = float(goods_obj.discount_rate)
         except Goods.DoesNotExist:
             pass
 
         # 할인가 계산
         price = int(goods.get('fixp', 0))
-        discount_amount = int(price * base_discount / 100)
+        discount_amount = int(price * final_discount_rate / 100)
         discounted_price = price - discount_amount
 
         return JsonResponse({
@@ -498,7 +498,7 @@ def api_product_detail_erp(request, code):
                 'name': goods.get('name', ''),
                 'brand': goods.get('bun1', ''),
                 'price': price,
-                'discount_rate': base_discount,
+                'discount_rate': final_discount_rate,
                 'discount_amount': discount_amount,
                 'discounted_price': discounted_price,
                 'stock': int(goods.get('jaego', 0)),

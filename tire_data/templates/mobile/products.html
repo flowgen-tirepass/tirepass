@@ -587,16 +587,6 @@
     </div>
 </div>
 
-<div class="card">
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <label style="display: flex; align-items: center; gap: 5px;">
-            <input type="checkbox" id="tireOnly" checked> 타이어만 보기
-        </label>
-        <label style="display: flex; align-items: center; gap: 5px;">
-            <input type="checkbox" id="inStockOnly" checked> 재고 있는 상품만
-        </label>
-    </div>
-</div>
 
 <!-- 상품 목록 -->
 <div id="productsList"></div>
@@ -724,8 +714,8 @@ async function loadProducts(page = 1) {
         return;
     }
 
-    const tireOnly = document.getElementById('tireOnly').checked ? 1 : 0;
-    const inStock = document.getElementById('inStockOnly').checked ? 1 : 0;
+    const tireOnly = 1;  // 기본값 고정
+    const inStock = 1;   // 기본값 고정
 
     showLoading();
 
@@ -1178,8 +1168,6 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 });
 
 // 필터 변경
-document.getElementById('tireOnly').addEventListener('change', () => loadProducts(1));
-document.getElementById('inStockOnly').addEventListener('change', () => loadProducts(1));
 
 // URL에서 검색 파라미터 읽기
 function initFromURL() {

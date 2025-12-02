@@ -9,29 +9,6 @@ from .models import (
 
 
 def calculate_discount_price(product_code, customer_code, selected_year=None, quantity=1):
-    """
-    할인율을 계산하여 최종 가격 반환
-
-    Args:
-        product_code: 상품 코드
-        customer_code: 고객 코드
-        selected_year: 선택한 제조년도 (DOT) - None이면 최신년도
-        quantity: 수량
-
-    Returns:
-        dict: {
-            'unit_price': 단가,
-            'basic_discount_rate': 기본 할인율,
-            'customer_discount_rate': 고객 브랜드/그룹 할인율,
-            'additional_discount_rate': 고객 추가 할인율,
-            'membership_discount_rate': 멤버십 할인율,
-            'dot_discount_rate': DOT 할인율,
-            'total_discount_rate': 총 할인율,
-            'discounted_price': 할인 적용 단가,
-            'final_price': 최종가격 (수량 포함),
-            'available_years': 선택 가능한 제조년도 목록
-        }
-    """
     result = {
         'unit_price': 0,
         'basic_discount_rate': Decimal('0.00'),
@@ -47,7 +24,6 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
         'product_name': ''
     }
 
-    # 1. 상품 정보 조회
     try:
         product = Goods.objects.get(code=product_code)
     except Goods.DoesNotExist:
@@ -56,44 +32,51 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
     result['unit_price'] = product.fixp
     result['brand'] = product.bun1 or ''
     result['product_name'] = product.name
-
-    # 2. 기본 할인율 조회 (Goods의 discount_rate를 무조건 사용)
-    # ⚠️ 중요: YearAllocation은 DOT 할인만 담당, 기본할인은 Goods 테이블에서만 관리
     result['basic_discount_rate'] = product.discount_rate
 
-    # YearAllocation 조회 (DOT 할인율용)
     try:
         year_allocation = YearAllocation.objects.get(goods_code=product_code)
     except YearAllocation.DoesNotExist:
         year_allocation = None
 
-    # 3. 고객 브랜드/그룹 할인율 조회
     customer_discount = get_customer_discount(customer_code, product)
     if customer_discount:
         result['customer_discount_rate'] = customer_discount
 
     # 4. 고객 추가 할인율 조회 (개별 상품)
+    product_discount = None
     try:
         product_discount = CustomerProductDiscount.objects.get(
             customer_code=customer_code,
             product_code=product_code,
             is_active=True
         )
-        if product_discount.is_valid:
-            result['additional_discount_rate'] = product_discount.additional_discount_rate
     except CustomerProductDiscount.DoesNotExist:
-        pass
+        if product.bun1 and product.name:
+            candidate_discounts = CustomerProductDiscount.objects.filter(
+                customer_code=customer_code,
+                brand=product.bun1,
+                is_active=True
+            )
+            for discount in candidate_discounts:
+                try:
+                    discount_product = Goods.objects.get(code=discount.product_code)
+                    if discount_product.name == product.name:
+                        product_discount = discount
+                        break
+                except Goods.DoesNotExist:
+                    continue
 
-    # 5. 멤버십 할인율 조회 (프리미엄 회원 2% 추가 할인)
+    if product_discount and product_discount.is_valid:
+        result['additional_discount_rate'] = product_discount.additional_discount_rate
+
     try:
         customer = Customers.objects.get(code=customer_code)
         result['membership_discount_rate'] = Decimal(str(customer.membership_discount_rate))
     except Customers.DoesNotExist:
         pass
 
-    # 6. DOT 할인율 조회
     if year_allocation:
-        # 선택 가능한 제조년도 목록 (재고가 있는 년도만)
         available_years = []
         if year_allocation.year_2025 > 0:
             available_years.append({'year': 2025, 'quantity': year_allocation.year_2025, 'discount': Decimal('0.00')})
@@ -105,13 +88,10 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
             available_years.append({'year': 2022, 'quantity': year_allocation.year_2022, 'discount': year_allocation.year_2022_discount})
         if year_allocation.year_2021_before > 0:
             available_years.append({'year': 2021, 'quantity': year_allocation.year_2021_before, 'discount': year_allocation.year_2021_before_discount})
-
         result['available_years'] = available_years
 
-        # 선택된 년도의 할인율 적용 (문자열/정수 모두 처리)
         if selected_year:
             try:
-                # selected_year를 정수로 변환
                 year_int = int(selected_year)
                 if year_int == 2024:
                     result['dot_discount_rate'] = year_allocation.year_2024_discount
@@ -122,15 +102,9 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
                 elif year_int == 2021:
                     result['dot_discount_rate'] = year_allocation.year_2021_before_discount
             except (ValueError, TypeError):
-                # 변환 실패 시 무시
                 pass
 
-    # 7. 최종 가격 계산
-    # 공식: 공장도가 × (1 - 총할인율/100)
-    # 총할인율 = 기본할인% + 고객할인% + 추가할인% + 멤버십할인% + DOT할인% (단순 합산)
     unit_price = Decimal(str(result['unit_price']))
-
-    # 모든 할인율을 단순 합산
     total_discount_rate = (
         Decimal(str(result['basic_discount_rate'])) +
         Decimal(str(result['customer_discount_rate'])) +
@@ -138,166 +112,91 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
         Decimal(str(result['membership_discount_rate'])) +
         Decimal(str(result['dot_discount_rate']))
     )
-
     result['total_discount_rate'] = total_discount_rate.quantize(Decimal('0.01'))
-
-    # 공장도가 기준으로 총 할인율을 한 번에 적용
     discounted_price = unit_price * (Decimal('1') - total_discount_rate / Decimal('100'))
-
     result['discounted_price'] = int(discounted_price)
     result['final_price'] = int(discounted_price) * quantity
-
     return result
 
 
 def get_customer_discount(customer_code, product):
-    """
-    고객별 브랜드/패턴 할인율 조회
-
-    Args:
-        customer_code: 고객 코드
-        product: Goods 모델 인스턴스
-
-    Returns:
-        Decimal: 할인율 (0.00 ~ 100.00)
-    """
     brand_name = product.bun1
     if not brand_name:
         return Decimal('0.00')
-
-    # Brand 모델에서 브랜드 찾기
     try:
         from .models import Brand, BrandPattern, CustomerBrandDiscount
         brand = Brand.objects.get(name=brand_name, is_active=True)
     except Brand.DoesNotExist:
         return Decimal('0.00')
 
-    # 고객별 브랜드 할인 조회 (우선순위: 패턴 할인 > 브랜드 전체 할인)
     discounts = CustomerBrandDiscount.objects.filter(
         customer__code=customer_code,
         brand=brand,
         is_active=True
     ).order_by('-priority')
 
-    # 1. 패턴별 할인 찾기 (상품명에 패턴명이 포함된 경우)
     for discount in discounts:
         if not discount.is_valid:
             continue
-
         if discount.pattern:
-            # 상품명이나 코드에 패턴명이 포함되어 있는지 확인
             pattern_name = discount.pattern.pattern_name
             if pattern_name and (pattern_name in product.name or pattern_name in product.code):
                 return discount.discount_rate
 
-    # 2. 브랜드 전체 할인 찾기
     for discount in discounts:
         if not discount.is_valid:
             continue
-
-        if not discount.pattern:  # 패턴이 지정되지 않은 경우 = 브랜드 전체 할인
+        if not discount.pattern:
             return discount.discount_rate
 
     return Decimal('0.00')
 
 
 def find_product_groups(product):
-    """
-    상품이 속한 그룹 ID 목록 반환
-
-    Args:
-        product: Goods 모델 인스턴스
-
-    Returns:
-        list: 그룹 ID 목록
-    """
     brand = product.bun1
     product_code = product.code
     product_name = product.name
-
     if not brand:
         return []
-
     group_ids = []
-
-    # 해당 브랜드의 모든 그룹 조회
     groups = BrandGroup.objects.filter(brand=brand, is_active=True)
-
     for group in groups:
-        # 그룹의 패턴 조회
         patterns = BrandGroupPattern.objects.filter(group=group)
-
         for pattern in patterns:
-            # 패턴 매칭 (상품코드 또는 상품명에 패턴이 포함되어 있는지)
             if pattern.pattern.upper() in product_code.upper() or pattern.pattern in product_name:
                 group_ids.append(group.id)
-                break  # 한 패턴이라도 매칭되면 해당 그룹에 포함
-
+                break
     return group_ids
 
 
 def generate_order_number():
-    """
-    주문번호 생성
-    형식: ORD20251007001 (ORD + 날짜 + 일련번호)
-
-    Returns:
-        str: 주문번호
-    """
     from datetime import datetime
     from .models_shopping import Order
-
     today = datetime.now()
     date_str = today.strftime('%Y%m%d')
     prefix = f'ORD{date_str}'
-
-    # 오늘 날짜의 마지막 주문번호 조회
-    last_order = Order.objects.filter(
-        order_number__startswith=prefix
-    ).order_by('-order_number').first()
-
+    last_order = Order.objects.filter(order_number__startswith=prefix).order_by('-order_number').first()
     if last_order:
-        # 마지막 일련번호 추출 후 +1
         last_seq = int(last_order.order_number[-3:])
         new_seq = last_seq + 1
     else:
         new_seq = 1
-
     return f'{prefix}{new_seq:03d}'
 
 
 def update_stock(product_code, selected_year, quantity, operation='subtract'):
-    """
-    재고 업데이트
-
-    Args:
-        product_code: 상품 코드
-        selected_year: 제조년도 (정수 또는 문자열)
-        quantity: 수량
-        operation: 'subtract'(차감) 또는 'add'(추가)
-
-    Returns:
-        bool: 성공 여부
-    """
     try:
         allocation = YearAllocation.objects.get(goods_code=product_code)
     except YearAllocation.DoesNotExist:
         return False
-
-    # selected_year를 정수로 변환 (문자열인 경우 처리)
     try:
         if isinstance(selected_year, str):
-            # "2023/45" 형식이면 앞부분만 추출
             year_int = int(selected_year.split('/')[0])
         else:
             year_int = int(selected_year)
     except (ValueError, TypeError):
         return False
-
-    # 수량 계산
     change = quantity if operation == 'add' else -quantity
-
-    # 해당 년도 재고 업데이트
     if year_int == 2025:
         allocation.year_2025 = max(0, allocation.year_2025 + change)
     elif year_int == 2024:
@@ -310,13 +209,8 @@ def update_stock(product_code, selected_year, quantity, operation='subtract'):
         allocation.year_2021_before = max(0, allocation.year_2021_before + change)
     else:
         return False
-
     allocation.save()
-
-    # 전체 재고도 업데이트 (Goods.jaego는 YearAllocation.save()에서 자동 업데이트됨)
-    # YearAllocation 모델의 save() 메서드에서 Goods.jaego가 자동으로 동기화됨
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"✓ 재고 업데이트 완료: {product_code} (년도={year_int}, 변경량={change})")
-
+    logger.info(f"재고 업데이트 완료: {product_code} (년도={year_int}, 변경량={change})")
     return True
