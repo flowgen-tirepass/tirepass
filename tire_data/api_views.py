@@ -246,22 +246,26 @@ def api_products_list(request):
             brand_list.append(brand_kor)
 
         if len(brand_list) > 0:
-            # 각 브랜드별로 상품 조회 (재고 많은 순 + 가격 높은 순)
+            # 각 브랜드별로 상품 조회 (재고 많은 순 → 공장도가 높은 순)
             brand_products = []
 
             for brand_name in brand_list:
+                # 정렬: 1순위 재고 내림차순, 2순위 공장도가(fixp) 내림차순
                 brand_items = products.filter(bun1=brand_name).order_by('-jaego', '-fixp')
                 brand_products.append(list(brand_items))
 
-            # 브랜드별로 1개씩 교차 출력
+            # 브랜드별로 1개씩 교차 출력 (선택한 브랜드 순서대로)
             interleaved_products = []
+            seen_codes = set()  # 중복 방지용 (상품코드 기준)
             max_len = max([len(bp) for bp in brand_products]) if brand_products else 0
 
             for i in range(max_len):
                 for brand_items in brand_products:
                     if i < len(brand_items):
-                        if brand_items[i] not in interleaved_products:
-                            interleaved_products.append(brand_items[i])
+                        product = brand_items[i]
+                        if product.code not in seen_codes:
+                            interleaved_products.append(product)
+                            seen_codes.add(product.code)
 
             # 페이지네이션
             total_count = len(interleaved_products)
