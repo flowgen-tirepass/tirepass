@@ -107,3 +107,7 @@ docs/*환경변수*.md
 docs/*API*.txt
 **/*_API_*.txt
 **/🎯_*.txt
+
+# 관련없는 프로젝트 파일
+hoengseong_*.json
+*_newsletter*.json
