@@ -899,7 +899,18 @@ class DiscountHistory(models.Model):
 
 class CustomerProductDiscount(models.Model):
     """고객별 개별 상품 추가 할인율 모델"""
-    customer_code = models.CharField(max_length=10, verbose_name='고객 코드')
+    customer_code = models.CharField(
+        max_length=20,
+        verbose_name='고객 코드',
+        help_text='ERP 고객코드 (예: 0-0-0002, 1-60, 0-4-879) - 사업자번호 아님!'
+    )
+    customer_name = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        verbose_name='고객명/상호',
+        help_text='고객의 상호명을 입력하세요'
+    )
     product_code = models.CharField(max_length=20, verbose_name='상품 코드')
     brand = models.CharField(max_length=100, null=True, blank=True, verbose_name='브랜드')
     additional_discount_rate = models.DecimalField(
@@ -947,11 +958,12 @@ class CustomerProductDiscount(models.Model):
 
         return True
 
-    @property
-    def customer_name(self):
-        """고객명 조회"""
-        # customer_code는 실제로 사업자번호(enno)를 저장
-        customer = Customers.objects.filter(enno=self.customer_code).first()
+    def get_customer_name_display(self):
+        """고객명 표시 (저장된 값 우선, 없으면 DB 조회)"""
+        if self.customer_name:
+            return self.customer_name
+        # 저장된 값이 없으면 ERP 고객코드(code)로 조회
+        customer = Customers.objects.filter(code=self.customer_code).first()
         return customer.name if customer else None
 
     @property

@@ -89,12 +89,48 @@ class CustomerProductDiscountForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # 고객 코드 필드 설정
+        self.fields['customer_code'].widget.attrs.update({
+            'placeholder': 'ERP 고객코드',
+            'style': 'width: 150px;',
+        })
+        self.fields['customer_code'].help_text = (
+            '⚠️ ERP 고객코드를 입력하세요 (예: 0-0-0002, 1-60, 0-4-879). '
+            '사업자번호(10자리)가 아닙니다!'
+        )
+
+        # 고객명 필드 설정
+        self.fields['customer_name'].widget.attrs.update({
+            'placeholder': '상호명 입력',
+            'style': 'width: 200px;',
+        })
+        self.fields['customer_name'].help_text = '고객의 상호명을 입력하세요 (확인용)'
+
         # 할인율 필드에 음수 방지 속성 추가
         self.fields['additional_discount_rate'].widget.attrs.update({
             'min': '0',
             'step': '0.01',
         })
         self.fields['additional_discount_rate'].help_text = '추가 할인율은 0 이상이어야 합니다 (음수 입력 불가)'
+
+    def clean_customer_code(self):
+        """고객 코드 형식 검증 - 사업자번호 입력 방지"""
+        import re
+        customer_code = self.cleaned_data.get('customer_code')
+
+        if not customer_code:
+            raise ValidationError('고객 코드를 입력해주세요.')
+
+        # 사업자번호 패턴 감지 (10자리 연속 숫자 또는 000-00-00000 형식)
+        cleaned_code = customer_code.replace('-', '')
+        if len(cleaned_code) == 10 and cleaned_code.isdigit():
+            raise ValidationError(
+                f'⚠️ 사업자번호가 아닌 ERP 고객코드를 입력해주세요!\n'
+                f'입력값: "{customer_code}" (사업자번호 형식으로 보입니다)\n'
+                f'ERP 고객코드 예시: 0-0-0002, 1-60, 0-4-879, 00000228 등'
+            )
+
+        return customer_code
 
     def clean_additional_discount_rate(self):
         """할인율 음수 검증"""

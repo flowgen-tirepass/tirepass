@@ -1970,8 +1970,12 @@ class CustomerProductDiscountAdmin(admin.ModelAdmin):
     list_per_page = 50
 
     fieldsets = (
-        ('고객 및 상품', {
-            'fields': ('customer_code', 'product_code', 'brand')
+        ('고객 정보', {
+            'fields': ('customer_code', 'customer_name'),
+            'description': '⚠️ 고객코드는 ERP 고객코드(예: 0-0-0002, 1-60, 0-4-879)를 입력하세요. 사업자번호(10자리)가 아닙니다!'
+        }),
+        ('상품 정보', {
+            'fields': ('product_code', 'brand')
         }),
         ('할인 설정', {
             'fields': ('additional_discount_rate', 'priority', 'start_date', 'end_date')
@@ -1987,8 +1991,8 @@ class CustomerProductDiscountAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at', 'brand']
 
     def get_customer_name(self, obj):
-        return obj.customer_name if obj.customer_name else '-'
-    get_customer_name.short_description = '고객명'
+        return obj.get_customer_name_display() if obj.get_customer_name_display() else '-'
+    get_customer_name.short_description = '고객명/상호'
 
     def get_product_name(self, obj):
         return obj.product_name if obj.product_name else '-'
