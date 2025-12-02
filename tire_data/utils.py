@@ -73,16 +73,39 @@ def calculate_discount_price(product_code, customer_code, selected_year=None, qu
         result['customer_discount_rate'] = customer_discount
 
     # 4. 고객 추가 할인율 조회 (개별 상품)
+    # 우선순위: 1) 상품코드 정확 매칭 -> 2) 브랜드+상품명 매칭 (fallback)
+    product_discount = None
+
+    # 1차 시도: 상품 코드로 정확히 매칭
     try:
         product_discount = CustomerProductDiscount.objects.get(
             customer_code=customer_code,
             product_code=product_code,
             is_active=True
         )
-        if product_discount.is_valid:
-            result['additional_discount_rate'] = product_discount.additional_discount_rate
     except CustomerProductDiscount.DoesNotExist:
-        pass
+        # 2차 시도: 브랜드 + 상품명으로 매칭 (상품코드가 다른 경우 대응)
+        if product.bun1 and product.name:
+            try:
+                product_discount = CustomerProductDiscount.objects.get(
+                    customer_code=customer_code,
+                    brand=product.bun1,
+                    product_name=product.name,
+                    is_active=True
+                )
+            except CustomerProductDiscount.DoesNotExist:
+                pass
+            except CustomerProductDiscount.MultipleObjectsReturned:
+                # 여러 개가 매칭되면 첫 번째 것 사용
+                product_discount = CustomerProductDiscount.objects.filter(
+                    customer_code=customer_code,
+                    brand=product.bun1,
+                    product_name=product.name,
+                    is_active=True
+                ).first()
+
+    if product_discount and product_discount.is_valid:
+        result['additional_discount_rate'] = product_discount.additional_discount_rate
 
     # 5. 멤버십 할인율 조회 (프리미엄 회원 2% 추가 할인)
     try:
