@@ -88,21 +88,22 @@ BRAND_NAME_MAP = {
 }
 
 # 추가 브랜드명 변형 (DB에 다양한 형태로 저장된 경우)
+# 각 브랜드별로 가능한 모든 저장 형태를 포함
 BRAND_ALIASES = {
-    'GOODYEAR': ['굿이어', 'GOODYEAR', '굿 이어'],
-    'KUMHO': ['금호', 'KUMHO', '금호타이어'],
-    'NEXEN': ['넥센', 'NEXEN', '넥센타이어'],
-    'CONTINENTAL': ['콘티넨탈', 'CONTINENTAL', '콘티'],
-    'PIRELLI': ['피렐리', 'PIRELLI'],
-    'MICHELIN': ['미쉐린', 'MICHELIN', '미슐랭'],
-    'BRIDGESTONE': ['브리지스톤', 'BRIDGESTONE', '브릿지스톤'],
-    'HANKOOK': ['한국', '한국타이어', 'HANKOOK', '한국 타이어'],
-    'LAUFENN': ['라우펜', 'LAUFENN'],
-    'ANNAITE': ['아나이트', 'ANNAITE'],
-    'DUNLOP': ['던롭', 'DUNLOP'],
-    'YOKOHAMA': ['요코하마', 'YOKOHAMA'],
-    'TOYO': ['토요', 'TOYO'],
-    'FIRESTONE': ['파이어스톤', 'FIRESTONE'],
+    'GOODYEAR': ['굿이어', 'GOODYEAR', 'Goodyear', '굿 이어', '굿이어타이어'],
+    'KUMHO': ['금호', 'KUMHO', 'Kumho', '금호타이어', '금호 타이어'],
+    'NEXEN': ['넥센', 'NEXEN', 'Nexen', '넥센타이어', '넥쎈'],
+    'CONTINENTAL': ['콘티넨탈', 'CONTINENTAL', 'Continental', '콘티', '콘티넨탈타이어', '콘티넨털'],
+    'PIRELLI': ['피렐리', 'PIRELLI', 'Pirelli', '피렐리타이어'],
+    'MICHELIN': ['미쉐린', 'MICHELIN', 'Michelin', '미슐랭', '미셸린', '미쉐린타이어'],
+    'BRIDGESTONE': ['브리지스톤', 'BRIDGESTONE', 'Bridgestone', '브릿지스톤', '브릿지스톤타이어'],
+    'HANKOOK': ['한국', '한국타이어', 'HANKOOK', 'Hankook', '한국 타이어', 'HANKOOK TIRE'],
+    'LAUFENN': ['라우펜', 'LAUFENN', 'Laufenn', '라우펜타이어'],
+    'ANNAITE': ['아나이트', 'ANNAITE', 'Annaite'],
+    'DUNLOP': ['던롭', 'DUNLOP', 'Dunlop', '던롭타이어'],
+    'YOKOHAMA': ['요코하마', 'YOKOHAMA', 'Yokohama', '요코하마타이어'],
+    'TOYO': ['토요', 'TOYO', 'Toyo', '토요타이어'],
+    'FIRESTONE': ['파이어스톤', 'FIRESTONE', 'Firestone'],
 }
 
 
@@ -282,13 +283,28 @@ def api_products_list(request):
                 # 정렬: 1순위 재고 내림차순, 2순위 공장도가(fixp) 내림차순
                 brand_items = products.filter(brand_q).order_by('-jaego', '-fixp')
                 brand_items_list = list(brand_items)
-                logger.info(f"[브랜드 필터] {brand_eng} (별칭: {aliases}): {len(brand_items_list)}개 상품 찾음")
+
+                # 디버그: 첫 3개 상품의 실제 bun1 값 확인
+                if brand_items_list:
+                    sample_brands = [p.bun1 for p in brand_items_list[:3]]
+                    logger.info(f"[브랜드 필터] {brand_eng} (별칭: {aliases}): {len(brand_items_list)}개 상품 찾음 (샘플: {sample_brands})")
+                else:
+                    # 상품이 없으면 DB에서 해당 별칭과 유사한 브랜드 찾기
+                    similar_brands = list(Goods.objects.filter(jaego__gt=0).values_list('bun1', flat=True).distinct())
+                    matching = [b for b in similar_brands if b and any(a.lower() in b.lower() or b.lower() in a.lower() for a in aliases)]
+                    logger.warning(f"[브랜드 필터] {brand_eng} (별칭: {aliases}): 0개 상품! 유사 브랜드: {matching[:5]}")
+
                 brand_products.append(brand_items_list)
 
             # 브랜드별로 1개씩 교차 출력 (선택한 브랜드 순서대로)
             interleaved_products = []
             seen_codes = set()  # 중복 방지용 (상품코드 기준)
-            max_len = max([len(bp) for bp in brand_products]) if brand_products else 0
+
+            # 빈 리스트 제외하고 최대 길이 계산
+            non_empty_brand_products = [bp for bp in brand_products if bp]
+            max_len = max([len(bp) for bp in non_empty_brand_products]) if non_empty_brand_products else 0
+
+            logger.info(f"[교차 출력] 브랜드 수: {len(brand_products)}, 비어있지 않은 브랜드: {len(non_empty_brand_products)}, 최대 상품수: {max_len}")
 
             for i in range(max_len):
                 for brand_items in brand_products:
