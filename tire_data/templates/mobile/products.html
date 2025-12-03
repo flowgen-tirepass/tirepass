@@ -705,6 +705,7 @@ let selectedBrandsArray = []; // 선택된 브랜드 배열
 // 브랜드 토글
 function toggleBrand(element) {
     const brand = element.getAttribute('data-brand');
+    console.log('[toggleBrand] 클릭:', brand, '현재 선택됨:', element.classList.contains('selected'));
 
     if (element.classList.contains('selected')) {
         // 선택 해제
@@ -718,6 +719,7 @@ function toggleBrand(element) {
 
     // 선택된 브랜드를 문자열로 변환
     selectedBrands = selectedBrandsArray.join(',');
+    console.log('[toggleBrand] 변경 후 브랜드 배열:', selectedBrandsArray, '문자열:', selectedBrands);
 
     // 브랜드 변경 시 자동 검색
     loadProducts(1);
@@ -732,6 +734,9 @@ async function loadProducts(page = 1) {
 
     const tireOnly = 1;  // 타이어만 보기 (기본값 고정)
     const inStock = 1;   // 재고 있는 상품만 (기본값 고정)
+
+    // 디버그: 선택된 브랜드 확인
+    console.log('[loadProducts] 선택된 브랜드:', selectedBrands, '배열:', selectedBrandsArray);
 
     showLoading();
 
@@ -750,6 +755,7 @@ async function loadProducts(page = 1) {
             params.append('brands', selectedBrands);
         }
 
+        console.log('[loadProducts] API 요청:', `/api/mobile/products/?${params}`);
         const response = await fetch(`/api/mobile/products/?${params}`);
         const data = await response.json();
         hideLoading();
