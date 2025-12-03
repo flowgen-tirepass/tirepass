@@ -1245,11 +1245,7 @@ function initFromURL() {
         });
     }
 
-    // 타이어만 보기 필터
-    const tireOnlyParam = urlParams.get('tire_only');
-    if (tireOnlyParam === '1') {
-        document.getElementById('tireOnly').checked = true;
-    }
+    // tire_only 파라미터는 항상 적용됨 (상수 tireOnly = 1)
 }
 
 // 초기화 및 로드
