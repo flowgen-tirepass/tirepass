@@ -783,6 +783,30 @@ function extractProductNameWithoutSize(name) {
     return productName;
 }
 
+// 한글 브랜드명 → 영문 파일명 매핑
+const BRAND_LOGO_MAP = {
+    '미쉐린': 'michelin',
+    '피렐리': 'pirelli',
+    '콘티넨탈': 'continental',
+    '안나이트': 'annite',
+    '브릿지스톤': 'bridgestone',
+    '금호': 'kumho',
+    '한국': 'hankook',
+    '한국타이어': 'hankook',
+    '넥센': 'nexen',
+    '라우펜': 'laufenn',
+    '굿이어': 'goodyear',
+    '하이로': 'hiro',
+    '트라이앵글': 'triangle',
+    '던롭': 'dunlop',
+    '요코하마': 'yokohama',
+    '팔켄': 'falken',
+    '토요': 'toyo',
+    '니토': 'nitto',
+    '쿠퍼': 'cooper',
+    'BF굿리치': 'bfgoodrich'
+};
+
 // 브랜드 로고 경로 생성
 function getBrandLogo(brand, logoFilename) {
     // API에서 로고 파일명이 지정되어 있으면 그것을 사용
@@ -794,8 +818,16 @@ function getBrandLogo(brand, logoFilename) {
         // 파일명만 있는 경우 경로 추가
         return `/static/mobile/img/brands/${logoFilename}`;
     }
-    // 없으면 기존 방식 (브랜드명 기반)
+    // 없으면 브랜드명 기반
     if (!brand) return '';
+
+    // 한글 브랜드명이면 영문으로 변환
+    const brandKey = brand.trim();
+    if (BRAND_LOGO_MAP[brandKey]) {
+        return `/static/mobile/img/brands/${BRAND_LOGO_MAP[brandKey]}.png`;
+    }
+
+    // 영문 브랜드명은 소문자로 변환
     const brandLower = brand.toLowerCase().replace(/\s+/g, '');
     return `/static/mobile/img/brands/${brandLower}.png`;
 }
