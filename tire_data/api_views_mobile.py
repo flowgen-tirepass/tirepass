@@ -195,18 +195,21 @@ def api_products_erp(request):
                         key=lambda x: (-float(x.get('jaego', 0)), -int(x.get('fixp', 0)))
                     )
 
-                # 라운드 로빈 방식으로 교차 출력
+                # 라운드 로빈 방식으로 교차 출력 (사용자 선택 순서 유지)
                 interleaved_goods = []
-                brand_keys = list(brand_groups.keys())
+                # brand_list 순서대로 (사용자가 클릭한 순서)
+                ordered_brand_keys = [b for b in brand_list if b in brand_groups]
                 max_items = max(len(v) for v in brand_groups.values()) if brand_groups else 0
 
+                logger.info(f"🔢 브랜드 순서: {ordered_brand_keys} (사용자 선택 순서)")
+
                 for i in range(max_items):
-                    for brand_key in brand_keys:
+                    for brand_key in ordered_brand_keys:
                         if i < len(brand_groups[brand_key]):
                             interleaved_goods.append(brand_groups[brand_key][i])
 
                 filtered_goods = interleaved_goods
-                logger.info(f"🔀 인터리브 출력: {len(filtered_goods)}개 (브랜드 {len(brand_keys)}개 교차)")
+                logger.info(f"🔀 인터리브 출력: {len(filtered_goods)}개 (브랜드 {len(ordered_brand_keys)}개 교차)")
             else:
                 # 단일 브랜드: 재고 많은 순 → 공장가 높은 순 정렬
                 filtered_goods.sort(
