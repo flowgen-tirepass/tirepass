@@ -99,7 +99,7 @@ BRAND_ALIASES = {
     'BRIDGESTONE': ['브리지스톤', 'BRIDGESTONE', 'Bridgestone', '브릿지스톤', '브릿지스톤타이어'],
     'HANKOOK': ['한국', '한국타이어', 'HANKOOK', 'Hankook', '한국 타이어', 'HANKOOK TIRE'],
     'LAUFENN': ['라우펜', 'LAUFENN', 'Laufenn', '라우펜타이어'],
-    'ANNAITE': ['아나이트', 'ANNAITE', 'Annaite'],
+    'ANNAITE': ['안나이트', '아나이트', 'ANNAITE', 'Annaite', '안나이트타이어'],
     'DUNLOP': ['던롭', 'DUNLOP', 'Dunlop', '던롭타이어'],
     'YOKOHAMA': ['요코하마', 'YOKOHAMA', 'Yokohama', '요코하마타이어'],
     'TOYO': ['토요', 'TOYO', 'Toyo', '토요타이어'],
