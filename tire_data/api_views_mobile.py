@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # 브랜드 매핑
 BRAND_MAPPING = {
     'kumho': {'keywords': ['금호', 'KUMHO'], 'code_prefix': ['K-']},
-    'hankook': {'keywords': ['한국', 'HANKOOK'], 'code_prefix': ['H-']},
+    'hankook': {'keywords': ['한국', '한국타이어', 'HANKOOK'], 'code_prefix': ['H-']},
     'michelin': {'keywords': ['미쉐린', '미슐랭', 'MICHELIN'], 'code_prefix': ['M-']},
     'nexen': {'keywords': ['넥센', 'NEXEN'], 'code_prefix': ['N-']},
     'pirelli': {'keywords': ['피렐리', 'PIRELLI', 'P ZERO'], 'code_prefix': ['P-']},
@@ -28,7 +28,9 @@ BRAND_MAPPING = {
     'continental': {'keywords': ['콘티넨탈', 'CONTINENTAL'], 'code_prefix': ['C-', 'CT-']},
     'dunlop': {'keywords': ['던롭', 'DUNLOP'], 'code_prefix': ['D-']},
     'yokohama': {'keywords': ['요코하마', 'YOKOHAMA'], 'code_prefix': ['Y-']},
-    'goodyear': {'keywords': ['굳이어', 'GOODYEAR'], 'code_prefix': ['G-']},
+    'goodyear': {'keywords': ['굳이어', '굿이어', 'GOODYEAR'], 'code_prefix': ['G-']},
+    'annaite': {'keywords': ['안나이트', '아나이트', 'ANNAITE', 'Annaite'], 'code_prefix': ['ANNAITE-']},
+    'laufenn': {'keywords': ['라우펜', 'LAUFENN'], 'code_prefix': ['LF-']},
 }
 
 # 타이어 코드 접두사 (사용 안 함 - 브랜드 기반 필터링으로 대체)
@@ -165,6 +167,51 @@ def api_products_erp(request):
                 filtered_goods.append(goods)
 
             logger.info(f"✅ 브랜드+검색 필터 결과: {len(filtered_goods)}개")
+
+            # 멀티 브랜드 인터리브 출력 (2개 이상 브랜드 선택 시)
+            if len(brand_list) > 1:
+                # 브랜드별로 상품 그룹화
+                brand_groups = {}
+                for goods in filtered_goods:
+                    bun1 = (goods.get('bun1', '') or '').strip()
+                    # 브랜드명 정규화 (BRAND_MAPPING으로 매칭)
+                    matched_brand = None
+                    for brand_key, brand_config in BRAND_MAPPING.items():
+                        keywords = brand_config.get('keywords', [])
+                        if any(kw in bun1 or kw in bun1.upper() for kw in keywords):
+                            matched_brand = brand_key
+                            break
+
+                    if matched_brand:
+                        if matched_brand not in brand_groups:
+                            brand_groups[matched_brand] = []
+                        brand_groups[matched_brand].append(goods)
+
+                logger.info(f"📊 브랜드별 그룹화: {', '.join([f'{k}={len(v)}개' for k, v in brand_groups.items()])}")
+
+                # 각 브랜드 내에서 정렬 (재고 많은 순 → 공장가 높은 순)
+                for brand_key in brand_groups:
+                    brand_groups[brand_key].sort(
+                        key=lambda x: (-float(x.get('jaego', 0)), -int(x.get('fixp', 0)))
+                    )
+
+                # 라운드 로빈 방식으로 교차 출력
+                interleaved_goods = []
+                brand_keys = list(brand_groups.keys())
+                max_items = max(len(v) for v in brand_groups.values()) if brand_groups else 0
+
+                for i in range(max_items):
+                    for brand_key in brand_keys:
+                        if i < len(brand_groups[brand_key]):
+                            interleaved_goods.append(brand_groups[brand_key][i])
+
+                filtered_goods = interleaved_goods
+                logger.info(f"🔀 인터리브 출력: {len(filtered_goods)}개 (브랜드 {len(brand_keys)}개 교차)")
+            else:
+                # 단일 브랜드: 재고 많은 순 → 공장가 높은 순 정렬
+                filtered_goods.sort(
+                    key=lambda x: (-float(x.get('jaego', 0)), -int(x.get('fixp', 0)))
+                )
 
             # 페이지네이션
             total_count = len(filtered_goods)
